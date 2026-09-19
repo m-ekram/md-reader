@@ -55,6 +55,10 @@ const api = {
   app: {
     openExternal: (url: string): Promise<void> => ipcRenderer.invoke('app:open-external', url),
     version: (): Promise<string> => ipcRenderer.invoke('app:version'),
+    confirm: (message: string, detail?: string): Promise<boolean> =>
+      ipcRenderer.invoke('app:confirm', message, detail),
+    info: (message: string, detail?: string): Promise<void> =>
+      ipcRenderer.invoke('app:info', message, detail),
   },
 }
 

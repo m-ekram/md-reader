@@ -26,7 +26,11 @@ beforeAll(async () => {
   for (const [k, v] of Object.entries(process.env)) {
     if (k !== 'ELECTRON_RUN_AS_NODE' && v !== undefined) env[k] = v
   }
-  app = await electron.launch({ args: ['.'], cwd: process.cwd(), env })
+  app = await electron.launch({
+    args: ['.', `--user-data-dir=${join(workdir, 'userdata')}`],
+    cwd: process.cwd(),
+    env,
+  })
   page = await app.firstWindow()
   page.on('console', (m) => {
     if (m.type() === 'error') consoleErrors.push(m.text())
@@ -130,5 +134,107 @@ describe('the save path preserves the file', () => {
     await page.waitForTimeout(1200)
 
     expect(await readFile(file, 'utf8')).toBe(original)
+  })
+})
+
+describe('keys the editor owns still reach the editor', () => {
+  /**
+   * The regression guard for the worst bug in Phase 1. The app-level key handler
+   * claimed every accelerator the menu declared, including ~49 whose commands did
+   * not exist yet, so Ctrl+C, Ctrl+V, Ctrl+Z and Tab were silently swallowed and
+   * the editor could not copy, paste or undo. Every other test still passed.
+   */
+  async function freshDocument(): Promise<void> {
+    await page.keyboard.press('Control+n')
+    await page.waitForTimeout(400)
+    await page.locator('.ProseMirror').click()
+  }
+
+  const text = () => page.locator('.ProseMirror').innerText()
+
+  it('types, selects all and cuts', async () => {
+    await freshDocument()
+    await page.keyboard.type('recoverable sentence')
+    await page.waitForTimeout(200)
+    expect(await text()).toContain('recoverable sentence')
+
+    await page.keyboard.press('Control+a')
+    await page.keyboard.press('Control+x')
+    await page.waitForTimeout(300)
+    expect(await text()).not.toContain('recoverable sentence')
+  })
+
+  it('pastes it back', async () => {
+    await page.keyboard.press('Control+v')
+    await page.waitForTimeout(400)
+    expect(await text()).toContain('recoverable sentence')
+  })
+
+  it('undoes with Ctrl+Z', async () => {
+    await freshDocument()
+    await page.keyboard.type('first')
+    await page.waitForTimeout(250)
+    await page.keyboard.type(' second')
+    await page.waitForTimeout(250)
+    expect(await text()).toContain('second')
+
+    await page.keyboard.press('Control+z')
+    await page.waitForTimeout(400)
+    expect(await text()).not.toContain('second')
+  })
+
+  it('applies bold with Ctrl+B', async () => {
+    await freshDocument()
+    await page.keyboard.type('bolded')
+    await page.keyboard.press('Control+a')
+    await page.keyboard.press('Control+b')
+    await page.waitForTimeout(300)
+    expect(await page.locator('.ProseMirror strong').count()).toBeGreaterThan(0)
+  })
+
+  it('does not swallow Tab', async () => {
+    await freshDocument()
+    await page.keyboard.type('- item one')
+    await page.waitForTimeout(300)
+    await page.keyboard.press('Enter')
+    await page.keyboard.type('item two')
+    await page.waitForTimeout(200)
+    // Two list items exist already, so counting items would pass even if Tab
+    // were swallowed. Nesting is what proves the key reached the editor.
+    const nestedBefore = await page.locator('.ProseMirror li ul, .ProseMirror li ol').count()
+    await page.keyboard.press('Tab')
+    await page.waitForTimeout(400)
+    const nestedAfter = await page.locator('.ProseMirror li ul, .ProseMirror li ol').count()
+    expect(nestedAfter).toBeGreaterThan(nestedBefore)
+  })
+})
+
+describe('Open Recent stays in step with its labels', () => {
+  it('opens the file it names after the list is reordered', async () => {
+    const a = join(workdir, 'alpha.md')
+    const b = join(workdir, 'beta.md')
+    await writeFile(a, '# Alpha document\n', 'utf8')
+    await writeFile(b, '# Beta document\n', 'utf8')
+
+    for (const p of [a, b]) {
+      await app.evaluate(async ({ BrowserWindow }, path) => {
+        BrowserWindow.getAllWindows()[0].webContents.send('file:open-path', path)
+      }, p)
+      await page.waitForTimeout(700)
+    }
+
+    await page.locator('.menubar__top', { hasText: /^File$/ }).click()
+    await page.waitForSelector('.menu[role="menu"]')
+    await page.locator('.menu__item', { hasText: 'Open Recent' }).first().hover()
+    await page.waitForTimeout(300)
+
+    const first = page.locator('.menu--nested .menu__item').first()
+    const label = (await first.innerText()).trim()
+    await first.click()
+    await page.waitForTimeout(800)
+
+    // Whichever file the entry named must be the one now on screen.
+    const expected = label.startsWith('alpha') ? 'Alpha document' : 'Beta document'
+    expect(await page.locator('.ProseMirror').innerText()).toContain(expected)
   })
 })

@@ -16,6 +16,7 @@ import { createHash } from 'node:crypto'
 import { mkdirSync, readFileSync, writeFileSync, existsSync, readdirSync, unlinkSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { log } from './log'
+import { readTextFileSync } from './fs/textfile'
 
 export interface JournalEntry {
   path: string
@@ -24,7 +25,12 @@ export interface JournalEntry {
   at: number
 }
 
-const debounces = new Map<string, NodeJS.Timeout>()
+/** Pending journal writes, held so a shutdown can flush rather than drop them. */
+interface Pending {
+  timer: NodeJS.Timeout
+  entry: JournalEntry
+}
+const debounces = new Map<string, Pending>()
 
 function keyFor(path: string): string {
   return createHash('sha256').update(path.toLowerCase()).digest('hex').slice(0, 32)
@@ -36,21 +42,35 @@ function dir(kind: 'backups' | 'journal'): string {
   return d
 }
 
-/** Stores the file's current on-disk content before it is overwritten. */
-export function backup(path: string, previousContent: string): void {
+/**
+ * Stores the file's current bytes before it is overwritten.
+ *
+ * Deliberately a Buffer rather than a decoded string: a backup that has been
+ * through encoding and line-ending normalization is not the file that was
+ * replaced, which defeats the point of keeping it.
+ */
+export function backup(path: string, previousBytes: Buffer): void {
   try {
-    writeFileSync(join(dir('backups'), `${keyFor(path)}.bak`), previousContent, 'utf8')
+    writeFileSync(join(dir('backups'), `${keyFor(path)}.bak`), previousBytes)
   } catch (err) {
     log.warn('backup failed', { path, err: String(err) })
   }
 }
 
-export function readBackup(path: string): string | null {
+export function readBackup(path: string): Buffer | null {
   const p = join(dir('backups'), `${keyFor(path)}.bak`)
   try {
-    return existsSync(p) ? readFileSync(p, 'utf8') : null
+    return existsSync(p) ? readFileSync(p) : null
   } catch {
     return null
+  }
+}
+
+function writeEntry(key: string, entry: JournalEntry): void {
+  try {
+    writeFileSync(join(dir('journal'), `${key}.json`), JSON.stringify(entry), 'utf8')
+  } catch (err) {
+    log.warn('journal write failed', { path: entry.path, err: String(err) })
   }
 }
 
@@ -58,19 +78,15 @@ export function readBackup(path: string): string | null {
 export function journal(path: string, content: string): void {
   const key = keyFor(path)
   const existing = debounces.get(key)
-  if (existing) clearTimeout(existing)
-  debounces.set(
-    key,
-    setTimeout(() => {
-      debounces.delete(key)
-      try {
-        const entry: JournalEntry = { path, content, at: Date.now() }
-        writeFileSync(join(dir('journal'), `${key}.json`), JSON.stringify(entry), 'utf8')
-      } catch (err) {
-        log.warn('journal write failed', { path, err: String(err) })
-      }
-    }, 1500)
-  )
+  if (existing) clearTimeout(existing.timer)
+
+  const entry: JournalEntry = { path, content, at: Date.now() }
+  const timer = setTimeout(() => {
+    debounces.delete(key)
+    writeEntry(key, entry)
+  }, 1500)
+
+  debounces.set(key, { timer, entry })
 }
 
 /** Called once a buffer is safely on disk; its journal is no longer needed. */
@@ -78,7 +94,7 @@ export function clearJournal(path: string): void {
   const key = keyFor(path)
   const pending = debounces.get(key)
   if (pending) {
-    clearTimeout(pending)
+    clearTimeout(pending.timer)
     debounces.delete(key)
   }
   try {
@@ -115,7 +131,9 @@ export function pendingRecoveries(): JournalEntry[] {
         out.push(entry)
         continue
       }
-      const onDisk = readFileSync(entry.path, 'utf8').replace(/\r\n/g, '\n')
+      // Must decode the way the editor does. A plain utf8 read mangles UTF-16,
+      // so those files never matched and were offered for recovery every launch.
+      const onDisk = readTextFileSync(entry.path).content
       const stale = statSync(entry.path).mtimeMs > entry.at
       if (!stale && onDisk !== entry.content) out.push(entry)
       else unlinkSync(full)
@@ -131,8 +149,17 @@ export function pendingRecoveries(): JournalEntry[] {
   return out
 }
 
-/** Flushes any debounced journal writes immediately, for shutdown. */
+/**
+ * Writes any debounced journal entries immediately, for shutdown.
+ *
+ * This has to actually write them. Simply cancelling the timers would discard
+ * up to the last 1.5 seconds of unsaved typing at the exact moment the journal
+ * exists to protect it.
+ */
 export function flushJournals(): void {
-  for (const [, timer] of debounces) clearTimeout(timer)
+  for (const [key, pending] of debounces) {
+    clearTimeout(pending.timer)
+    writeEntry(key, pending.entry)
+  }
   debounces.clear()
 }

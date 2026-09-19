@@ -13,6 +13,16 @@ import { getSettings, patchSettings } from './settings'
 
 const windows = new Set<BrowserWindow>()
 
+/**
+ * Every window restores the same persisted bounds, so without an offset a second
+ * window lands exactly on top of the first and looks like nothing happened.
+ */
+const CASCADE_STEP = 28
+function cascadeOffset(): { dx: number; dy: number } {
+  const n = windows.size
+  return { dx: n * CASCADE_STEP, dy: n * CASCADE_STEP }
+}
+
 export function allWindows(): BrowserWindow[] {
   return [...windows]
 }
@@ -20,11 +30,12 @@ export function allWindows(): BrowserWindow[] {
 export function createWindow(openPath?: string): BrowserWindow {
   const saved = getSettings().window
 
+  const { dx, dy } = cascadeOffset()
   const win = new BrowserWindow({
     width: saved.width,
     height: saved.height,
-    x: saved.x,
-    y: saved.y,
+    x: saved.x === undefined ? undefined : saved.x + dx,
+    y: saved.y === undefined ? undefined : saved.y + dy,
     minWidth: 560,
     minHeight: 400,
     show: false,
@@ -62,6 +73,9 @@ export function createWindow(openPath?: string): BrowserWindow {
 
   const persistBounds = () => {
     if (win.isDestroyed()) return
+    // Only the focused window owns the remembered geometry; otherwise a
+    // cascaded window would save its offset and the cascade would compound.
+    if (!win.isFocused()) return
     const maximized = win.isMaximized()
     // Only record real bounds when not maximized, so unmaximizing restores sanely.
     if (!maximized) {

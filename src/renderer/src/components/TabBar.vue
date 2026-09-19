@@ -7,20 +7,26 @@ const docs = useDocuments()
 
 <template>
   <nav v-if="docs.docs.length > 1" class="tabs" role="tablist" aria-label="Open documents">
-    <button
+    <div
       v-for="(d, i) in docs.docs"
-      :key="i"
+      :key="d.id"
       class="tab"
-      role="tab"
-      :aria-selected="i === docs.activeIndex"
       :class="{ 'is-active': i === docs.activeIndex }"
-      @click="setActive(i)"
-      @auxclick.middle="closeDoc(i)"
     >
-      <span class="tab__name">{{ d.name }}</span>
-      <span v-if="isDirty(d)" class="tab__dot" aria-label="Unsaved changes">•</span>
-      <span class="tab__close" role="button" aria-label="Close" @click.stop="closeDoc(i)">×</span>
-    </button>
+      <button
+        class="tab__select"
+        role="tab"
+        :aria-selected="i === docs.activeIndex"
+        @click="setActive(i)"
+        @auxclick.middle="closeDoc(i)"
+      >
+        <span class="tab__name">{{ d.name }}</span>
+        <span v-if="isDirty(d)" class="tab__dot" aria-label="Unsaved changes">•</span>
+      </button>
+      <button class="tab__close" :aria-label="`Close ${d.name}`" @click.stop="closeDoc(i)">
+        ×
+      </button>
+    </div>
   </nav>
 </template>
 
@@ -36,15 +42,32 @@ const docs = useDocuments()
 .tab {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border: 0;
   background: transparent;
   color: var(--chrome-fg-dim);
-  font: inherit;
   font-size: 12px;
-  cursor: default;
   white-space: nowrap;
+}
+.tab__select,
+.tab__close {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: default;
+}
+.tab__select {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 4px 6px 10px;
+}
+.tab__close {
+  padding: 6px 8px 6px 4px;
+}
+.tab__select:focus-visible,
+.tab__close:focus-visible {
+  outline: 2px solid var(--chrome-accent);
+  outline-offset: -2px;
 }
 .tab.is-active {
   background: var(--doc-bg);

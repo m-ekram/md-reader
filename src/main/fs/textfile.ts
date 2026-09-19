@@ -8,6 +8,7 @@
  * producing a one-line diff and a save producing a whole-file diff.
  */
 import { readFile, rename, writeFile, unlink } from 'node:fs/promises'
+import { readFileSync } from 'node:fs'
 import { randomBytes } from 'node:crypto'
 import { dirname, join } from 'node:path'
 
@@ -73,8 +74,7 @@ function encode(content: string, encoding: Encoding, hasBom: boolean): Buffer {
   return hasBom ? Buffer.concat([UTF8_BOM, body]) : body
 }
 
-export async function readTextFile(path: string): Promise<TextFile> {
-  const buf = await readFile(path)
+function fromBuffer(buf: Buffer): TextFile {
   const { encoding, hasBom } = detectEncoding(buf)
   const raw = decode(buf, encoding, hasBom)
   return {
@@ -83,6 +83,15 @@ export async function readTextFile(path: string): Promise<TextFile> {
     hasBom,
     eol: detectEol(raw),
   }
+}
+
+export async function readTextFile(path: string): Promise<TextFile> {
+  return fromBuffer(await readFile(path))
+}
+
+/** Same decoding, for the callers that cannot await (the recovery scan). */
+export function readTextFileSync(path: string): TextFile {
+  return fromBuffer(readFileSync(path))
 }
 
 /**

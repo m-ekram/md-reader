@@ -4,7 +4,7 @@ import TitleBar from './components/TitleBar.vue'
 import Editor from './components/Editor.vue'
 import StatusBar from './components/StatusBar.vue'
 import TabBar from './components/TabBar.vue'
-import { commandForAccel, run } from './commands/registry'
+import { commandForAccel, isEnabled, isRegistered, run } from './commands/registry'
 import { adoptFile, anyDirty, useDocuments, isDirty } from './stores/documents'
 import { saveActive } from './commands/app-commands'
 
@@ -14,12 +14,18 @@ const unsubscribers: Array<() => void> = []
 /**
  * Accelerators are handled here rather than in the main process. Routing every
  * keystroke through `before-input-event` would interfere with IME composition,
- * so the renderer owns the keymap and only genuinely unreachable keys would
- * need main's help.
+ * so the renderer owns the keymap.
+ *
+ * Only keys belonging to a command that actually exists are intercepted.
+ * Claiming a key whose command is unimplemented swallows it without doing
+ * anything, which is how copy, paste, undo and Tab all ended up dead: the menu
+ * declared their accelerators long before the commands existed. Anything not
+ * claimed here falls through to ProseMirror and CodeMirror, which implement
+ * these natively.
  */
 function onKeydown(e: KeyboardEvent): void {
   const id = commandForAccel(e)
-  if (!id) return
+  if (!id || !isRegistered(id) || !isEnabled(id)) return
   e.preventDefault()
   e.stopPropagation()
   void run(id)

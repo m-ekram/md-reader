@@ -10,6 +10,13 @@ import type { DocumentFile } from '../../../shared/ipc'
 import { invalidateCommands } from '../commands/registry'
 
 export interface Doc {
+  /**
+   * Stable for the document's whole life, including across a Save As.
+   * Views key off this rather than the path, which changes when a file is first
+   * saved and would otherwise force a remount that loses the cursor and undo
+   * history. It is also the journal key for buffers that have no path yet.
+   */
+  id: string
   /** Null until the document has been saved somewhere. */
   path: string | null
   name: string
@@ -26,6 +33,12 @@ export interface Doc {
 }
 
 let untitledCounter = 0
+let docSeq = 0
+
+/** Journal key: a real path once saved, otherwise a stable synthetic id. */
+export function journalKey(d: Doc): string {
+  return d.path ?? `untitled:${d.id}`
+}
 
 const state = reactive({
   docs: [] as Doc[],
@@ -51,6 +64,7 @@ export function anyDirty(): boolean {
 export function newDoc(): Doc {
   untitledCounter++
   const d: Doc = {
+    id: `doc-${++docSeq}`,
     path: null,
     name: untitledCounter === 1 ? 'Untitled' : `Untitled ${untitledCounter}`,
     content: '',
@@ -78,6 +92,7 @@ export function adoptFile(f: DocumentFile): Doc {
   }
 
   const d: Doc = {
+    id: `doc-${++docSeq}`,
     path: f.path,
     name: f.path.split(/[\/]/).pop() ?? f.path,
     content: f.content,

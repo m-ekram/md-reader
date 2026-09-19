@@ -6,6 +6,7 @@
  * full menu is visible from day one, and later phases light up their own items
  * by registering here.
  */
+import { watch } from 'vue'
 import { MENUS, type MenuNode } from './menus'
 import { bindAccelerators, invalidateCommands, registerAll, type Command } from './registry'
 import {
@@ -14,6 +15,7 @@ import {
   anyDirty,
   closeDoc,
   isDirty,
+  journalKey,
   newDoc,
   setActive,
   useDocuments,
@@ -32,6 +34,10 @@ export async function saveActive(saveAs = false): Promise<boolean> {
   const d = activeDoc.value
   if (!d) return false
 
+  // An untitled buffer is journalled under a synthetic key. Once it has a real
+  // path the old entry would linger and be offered back forever, so remember it
+  // and discard it after the save succeeds.
+  const previousJournalKey = journalKey(d)
   let path = d.path
   if (!path || saveAs) {
     path = await window.api.file.saveAsDialog(path ?? `${d.name}.md`)
@@ -73,6 +79,7 @@ export async function saveActive(saveAs = false): Promise<boolean> {
     savedContent: d.content,
     mtimeMs: res.mtimeMs,
   })
+  if (previousJournalKey !== path) await window.api.file.discardRecovery(previousJournalKey)
   invalidateCommands()
   return true
 }
@@ -172,7 +179,7 @@ const commands: Command[] = [
     id: 'help.about',
     run: async () => {
       const v = await window.api.app.version()
-      window.alert(`ekram.md ${v}`)
+      await window.api.app.info('ekram.md', `Version ${v}`)
     },
   },
 ]
@@ -201,12 +208,25 @@ export function registerThemeCommands(): void {
   rebindAccelerators()
 }
 
-/** Recent-file entries are positional, so they are registered as a block. */
+/**
+ * Recent-file entries are positional slots, not captured paths.
+ *
+ * The list is reordered on every open and save. Capturing the path at
+ * registration time meant the menu label and the command drifted apart, so
+ * clicking an entry opened a different file than the one it named. Resolving
+ * the path when the command runs keeps it consistent with what is on screen,
+ * which reads from the same array.
+ */
+const MAX_RECENT = 15
+
 export function registerRecentCommands(): void {
   registerAll(
-    settings.value.recentFiles.map((path, i) => ({
+    Array.from({ length: MAX_RECENT }, (_, i) => ({
       id: `file.recent.${i}`,
+      enabled: () => settings.value.recentFiles[i] !== undefined,
       run: async () => {
+        const path = settings.value.recentFiles[i]
+        if (!path) return
         adoptFile(await window.api.file.read(path))
       },
     }))
@@ -229,4 +249,16 @@ function rebindAccelerators(): void {
 export function registerAppCommands(): void {
   registerAll(commands)
   rebindAccelerators()
+}
+
+/**
+ * Re-registers the generated command groups whenever the state they are derived
+ * from changes, so a theme dropped into the themes folder becomes usable without
+ * a restart.
+ */
+export function watchGeneratedCommands(): void {
+  watch(
+    () => theme.available.map((t) => t.id).join(','),
+    () => registerThemeCommands()
+  )
 }

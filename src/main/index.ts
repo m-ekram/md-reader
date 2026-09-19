@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell, dialog } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import { existsSync } from 'node:fs'
 import { installCrashHandlers, log } from './log'
 import { flushSettings, getSettings, patchSettings } from './settings'
@@ -56,8 +56,17 @@ if (!app.requestSingleInstanceLock()) {
   })
 }
 
+/**
+ * Once a quit is under way the close negotiation must stand down. It works by
+ * cancelling the close and asking the renderer first, and cancelling a close
+ * during a quit cancels the quit itself - which would leave the app refusing to
+ * exit, including during an OS shutdown.
+ */
+let quitting = false
+
 app.on('window-all-closed', () => app.quit())
 app.on('before-quit', () => {
+  quitting = true
   flushJournals()
   flushSettings()
 })
@@ -77,6 +86,7 @@ function registerThemeIpc(): void {
  * unsaved work, and only then is the window allowed to go.
  */
 const closing = new WeakSet<BrowserWindow>()
+const closeTimers = new WeakMap<BrowserWindow, NodeJS.Timeout>()
 
 function registerWindowIpc(): void {
   const senderWindow = (e: Electron.IpcMainEvent) => BrowserWindow.fromWebContents(e.sender)
@@ -100,6 +110,11 @@ function registerWindowIpc(): void {
   ipcMain.on('window:close-reply', (e, allow: boolean) => {
     const w = senderWindow(e)
     if (!w) return
+    const t = closeTimers.get(w)
+    if (t) {
+      clearTimeout(t)
+      closeTimers.delete(w)
+    }
     if (allow) {
       closing.add(w)
       w.destroy()
@@ -108,9 +123,21 @@ function registerWindowIpc(): void {
 
   app.on('browser-window-created', (_e, win) => {
     win.on('close', (event) => {
-      if (closing.has(win)) return
+      if (closing.has(win) || quitting) return
       event.preventDefault()
       win.webContents.send('window:close-request')
+
+      // If the renderer has crashed, or has not mounted its listener yet, no
+      // reply will ever arrive and the window becomes impossible to close.
+      // Give it a moment, then go anyway.
+      const bail = setTimeout(() => {
+        if (!win.isDestroyed()) {
+          log.warn('close negotiation timed out; closing anyway')
+          closing.add(win)
+          win.destroy()
+        }
+      }, 4000)
+      closeTimers.set(win, bail)
     })
   })
 }
@@ -124,7 +151,29 @@ function registerAppIpc(): void {
     await shell.openExternal(url)
   })
   ipcMain.handle('app:version', () => app.getVersion())
-  ipcMain.handle('app:message', (e, opts: Electron.MessageBoxOptions) =>
-    dialog.showMessageBox(BrowserWindow.fromWebContents(e.sender)!, opts)
-  )
+
+  // Native dialogs rather than window.confirm/alert: those block the renderer
+  // and look nothing like the rest of the application.
+  ipcMain.handle('app:confirm', async (e, message: string, detail?: string) => {
+    const win = BrowserWindow.fromWebContents(e.sender)
+    const r = await dialog.showMessageBox(win ?? undefined!, {
+      type: 'question',
+      buttons: ['Restore', 'Discard'],
+      defaultId: 0,
+      cancelId: 1,
+      message,
+      detail,
+    })
+    return r.response === 0
+  })
+
+  ipcMain.handle('app:info', async (e, message: string, detail?: string) => {
+    const win = BrowserWindow.fromWebContents(e.sender)
+    await dialog.showMessageBox(win ?? undefined!, {
+      type: 'info',
+      buttons: ['OK'],
+      message,
+      detail,
+    })
+  })
 }

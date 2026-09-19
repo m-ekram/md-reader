@@ -114,12 +114,39 @@ export function accelFromEvent(e: KeyboardEvent): string {
   return parts.join('+')
 }
 
+/**
+ * Commands the editor itself implements.
+ *
+ * ProseMirror and CodeMirror already handle the clipboard, undo/redo, select-all
+ * and Tab indentation, and Milkdown binds Mod-b / Mod-i / Mod-e for the basic
+ * marks. Their menu items should invoke the editor's command, but the *keystroke*
+ * must reach the editor untouched — an app-level binding here wins the race and
+ * silently kills copy, paste and undo.
+ *
+ * These ids are therefore never bound as accelerators, even once their menu
+ * items are implemented. Guarded by a test so a later phase cannot undo it.
+ */
+export const EDITOR_DELEGATED: ReadonlySet<string> = new Set([
+  'edit.undo',
+  'edit.redo',
+  'edit.cut',
+  'edit.copy',
+  'edit.paste',
+  'edit.selectAll',
+  'para.indent',
+  'para.outdent',
+])
+
+export function isEditorDelegated(id: string): boolean {
+  return EDITOR_DELEGATED.has(id)
+}
+
 const accelToCommand = new Map<string, string>()
 
 export function bindAccelerators(pairs: Array<{ id: string; accel?: string }>): void {
   accelToCommand.clear()
   for (const { id, accel } of pairs) {
-    if (accel) accelToCommand.set(normalizeAccel(accel), id)
+    if (accel && !isEditorDelegated(id)) accelToCommand.set(normalizeAccel(accel), id)
   }
 }
 

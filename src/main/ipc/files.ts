@@ -3,7 +3,7 @@
  * are enforced in one place rather than sprinkled across the renderer.
  */
 import { ipcMain, dialog, shell, BrowserWindow } from 'electron'
-import { stat } from 'node:fs/promises'
+import { readFile, stat } from 'node:fs/promises'
 import { readTextFile, writeTextFile } from '../fs/textfile'
 import { backup, clearJournal, journal, pendingRecoveries } from '../recovery'
 import { addRecentFile } from '../settings'
@@ -40,13 +40,14 @@ export function registerFileIpc(): void {
     try {
       // Refuse to clobber a file that changed under us; the renderer turns this
       // into a prompt rather than silently overwriting someone else's edit.
-      let previous: string | null = null
+      let previous: Buffer | null = null
       try {
         const s = await stat(req.path)
         if (req.expectedMtimeMs !== undefined && s.mtimeMs > req.expectedMtimeMs + 1) {
           return { ok: false, reason: 'conflict', message: 'The file changed on disk since it was opened.' }
         }
-        previous = (await readTextFile(req.path)).content
+        // Raw bytes: a normalized copy is not the file we are about to replace.
+        previous = await readFile(req.path)
       } catch {
         // New file: nothing to back up.
       }

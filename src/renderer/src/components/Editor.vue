@@ -9,58 +9,81 @@
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { createEditor, type EditorHandle } from '../editor/crepe'
 import { checkRoundTrip } from '../editor/roundtrip'
-import { activeDoc, useDocuments } from '../stores/documents'
-import { useSettingsStore } from '../stores/settings'
+import { activeDoc, journalKey, useDocuments, type Doc } from '../stores/documents'
 
 const host = ref<HTMLElement | null>(null)
 const docs = useDocuments()
-const settings = useSettingsStore()
 let handle: EditorHandle | null = null
-/** Guards against writing the editor's own emitted content back into it. */
-let mountedPath: string | null | undefined
+
+/**
+ * Mounting is async, so two quick document switches can interleave and leave the
+ * older editor as the surviving one. Every mount takes a ticket and abandons its
+ * work if a newer mount started while it was awaiting.
+ */
+let mountToken = 0
+/** The document this editor is currently showing, for routing change events. */
+let mountedId: string | null = null
 
 async function mount(): Promise<void> {
+  const token = ++mountToken
   const doc = activeDoc.value
   if (!host.value) return
 
   await handle?.destroy()
+  if (token !== mountToken) return
+
   handle = null
+  mountedId = null
   host.value.innerHTML = ''
   if (!doc) return
 
-  const forceSource = doc.content.split('\n').length > settings.value.editor.sourceModeForceLines
-
-  handle = await createEditor({
+  const created = await createEditor({
     root: host.value,
     value: doc.content,
-    readonly: forceSource,
     onChange: (markdown) => {
+      // Route by identity: two untitled documents both have a null path, so
+      // comparing paths would let one document's edits land in the other.
       const d = activeDoc.value
-      if (!d || d.path !== mountedPath) return
+      if (!d || d.id !== mountedId) return
       d.content = markdown
-      if (d.path) window.api.file.journal(d.path, markdown)
+      window.api.file.journal(journalKey(d), markdown)
     },
   })
-  mountedPath = doc.path
 
-  // Run the guard once, against the content as it came off disk.
-  if (doc.lossy === null) {
-    try {
-      const report = checkRoundTrip(doc.savedContent, handle.reserialize(doc.savedContent))
-      doc.lossy = report.lossy ? { lossy: true, note: report.note } : { lossy: false, note: '' }
-    } catch {
-      doc.lossy = { lossy: true, note: 'This file could not be parsed cleanly.' }
-    }
+  if (token !== mountToken) {
+    // A newer mount won while this one was being built; discard this editor.
+    await created.destroy()
+    return
+  }
+
+  handle = created
+  mountedId = doc.id
+  runGuard(doc)
+}
+
+/** Warns before editing when the file cannot be written back faithfully. */
+function runGuard(doc: Doc): void {
+  if (doc.lossy !== null || !handle) return
+  try {
+    const report = checkRoundTrip(doc.savedContent, handle.reserialize(doc.savedContent))
+    doc.lossy = report.lossy ? { lossy: true, note: report.note } : { lossy: false, note: '' }
+  } catch {
+    doc.lossy = { lossy: true, note: 'This file could not be parsed cleanly.' }
   }
 }
 
 onMounted(mount)
 onBeforeUnmount(() => void handle?.destroy())
 
-// Remount when the active document changes, but not on every keystroke.
+// Keyed on document identity, not path: a Save As changes the path but is the
+// same document, and remounting there would throw away the cursor and undo
+// history at the exact moment the user expects nothing to happen.
 watch(
-  () => [docs.activeIndex, activeDoc.value?.path] as const,
-  () => void mount()
+  () => [docs.activeIndex, activeDoc.value?.id] as const,
+  (next, prev) => {
+    if (prev && next[1] === prev[1] && next[0] === prev[0]) return
+    void mount()
+  }
 )
 </script>
 
