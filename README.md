@@ -10,17 +10,29 @@ Built on Electron and Milkdown/Crepe (ProseMirror).
 
 ## Status
 
-Phase 0 (feasibility spike) complete. Findings below. Phase 1 (application shell,
-menu system, file open/save) in progress.
+**Phase 1 complete.** The application shell runs: frameless window with a custom
+themed title bar, the full seven-menu menu bar driven by a single command registry,
+open/edit/save with byte-exact preservation of encoding, BOM and line endings, YAML
+front matter support, the round-trip guard, crash recovery, and two themes.
+
+Phase 0 (feasibility spike) findings are below and still current.
+
+Measured on the finished Phase 1 shell: **648 ms cold start, 317 MB idle** — both
+inside the targets set in Phase 0, and slightly better than the spike, since
+disabling the alt-text-destroying image feature also trimmed the bundle.
+
+117 tests pass (104 unit, 13 end-to-end).
 
 ## Development
 
 ```powershell
 npm install
-npm run spike:app        # build and launch the editor spike
-npm run spike:roundtrip  # markdown fidelity suite
-npm test                 # full test suite
+npm run dev              # run the app with hot reload
+npm run build            # build into out/
+npm test                 # unit tests
+npm run test:e2e         # end-to-end tests against the real app
 npm run typecheck
+npm run spike:roundtrip  # markdown fidelity suite
 ```
 
 ---

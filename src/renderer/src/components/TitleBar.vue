@@ -1,0 +1,135 @@
+<script setup lang="ts">
+/**
+ * Custom title bar. The window is frameless so the menu can be themed, which
+ * means the caption buttons and drag region are ours to provide.
+ */
+import { onMounted, onBeforeUnmount, ref, computed } from 'vue'
+import { activeDoc, isDirty, useDocuments } from '../stores/documents'
+import MenuBar from './MenuBar.vue'
+
+const docs = useDocuments()
+const maximized = ref(false)
+let stop: (() => void) | undefined
+
+const title = computed(() => {
+  const d = activeDoc.value
+  if (!d) return 'ekram.md'
+  return `${isDirty(d) ? '• ' : ''}${d.name} — ekram.md`
+})
+
+onMounted(() => {
+  stop = window.api.window.onState((s) => (maximized.value = s.maximized))
+})
+onBeforeUnmount(() => stop?.())
+
+// Keep the OS window title in step for the taskbar and Alt-Tab.
+const _sync = computed(() => (document.title = title.value))
+void _sync
+void docs
+
+// `window` does not resolve inside a Vue template, so the bridge is reached
+// through component methods rather than directly in the markup.
+const minimize = () => window.api.window.minimize()
+const toggleMaximize = () => window.api.window.toggleMaximize()
+const close = () => window.api.window.close()
+</script>
+
+<template>
+  <header class="titlebar">
+    <div class="titlebar__left">
+      <span class="titlebar__mark" aria-hidden="true">m</span>
+      <MenuBar />
+    </div>
+
+    <div class="titlebar__drag">
+      <span class="titlebar__title">{{ title }}</span>
+    </div>
+
+    <div class="titlebar__controls">
+      <button class="cap" aria-label="Minimize" @click="minimize">
+        <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M0 5h10" stroke="currentColor" stroke-width="1" /></svg>
+      </button>
+      <button
+        class="cap"
+        :aria-label="maximized ? 'Restore' : 'Maximize'"
+        @click="toggleMaximize"
+      >
+        <svg v-if="!maximized" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+          <rect x="0.5" y="0.5" width="9" height="9" fill="none" stroke="currentColor" />
+        </svg>
+        <svg v-else width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+          <rect x="0.5" y="2.5" width="7" height="7" fill="none" stroke="currentColor" />
+          <path d="M2.5 2.5V0.5h7v7h-2" fill="none" stroke="currentColor" />
+        </svg>
+      </button>
+      <button class="cap cap--close" aria-label="Close" @click="close">
+        <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+          <path d="M0 0l10 10M10 0L0 10" stroke="currentColor" stroke-width="1" />
+        </svg>
+      </button>
+    </div>
+  </header>
+</template>
+
+<style scoped>
+.titlebar {
+  display: flex;
+  align-items: stretch;
+  height: 30px;
+  background: var(--chrome-bg);
+  color: var(--chrome-fg);
+  border-bottom: 1px solid var(--chrome-border);
+  -webkit-app-region: drag;
+  flex: none;
+}
+.titlebar__left {
+  display: flex;
+  align-items: stretch;
+  -webkit-app-region: no-drag;
+}
+.titlebar__mark {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--chrome-accent);
+}
+.titlebar__drag {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+}
+.titlebar__title {
+  font-size: 12px;
+  color: var(--chrome-fg-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.titlebar__controls {
+  display: flex;
+  -webkit-app-region: no-drag;
+}
+.cap {
+  width: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--chrome-fg);
+  display: grid;
+  place-items: center;
+  cursor: default;
+}
+.cap:hover {
+  background: var(--chrome-hover);
+}
+.cap--close:hover {
+  background: #c42b1c;
+  color: #fff;
+}
+.cap:focus-visible {
+  outline: 2px solid var(--chrome-accent);
+  outline-offset: -2px;
+}
+</style>

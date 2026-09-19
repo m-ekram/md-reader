@@ -1,0 +1,35 @@
+/* Github — the default light theme. Clean, familiar, high contrast. */
+:root[data-theme='github'] {
+  --doc-bg: #ffffff;
+  --doc-fg: #24292f;
+  --doc-font: -apple-system, "Segoe UI", system-ui, sans-serif;
+  --doc-muted: #57606a;
+  --doc-accent: #0969da;
+  --doc-rule: #d0d7de;
+  --doc-selection: rgba(9, 105, 218, 0.18);
+
+  --code-bg: #f6f8fa;
+  --code-fg: #24292f;
+
+  --quote-bar: #d0d7de;
+  --quote-fg: #57606a;
+
+  --table-border: #d0d7de;
+  --table-header-bg: #f6f8fa;
+  --table-stripe: #fbfcfd;
+
+  --chrome-bg: #24292f;
+  --chrome-fg: #e6edf3;
+  --chrome-fg-dim: #9198a1;
+  --chrome-accent: #58a6ff;
+
+  --menu-bg: #2d333b;
+  --menu-fg: #e6edf3;
+  --menu-fg-disabled: #6e7681;
+  --menu-hover: #3c444d;
+
+  --sidebar-bg: #f6f8fa;
+  --sidebar-fg: #24292f;
+  --status-bg: #f6f8fa;
+  --status-fg: #57606a;
+}

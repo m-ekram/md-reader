@@ -1,4 +1,5 @@
 import { defineConfig } from 'electron-vite'
+import vue from '@vitejs/plugin-vue'
 import { resolve } from 'node:path'
 
 export default defineConfig({
@@ -14,6 +15,7 @@ export default defineConfig({
   },
   renderer: {
     root: resolve(__dirname, 'src/renderer'),
+    plugins: [vue()],
     resolve: {
       // Crepe bundles its own Vue for widgets; keep exactly one copy.
       dedupe: ['vue'],

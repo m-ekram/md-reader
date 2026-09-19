@@ -1,0 +1,63 @@
+/**
+ * The theme contract.
+ *
+ * Every theme is one CSS file that redefines these custom properties and
+ * nothing else. That constraint is what makes themes cheap to add later and
+ * what lets PDF and HTML export reuse the exact same file, so an export matches
+ * what is on screen.
+ *
+ * Themes set both document tokens and chrome tokens: a dark theme must darken
+ * the title bar, menus and sidebar too, not just the text area.
+ */
+:root {
+  /* Document surface */
+  --doc-bg: #ffffff;
+  --doc-fg: #24292e;
+  --doc-font: -apple-system, "Segoe UI", system-ui, sans-serif;
+  --doc-font-size: 16px;
+  --doc-line-height: 1.7;
+  --doc-measure: 860px;
+
+  --doc-heading-fg: var(--doc-fg);
+  --doc-muted: #6a737d;
+  --doc-accent: #0366d6;
+  --doc-rule: #e1e4e8;
+  --doc-selection: rgba(3, 102, 214, 0.18);
+
+  --code-bg: #f6f8fa;
+  --code-fg: #24292e;
+  --code-font: ui-monospace, "Cascadia Code", Consolas, monospace;
+  --code-font-size: 0.9em;
+
+  --quote-bar: #dfe2e5;
+  --quote-fg: #6a737d;
+
+  --table-border: #dfe2e5;
+  --table-header-bg: #f6f8fa;
+  --table-stripe: #fbfcfd;
+
+  /* Application chrome */
+  --chrome-bg: #24292e;
+  --chrome-fg: #e1e4e8;
+  --chrome-fg-dim: #9aa4ae;
+  --chrome-hover: rgba(255, 255, 255, 0.1);
+  --chrome-active: rgba(255, 255, 255, 0.16);
+  --chrome-border: rgba(255, 255, 255, 0.08);
+  --chrome-accent: #58a6ff;
+
+  --menu-bg: #2b3038;
+  --menu-fg: #e6e8eb;
+  --menu-fg-disabled: #6e7681;
+  --menu-hover: #3a4149;
+  --menu-border: rgba(255, 255, 255, 0.1);
+  --menu-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+
+  --sidebar-bg: #f6f8fa;
+  --sidebar-fg: #24292e;
+
+  --status-bg: #f6f8fa;
+  --status-fg: #57606a;
+
+  --danger: #cf222e;
+  --warning: #9a6700;
+}

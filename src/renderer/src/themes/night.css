@@ -1,0 +1,50 @@
+/*
+ * Night — the dark theme.
+ *
+ * This is the one that proves the contract: a dark theme has to carry the whole
+ * application, so the sidebar and status bar go dark here too rather than
+ * staying light while only the document inverts.
+ */
+:root[data-theme='night'] {
+  --doc-bg: #191b1f;
+  --doc-fg: #d7dae0;
+  --doc-font: -apple-system, "Segoe UI", system-ui, sans-serif;
+  --doc-heading-fg: #f0f3f6;
+  --doc-muted: #8b949e;
+  --doc-accent: #6cb6ff;
+  --doc-rule: #30363d;
+  --doc-selection: rgba(108, 182, 255, 0.22);
+
+  --code-bg: #22262b;
+  --code-fg: #d7dae0;
+
+  --quote-bar: #3a414a;
+  --quote-fg: #9aa4ae;
+
+  --table-border: #30363d;
+  --table-header-bg: #22262b;
+  --table-stripe: #1d2024;
+
+  --chrome-bg: #15171a;
+  --chrome-fg: #d7dae0;
+  --chrome-fg-dim: #7d8590;
+  --chrome-hover: rgba(255, 255, 255, 0.08);
+  --chrome-active: rgba(255, 255, 255, 0.14);
+  --chrome-border: rgba(255, 255, 255, 0.07);
+  --chrome-accent: #6cb6ff;
+
+  --menu-bg: #1f2227;
+  --menu-fg: #d7dae0;
+  --menu-fg-disabled: #5c636b;
+  --menu-hover: #2c3037;
+  --menu-border: rgba(255, 255, 255, 0.08);
+  --menu-shadow: 0 8px 28px rgba(0, 0, 0, 0.6);
+
+  --sidebar-bg: #17191d;
+  --sidebar-fg: #c2c7ce;
+  --status-bg: #17191d;
+  --status-fg: #8b949e;
+
+  --danger: #ff7b72;
+  --warning: #d29922;
+}

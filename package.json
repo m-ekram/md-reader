@@ -8,25 +8,32 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "spike:app": "electron-vite build && electron .",
-    "spike:roundtrip": "vitest run spike/",
-    "test": "vitest run",
+    "dev": "electron-vite dev",
     "build": "electron-vite build",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "start": "electron-vite preview",
+    "test": "vitest run --project unit",
+    "test:e2e": "electron-vite build && vitest run --project e2e",
+    "typecheck": "vue-tsc --noEmit -p tsconfig.json",
+    "spike:roundtrip": "vitest run --project unit spike/"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",
+    "@vitejs/plugin-vue": "6.0.9",
     "electron": "44.4.3",
     "electron-vite": "5.0.0",
     "happy-dom": "^20.14.5",
+    "playwright": "1.63.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3",
     "vite": "7.3.6",
-    "vitest": "^5.0.1"
+    "vitest": "^5.0.1",
+    "vue-tsc": "3.3.11"
   },
   "dependencies": {
     "@milkdown/crepe": "7.22.1",
     "@milkdown/kit": "7.22.1",
-    "vue": "3.5.43"
+    "remark-frontmatter": "5.0.0",
+    "vue": "3.5.43",
+    "yaml": "2.9.1"
   }
 }
