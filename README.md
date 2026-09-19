@@ -17,11 +17,10 @@ front matter support, the round-trip guard, crash recovery, and two themes.
 
 Phase 0 (feasibility spike) findings are below and still current.
 
-Measured on the finished Phase 1 shell: **648 ms cold start, 317 MB idle** — both
-inside the targets set in Phase 0, and slightly better than the spike, since
-disabling the alt-text-destroying image feature also trimmed the bundle.
+Measured on the finished Phase 1 shell: **742 ms cold start, 328 MB idle** — both
+inside the targets set in Phase 0.
 
-117 tests pass (104 unit, 13 end-to-end).
+134 tests pass (115 unit, 19 end-to-end).
 
 ## Development
 
