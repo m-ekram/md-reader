@@ -9,6 +9,7 @@ import { reactive, computed } from 'vue'
 import type { DocumentFile } from '../../../shared/ipc'
 import { invalidateCommands } from '../commands/registry'
 import { release } from '../editor/pool'
+import { useSettingsStore } from './settings'
 
 export interface Doc {
   /**
@@ -99,6 +100,29 @@ export function newDoc(): Doc {
   return state.docs[state.activeIndex]
 }
 
+/**
+ * Whether a file is large enough to open in source mode without being asked.
+ *
+ * Phase 0 measured the cost: mounting the formatted view runs about 0.3 ms per
+ * line and dominates long before typing latency does, so a 20 000-line file
+ * takes seconds to open and is unpleasant afterwards. Above the threshold the
+ * document opens in source mode, which renders only the visible window.
+ *
+ * The threshold is a setting, and the status bar has already been warning past
+ * the lower one — this is the point where the warning becomes the default.
+ */
+function shouldForceSourceMode(content: string): boolean {
+  const limit = useSettingsStore().value.editor.sourceModeForceLines
+  if (limit <= 0) return false
+  // Counted by newlines rather than by splitting, which would allocate an
+  // array the size of the document to answer a question about its length.
+  let lines = 1
+  for (let i = 0; i < content.length; i++) {
+    if (content.charCodeAt(i) === 10 && ++lines > limit) return true
+  }
+  return false
+}
+
 export function adoptFile(f: DocumentFile): Doc {
   // Re-opening an already-open file focuses it instead of duplicating the tab.
   const existing = state.docs.findIndex(
@@ -123,7 +147,7 @@ export function adoptFile(f: DocumentFile): Doc {
     eol: f.eol,
     mtimeMs: f.mtimeMs,
     lossy: null,
-    sourceMode: false,
+    sourceMode: shouldForceSourceMode(f.content),
     detached: false,
     readonly: false,
     reloadToken: 0,
