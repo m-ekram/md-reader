@@ -99,6 +99,33 @@ function normalizeCodeBlocks(root: HTMLElement): void {
 }
 
 /**
+ * Turns task items into real checkboxes before the furniture is stripped.
+ *
+ * A task's tick lives in `.label-wrapper`, alongside the plain bullet icon
+ * that every other list item carries — and that wrapper is furniture, so
+ * removing it first would export a checked task as an ordinary list item and
+ * lose the one piece of state that made it a task. Emitting the disabled
+ * `<input>` GitHub uses keeps it as content.
+ *
+ * Must run before the furniture pass, which is the whole point.
+ */
+function normalizeTaskItems(root: HTMLElement): void {
+  for (const label of Array.from(root.querySelectorAll('.label.checked, .label.unchecked'))) {
+    const item = label.closest('li')
+    if (!item) continue
+
+    const box = root.ownerDocument.createElement('input')
+    box.setAttribute('type', 'checkbox')
+    // Disabled: an exported file is a document, not a form.
+    box.setAttribute('disabled', '')
+    if (label.classList.contains('checked')) box.setAttribute('checked', '')
+
+    item.classList.add('task-list-item')
+    item.prepend(box)
+  }
+}
+
+/**
  * Lifts list items out of the wrapper div the editor puts them in.
  *
  * `<ul><div class="milkdown-list-item-block"><li>…` is not valid HTML and some
@@ -186,6 +213,10 @@ function stripAttributes(root: HTMLElement): void {
  */
 export function cleanForExport(source: HTMLElement): string {
   const root = source.cloneNode(true) as HTMLElement
+
+  // Before the furniture pass: a task's checkbox lives inside an element that
+  // pass removes.
+  normalizeTaskItems(root)
 
   for (const selector of FURNITURE) {
     for (const el of Array.from(root.querySelectorAll(selector))) el.remove()

@@ -1,0 +1,132 @@
+// @vitest-environment node
+import { describe, it, expect } from 'vitest'
+import { useApp } from './helpers'
+
+/**
+ * The Help menu.
+ *
+ * Topics are markdown files opened in the editor itself, so these assert that
+ * the document renders — not merely that a tab appeared. A help file that
+ * opened blank would satisfy a tab-count check perfectly.
+ *
+ * Own application instance and temp directory, per helpers.ts.
+ */
+const ctx = useApp()
+
+async function chooseHelp(label: string): Promise<void> {
+  await ctx.page.keyboard.press('Escape')
+  await ctx.page.locator('.menubar__top', { hasText: /^Help$/ }).click()
+  await ctx.page.waitForSelector('.menu[role="menu"]', { state: 'visible' })
+  await ctx.page
+    .locator('.menu[role="menu"] .menu__item')
+    // Several labels end in an ellipsis, so it is allowed for rather than
+    // written into every call site.
+    .filter({ has: ctx.page.locator('.menu__label', { hasText: new RegExp(`^${label}…?$`) }) })
+    .first()
+    .click()
+  await ctx.page.waitForTimeout(800)
+}
+
+const body = (): Promise<string> => ctx.page.locator('.ProseMirror').innerText()
+
+describe('help topics', () => {
+  it('opens Quick Start as a rendered document', async () => {
+    await chooseHelp('Quick Start')
+
+    await expect.poll(body, { timeout: 15_000 }).toContain('Quick Start')
+    // Rendered, not raw: the heading is an element and the table is a table.
+    expect(await ctx.page.locator('.ProseMirror h1').count()).toBeGreaterThan(0)
+    expect(await ctx.page.locator('.ProseMirror table td').count()).toBeGreaterThan(0)
+  })
+
+  it('names the tab after the topic', async () => {
+    const tabs = await ctx.page.locator('.tab__select').allInnerTexts()
+    expect(tabs.some((t) => t.includes('Quick Start'))).toBe(true)
+  })
+
+  it('opens it readonly, so a stray keystroke cannot edit it', async () => {
+    const before = await body()
+    await ctx.page.locator('.ProseMirror').click()
+    await ctx.page.keyboard.type('XXXX')
+    await ctx.page.waitForTimeout(500)
+    expect(await body()).toBe(before)
+  })
+
+  it('brings the same tab forward rather than opening a second copy', async () => {
+    const before = await ctx.page.locator('.tab__select').count()
+    await chooseHelp('Quick Start')
+    expect(await ctx.page.locator('.tab__select').count()).toBe(before)
+  })
+
+  it('opens the Markdown Reference, including its code samples', async () => {
+    await chooseHelp('Markdown Reference')
+    await expect.poll(body, { timeout: 15_000 }).toContain('Markdown Reference')
+    await ctx.page.waitForSelector('.milkdown-code-block', { timeout: 15_000 })
+  })
+
+  it('opens every remaining topic', async () => {
+    const topics: Array<[string, string]> = [
+      ["What's New", 'What'],
+      ['Custom Themes', 'Custom Themes'],
+      ['Use Images', 'Use Images'],
+      ['More Topics', 'More Topics'],
+      ['Credits', 'Credits'],
+      ['Change Log', 'Change Log'],
+    ]
+    for (const [label, expected] of topics) {
+      await chooseHelp(label)
+      await expect.poll(body, { timeout: 15_000 }).toContain(expected)
+    }
+  })
+})
+
+describe('items that are greyed on purpose', () => {
+  it('says why Check Updates cannot be used', async () => {
+    await ctx.page.keyboard.press('Escape')
+    await ctx.page.locator('.menubar__top', { hasText: /^Help$/ }).click()
+    await ctx.page.waitForSelector('.menu[role="menu"]', { state: 'visible' })
+
+    const item = ctx.page
+      .locator('.menu[role="menu"] .menu__item')
+      .filter({ has: ctx.page.locator('.menu__label', { hasText: /^Check Updates/ }) })
+      .first()
+
+    expect(await item.getAttribute('aria-disabled')).toBe('true')
+    // "Not available yet" would be a different statement: this one will not
+    // change in a later version.
+    expect(await item.getAttribute('title')).toContain('update server')
+    await ctx.page.keyboard.press('Escape')
+  })
+
+  it('says why Math Block is not offered', async () => {
+    await ctx.page.keyboard.press('Escape')
+    await ctx.page.locator('.menubar__top', { hasText: /^Paragraph$/ }).click()
+    await ctx.page.waitForSelector('.menu[role="menu"]', { state: 'visible' })
+
+    const item = ctx.page
+      .locator('.menu[role="menu"] .menu__item')
+      .filter({ has: ctx.page.locator('.menu__label', { hasText: /^Math Block$/ }) })
+      .first()
+
+    expect(await item.getAttribute('aria-disabled')).toBe('true')
+    expect(await item.getAttribute('title')).toContain('not modelled')
+    await ctx.page.keyboard.press('Escape')
+  })
+
+  it('leaves no item saying "Not available yet"', async () => {
+    // Every menu item is now either implemented or greyed with a stated
+    // reason. The placeholder tooltip means one was missed.
+    const menus = ['File', 'Edit', 'Paragraph', 'Format', 'View', 'Themes', 'Help']
+    for (const menu of menus) {
+      await ctx.page.keyboard.press('Escape')
+      await ctx.page.locator('.menubar__top', { hasText: new RegExp(`^${menu}$`) }).click()
+      await ctx.page.waitForSelector('.menu[role="menu"]', { state: 'visible' })
+
+      const stale = await ctx.page
+        .locator('.menu[role="menu"] .menu__item[title="Not available yet"]')
+        .count()
+      expect(stale, `${menu} still has an unimplemented item`).toBe(0)
+    }
+    await ctx.page.keyboard.press('Escape')
+  })
+})

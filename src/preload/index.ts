@@ -8,6 +8,7 @@ import type { SearchHit } from '../main/search-worker'
 import type { WatchEvent } from '../main/watcher'
 import type { SaveImageRequest, SaveImageResult } from '../main/ipc/images'
 import type { ExportResult } from '../main/ipc/export'
+import type { HelpDoc } from '../main/ipc/help'
 import type { ExportPayload } from '../main/export/html'
 
 /**
@@ -62,6 +63,10 @@ const api = {
   images: {
     save: (req: SaveImageRequest): Promise<SaveImageResult> =>
       ipcRenderer.invoke('images:save', req),
+  },
+
+  help: {
+    topic: (id: string): Promise<HelpDoc | null> => ipcRenderer.invoke('help:topic', id),
   },
 
   export: {

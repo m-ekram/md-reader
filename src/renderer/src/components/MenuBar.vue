@@ -9,7 +9,14 @@
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { MENUS, type MenuNode } from '../commands/menus'
-import { commandEpoch, isChecked, isEnabled, isRegistered, run } from '../commands/registry'
+import {
+  commandEpoch,
+  disabledReason,
+  isChecked,
+  isEnabled,
+  isRegistered,
+  run,
+} from '../commands/registry'
 import { useThemeStore } from '../stores/theme'
 import { useSettingsStore } from '../stores/settings'
 
@@ -69,7 +76,23 @@ function itemState(id: string) {
     registered: isRegistered(id),
     enabled: isEnabled(id),
     checked: isChecked(id),
+    reason: disabledReason(id),
   }
+}
+
+/**
+ * Why an item cannot be chosen.
+ *
+ * "Not available yet" means this version has not implemented it; a stated
+ * reason means it will stay greyed and says why. Items that are simply
+ * inapplicable right now — a table command outside a table — get neither,
+ * because the greying is self-explanatory where the caret is.
+ */
+function tooltip(id: string): string | undefined {
+  const state = itemState(id)
+  if (!state.registered) return 'Not available yet'
+  if (!state.enabled && state.reason) return state.reason
+  return undefined
 }
 
 function openMenu(i: number): void {
@@ -314,7 +337,7 @@ function isActive(path: number[]): boolean {
                   :data-active="isActive([j, k])"
                   :aria-disabled="!itemState(sub.id).enabled"
                   :class="{ 'is-disabled': !itemState(sub.id).enabled }"
-                  :title="!itemState(sub.id).registered ? 'Not available yet' : undefined"
+                  :title="tooltip(sub.id)"
                   @click="activate(sub.id)"
                   @mouseenter="activePath = [j, k]"
                 >
@@ -337,7 +360,7 @@ function isActive(path: number[]): boolean {
             :aria-disabled="!itemState(node.id).enabled"
             :aria-checked="itemState(node.id).checked"
             :class="{ 'is-disabled': !itemState(node.id).enabled }"
-            :title="!itemState(node.id).registered ? 'Not available yet' : undefined"
+            :title="tooltip(node.id)"
             @click="activate(node.id)"
             @mouseenter="activePath = [j]"
           >

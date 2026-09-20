@@ -31,6 +31,8 @@ export interface Doc {
   /** Set when the round-trip guard finds constructs we cannot preserve. */
   lossy: { lossy: boolean; note: string } | null
   sourceMode: boolean
+  /** Set when the tab is a bundled Help topic rather than a user's file. */
+  helpTopic?: string
   /** The file went away while the tab stayed open; content is still here. */
   detached: boolean
   /** Guards this document against edits. Per document, not persisted. */

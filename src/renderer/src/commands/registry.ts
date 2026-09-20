@@ -17,6 +17,12 @@ export interface Command {
   enabled?: () => boolean
   /** Present for checkable items; drives the checkmark and aria-checked. */
   checked?: () => boolean
+  /**
+   * Why this item is greyed, when it is greyed for a reason that will not
+   * change — shown as its tooltip. Unregistered items say "Not available yet"
+   * instead, which is a different statement.
+   */
+  disabledReason?: string
   run: () => void | Promise<void>
 }
 
@@ -49,6 +55,10 @@ export function isEnabled(id: string): boolean {
   const c = commands.get(id)
   if (!c) return false
   return c.enabled ? c.enabled() : true
+}
+
+export function disabledReason(id: string): string | undefined {
+  return commands.get(id)?.disabledReason
 }
 
 export function isChecked(id: string): boolean | undefined {

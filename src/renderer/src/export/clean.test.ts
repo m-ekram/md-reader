@@ -51,7 +51,9 @@ describe('cleanForExport', () => {
     const directDivs = Array.from(list?.children ?? []).filter((c) => c.tagName === 'DIV')
     expect(directDivs).toHaveLength(0)
     expect(list?.querySelector('div'), 'item wrappers unwrapped too').toBeNull()
-    expect(list?.querySelectorAll('li').length).toBe(2)
+    // Four items: the two plain ones and the two tasks, which markdown parses
+    // as a single list rather than two.
+    expect(list?.querySelectorAll('li').length).toBe(4)
     expect(list?.textContent).toContain('one')
     expect(list?.textContent).toContain('two')
   })
@@ -69,6 +71,24 @@ describe('cleanForExport', () => {
     }
     expect(out.textContent).toContain('1')
     expect(out.textContent).toContain('2')
+  })
+
+  it('exports task items as real checkboxes', () => {
+    // The tick lives in the same wrapper as the ordinary bullet icon, and that
+    // wrapper is furniture. Strip it first and a checked task exports as a
+    // plain list item, losing the one thing that made it a task.
+    const boxes = out.querySelectorAll('li.task-list-item input[type="checkbox"]')
+    expect(boxes.length, 'both task items keep a checkbox').toBe(2)
+
+    const checked = out.querySelectorAll('li input[type="checkbox"][checked]')
+    expect(checked.length, 'the done item stays ticked').toBe(1)
+
+    // A document, not a form.
+    for (const box of Array.from(boxes)) {
+      expect(box.hasAttribute('disabled')).toBe(true)
+    }
+    expect(out.textContent).toContain('open task')
+    expect(out.textContent).toContain('done task')
   })
 
   it('removes editing affordances', () => {

@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config'
+import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
   resolve: {
@@ -9,6 +10,10 @@ export default defineConfig({
     projects: [
       {
         resolve: { dedupe: ['vue'] },
+        // So component behaviour can be tested directly, rather than only
+        // through the end-to-end suite where it depends on pointer position
+        // and test ordering.
+        plugins: [vue()],
         test: {
           name: 'unit',
           environment: 'happy-dom',

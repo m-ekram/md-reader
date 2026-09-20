@@ -69,6 +69,10 @@ describe('the command palette runs what it lists', () => {
     await ctx.page.keyboard.press('Escape')
     await ctx.page.keyboard.press('Control+n')
     await ctx.page.waitForTimeout(500)
+    // Clicking leaves the pointer in the middle of the editor, which is where
+    // the palette opens. That is not incidental: it is how this test caught a
+    // real bug, where a row appearing under the resting cursor claimed the
+    // selection and Enter ran a command the user had never looked at.
     await ctx.page.locator('.ProseMirror').click()
     await ctx.page.keyboard.type('palette target')
     await ctx.page.waitForTimeout(250)
@@ -77,6 +81,15 @@ describe('the command palette runs what it lists', () => {
     await openPalette()
     await ctx.page.keyboard.type('quote')
     await ctx.page.waitForTimeout(300)
+
+    // Asserted before Enter, so a selection that has drifted fails here and
+    // names the cause, rather than failing later as a missing blockquote.
+    const first = ctx.page.locator('.palette__item').first()
+    expect(await first.locator('.palette__label').innerText()).toBe('Quote')
+    expect(await first.getAttribute('aria-selected'), 'the top row keeps the selection').toBe(
+      'true'
+    )
+
     await ctx.page.keyboard.press('Enter')
     await ctx.page.waitForTimeout(600)
 

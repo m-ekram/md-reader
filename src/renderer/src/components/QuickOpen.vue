@@ -111,7 +111,7 @@ function onKeydown(e: KeyboardEvent): void {
           role="option"
           :aria-selected="i === selected"
           :class="{ 'is-selected': i === selected }"
-          @pointerenter="selected = i"
+          @pointermove="selected = i"
           @click="choose(i)"
         >
           <span class="quick__name">{{ r.file.name }}</span>

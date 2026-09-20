@@ -7,6 +7,7 @@ import { registerFileIpc } from './ipc/files'
 import { registerWorkspaceIpc } from './ipc/workspace'
 import { registerImageIpc } from './ipc/images'
 import { registerExportIpc } from './ipc/export'
+import { registerHelpIpc } from './ipc/help'
 import { stopWatching, watchRoot } from './watcher'
 import { cancelAllSearches } from './search'
 import { listThemes, readUserTheme, watchUserThemes } from './themes'
@@ -46,6 +47,7 @@ if (!app.requestSingleInstanceLock()) {
     registerWorkspaceIpc()
     registerImageIpc()
     registerExportIpc()
+    registerHelpIpc()
     registerSettingsIpc()
     registerThemeIpc()
     registerWindowIpc()

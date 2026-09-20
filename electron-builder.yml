@@ -12,6 +12,14 @@ files:
   - out/**
   - package.json
 
+# The Help topics are markdown files opened in the application itself. They sit
+# outside the asar so they can be read with a plain path, and so someone can
+# look at them without unpacking anything.
+extraResources:
+  - from: docs
+    to: docs
+    filter: ['**/*.md']
+
 # The folder-search worker is loaded by worker_threads from
 # join(__dirname, 'search-worker.js'), which points inside the asar archive.
 #

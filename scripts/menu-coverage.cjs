@@ -27,6 +27,19 @@ function menuIds() {
  * Matching the shape rather than keeping a list of exceptions is what stops
  * this drifting the way the hand-written count did.
  */
+/**
+ * Ids in `unavailable-commands.ts`.
+ *
+ * Those are registered and permanently disabled — menu items we decided not to
+ * implement because the editor could draw them but not save them. Counting
+ * them as implemented would turn a deliberate decision into a better-looking
+ * number, so they are reported on their own line.
+ */
+function declined() {
+  const src = read('unavailable-commands.ts')
+  return new Set([...src.matchAll(/id: '([\w.]+)'/g)].map((m) => m[1]))
+}
+
 function registered() {
   const literal = new Set()
   const patterns = []
@@ -34,6 +47,7 @@ function registered() {
   for (const file of fs.readdirSync(COMMANDS_DIR)) {
     if (!file.endsWith('.ts') || file.endsWith('.test.ts')) continue
     if (file === 'menus.ts' || file === 'registry.ts') continue
+    if (file === 'unavailable-commands.ts') continue
     const src = read(file)
 
     for (const m of src.matchAll(/id: '([\w.]+)'/g)) literal.add(m[1])
@@ -49,13 +63,26 @@ function registered() {
 }
 
 const { literal, patterns } = registered()
+const unavailable = declined()
 const isImplemented = (id) => literal.has(id) || patterns.some((p) => p.test(id))
 
 const ids = menuIds()
-const missing = ids.filter((id) => !isImplemented(id))
+const missing = ids.filter((id) => !isImplemented(id) && !unavailable.has(id))
+const declinedHere = ids.filter((id) => unavailable.has(id))
+const done = ids.length - missing.length - declinedHere.length
 
-console.log(`Menu coverage: ${ids.length - missing.length} of ${ids.length} items`)
+console.log(`Menu coverage: ${done} of ${ids.length} items`)
+console.log(
+  `  ${declinedHere.length} deliberately unavailable, ${missing.length} not yet implemented`
+)
+
 if (process.argv.includes('--list')) {
-  console.log(`\nNot yet implemented (${missing.length}):`)
-  for (const id of missing) console.log(`  ${id}`)
+  if (declinedHere.length > 0) {
+    console.log(`\nDeliberately unavailable (${declinedHere.length}):`)
+    for (const id of declinedHere) console.log(`  ${id}`)
+  }
+  if (missing.length > 0) {
+    console.log(`\nNot yet implemented (${missing.length}):`)
+    for (const id of missing) console.log(`  ${id}`)
+  }
 }

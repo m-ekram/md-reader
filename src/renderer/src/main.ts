@@ -23,6 +23,9 @@ import { registerEditorCommands } from './commands/editor-commands'
 import { registerViewCommands } from './commands/view-commands'
 import { registerSelectionCommands } from './commands/selection-commands'
 import { registerExportCommands } from './commands/export-commands'
+import { registerContentCommands } from './commands/content-commands'
+import { registerHelpCommands } from './commands/help-commands'
+import { registerUnavailableCommands } from './commands/unavailable-commands'
 import { adoptFile, closeDoc, newDoc, useDocuments } from './stores/documents'
 import { initSearchListeners, initWorkspaceSync } from './stores/workspace'
 import { initExternalChanges } from './stores/external-changes'
@@ -91,6 +94,9 @@ async function boot(): Promise<void> {
   registerViewCommands()
   registerSelectionCommands()
   registerExportCommands()
+  registerContentCommands()
+  registerHelpCommands()
+  registerUnavailableCommands()
   registerThemeCommands()
   registerRecentCommands()
   watchGeneratedCommands()

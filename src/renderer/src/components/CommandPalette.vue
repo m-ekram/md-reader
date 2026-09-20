@@ -78,6 +78,14 @@ const results = computed<Hit[]>(() => {
   return out.slice(0, 60)
 })
 
+/**
+ * Every new result set starts at the top.
+ *
+ * Paired with `pointermove` rather than `pointerenter` on the rows: an overlay
+ * opens under wherever the cursor happens to be resting, and `pointerenter`
+ * fires on whatever row appears beneath it. That silently moved the selection
+ * off the first result, so Enter ran a command the user had not looked at.
+ */
 watch(results, () => (selected.value = 0))
 
 async function choose(index = selected.value): Promise<void> {
@@ -136,7 +144,7 @@ function onKeydown(e: KeyboardEvent): void {
           :aria-selected="i === selected"
           :aria-disabled="!r.enabled"
           :class="{ 'is-selected': i === selected, 'is-disabled': !r.enabled }"
-          @pointerenter="selected = i"
+          @pointermove="selected = i"
           @click="choose(i)"
         >
           <span class="palette__label">{{ r.entry.label }}</span>
