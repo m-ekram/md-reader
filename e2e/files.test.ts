@@ -1,0 +1,139 @@
+// @vitest-environment node
+import { describe, it, expect } from 'vitest'
+import { writeFile, readFile } from 'node:fs/promises'
+import { join } from 'node:path'
+import { openFile, useApp } from './helpers'
+
+/**
+ * Opening, saving and recovering files.
+ *
+ * Own application instance and temp directory, per helpers.ts.
+ */
+const ctx = useApp()
+describe('the save path preserves the file', () => {
+  it('writes back a file it did not change, byte for byte', async () => {
+    const file = join(ctx.workdir, 'note.md')
+    const original =
+      '---\ntitle: Test\ntags: [a, b]\n---\n\n# Heading\n\n- one\n- two\n\nSome **bold** text.\n'
+    await writeFile(file, original, 'utf8')
+
+    // Open through main, exactly as the File menu would.
+    await openFile(ctx, file)
+
+    await ctx.page.waitForFunction(
+      () => document.querySelector('.ProseMirror')?.textContent?.includes('Heading') ?? false,
+      { timeout: 15_000 }
+    )
+
+    await ctx.page.keyboard.press('Control+s')
+    await ctx.page.waitForTimeout(1200)
+
+    expect(await readFile(file, 'utf8')).toBe(original)
+  })
+})
+describe('Open Recent stays in step with its labels', () => {
+  it('opens the file it names after the list is reordered', async () => {
+    const a = join(ctx.workdir, 'alpha.md')
+    const b = join(ctx.workdir, 'beta.md')
+    await writeFile(a, '# Alpha document\n', 'utf8')
+    await writeFile(b, '# Beta document\n', 'utf8')
+
+    for (const p of [a, b]) {
+      await openFile(ctx, p)
+      await ctx.page.waitForTimeout(700)
+    }
+
+    // Start from a known state: an earlier test may have left a menu open, and
+    // hovering a submenu that is already open does not re-trigger it.
+    await ctx.page.keyboard.press('Escape')
+    await ctx.page.waitForTimeout(150)
+
+    await ctx.page.locator('.menubar__top', { hasText: /^File$/ }).click()
+    await ctx.page.waitForSelector('.menu[role="menu"]', { state: 'visible' })
+
+    // Clicking is deterministic where hovering depends on pointer timing.
+    await ctx.page.locator('.menu__item', { hasText: 'Open Recent' }).first().click()
+    await ctx.page.waitForSelector('.menu--nested .menu__item', { state: 'visible', timeout: 5000 })
+
+    const first = ctx.page.locator('.menu--nested .menu__item').first()
+    const label = (await first.innerText()).trim()
+    await first.click()
+    await ctx.page.waitForSelector('.menu[role="menu"]', { state: 'detached', timeout: 5000 })
+    await ctx.page.waitForTimeout(600)
+
+    // Whichever file the entry named must be the one now on screen.
+    const expected = label.startsWith('alpha') ? 'Alpha document' : 'Beta document'
+    expect(await ctx.page.locator('.ProseMirror').innerText()).toContain(expected)
+  })
+})
+describe('documents are labelled by filename, not by path', () => {
+  it('shows the bare filename in the window title and the tab', async () => {
+    // This existed as a bug: the path split handled forward slashes only, so on
+    // Windows every opened file was labelled with its entire path. 240 tests
+    // passed because none of them looked at what was displayed.
+    const file = join(ctx.workdir, 'labelled.md')
+    await writeFile(file, '# Labelled\n', 'utf8')
+
+    await openFile(ctx, file)
+    await ctx.page.waitForFunction(
+      () => document.querySelector('.ProseMirror')?.textContent?.includes('Labelled') ?? false,
+      { timeout: 15_000 }
+    )
+
+    // Not String.raw: a raw template cannot end in a backslash, since it would
+    // escape its own closing backtick.
+    const SEP = '\\'
+
+    const title = await ctx.page.evaluate(() => document.title)
+    expect(title).toContain('labelled.md')
+    expect(title).not.toContain(SEP)
+    expect(title).not.toContain('Temp')
+
+    const tabs = await ctx.page.locator('.tab__name').allTextContents()
+    expect(tabs.some((t) => t.trim() === 'labelled.md')).toBe(true)
+    expect(tabs.every((t) => !t.includes(SEP))).toBe(true)
+  })
+})
+describe('Data Recovery restores the version kept before the last save', () => {
+  it('offers the backup and puts it back in the editor', async () => {
+    const file = join(ctx.workdir, 'recoverable.md')
+    await writeFile(file, '# Original content\n\nthe good version\n', 'utf8')
+
+    await openFile(ctx, file)
+    await ctx.page.waitForFunction(
+      () =>
+        document.querySelector('.ProseMirror')?.textContent?.includes('the good version') ?? false,
+      { timeout: 15_000 }
+    )
+
+    // Wreck it and save, which is what a bad save looks like from the user's
+    // side. The pre-save bytes become the backup.
+    await ctx.page.locator('.ProseMirror').click()
+    await ctx.page.keyboard.press('Control+a')
+    await ctx.page.keyboard.type('ruined')
+    await ctx.page.waitForTimeout(400)
+    await ctx.page.keyboard.press('Control+s')
+    await ctx.page.waitForTimeout(1200)
+    expect(await readFile(file, 'utf8')).toContain('ruined')
+
+    // Help > Data Recovery, answering the confirm dialog with Restore.
+    const restored = ctx.page.waitForFunction(
+      () =>
+        document.querySelector('.ProseMirror')?.textContent?.includes('the good version') ?? false,
+      { timeout: 20_000 }
+    )
+    await ctx.app.evaluate(async ({ dialog }) => {
+      // The prompt is a native dialog; answer it as the user would.
+      dialog.showMessageBox = async () => ({ response: 0, checkboxChecked: false })
+    })
+    await ctx.page.locator('.menubar__top', { hasText: /^Help$/ }).click()
+    await ctx.page.waitForSelector('.menu[role="menu"]', { state: 'visible' })
+    await ctx.page.locator('.menu__item', { hasText: 'Data Recovery' }).first().click()
+
+    await restored
+    expect(await ctx.page.locator('.ProseMirror').innerText()).toContain('the good version')
+
+    // Restoring does not touch the disk until the user saves.
+    expect(await readFile(file, 'utf8')).toContain('ruined')
+  })
+})
