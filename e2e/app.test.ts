@@ -476,3 +476,67 @@ describe('mermaid diagrams', () => {
     expect(after).toContain('graph TD')
   })
 })
+
+describe('Paragraph and Format menus act on the document', () => {
+  async function blankDocWithText(text: string): Promise<void> {
+    await page.keyboard.press('Escape')
+    await page.keyboard.press('Control+n')
+    await page.waitForTimeout(500)
+    await page.locator('.ProseMirror').click()
+    await page.keyboard.type(text)
+    await page.waitForTimeout(250)
+    await page.keyboard.press('Control+a')
+  }
+
+  async function chooseMenuItem(menu: string, label: string): Promise<void> {
+    await page.locator('.menubar__top', { hasText: new RegExp(`^${menu}$`) }).click()
+    await page.waitForSelector('.menu[role="menu"]', { state: 'visible' })
+    await page.locator('.menu[role="menu"] .menu__item', { hasText: label }).first().click()
+    await page.waitForTimeout(500)
+  }
+
+  it('turns a paragraph into a heading', async () => {
+    await blankDocWithText('Becomes a heading')
+    await chooseMenuItem('Paragraph', 'Heading 2')
+    expect(await page.locator('.ProseMirror h2').count()).toBeGreaterThan(0)
+  })
+
+  it('applies bold from the Format menu', async () => {
+    await blankDocWithText('Make me bold')
+    await chooseMenuItem('Format', 'Strong')
+    expect(await page.locator('.ProseMirror strong').count()).toBeGreaterThan(0)
+  })
+
+  it('wraps a paragraph in a quote', async () => {
+    await blankDocWithText('Quote this')
+    await chooseMenuItem('Paragraph', 'Quote')
+    expect(await page.locator('.ProseMirror blockquote').count()).toBeGreaterThan(0)
+  })
+
+  it('inserts an alert with its marker', async () => {
+    await blankDocWithText('Careful now')
+    await page.locator('.menubar__top', { hasText: /^Paragraph$/ }).click()
+    await page.waitForSelector('.menu[role="menu"]', { state: 'visible' })
+    await page.locator('.menu__item', { hasText: 'Alert' }).first().click()
+    await page.waitForSelector('.menu--nested .menu__item', { state: 'visible' })
+    await page.locator('.menu--nested .menu__item', { hasText: 'Warning' }).first().click()
+    await page.waitForTimeout(600)
+
+    expect(await page.locator('.ProseMirror blockquote[data-alert="warning"]').count()).toBe(1)
+  })
+
+  it('greys out table commands when the cursor is not in a table', async () => {
+    await blankDocWithText('Not a table')
+    await page.locator('.menubar__top', { hasText: /^Paragraph$/ }).click()
+    await page.waitForSelector('.menu[role="menu"]', { state: 'visible' })
+    await page.locator('.menu__item', { hasText: 'Table' }).first().click()
+    await page.waitForSelector('.menu--nested .menu__item', { state: 'visible' })
+
+    const addRow = page.locator('.menu--nested .menu__item', { hasText: 'Add Row Above' }).first()
+    expect(await addRow.getAttribute('aria-disabled')).toBe('true')
+    // Inserting a table is always available, though.
+    const insert = page.locator('.menu--nested .menu__item', { hasText: 'Insert Table' }).first()
+    expect(await insert.getAttribute('aria-disabled')).toBe('false')
+    await page.keyboard.press('Escape')
+  })
+})

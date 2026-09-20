@@ -43,6 +43,20 @@ export function size(): number {
   return entries.size
 }
 
+/**
+ * The editor most recently brought on screen.
+ *
+ * Menu commands act on whatever the user is looking at, and the pool is the
+ * only thing that knows which instance that is.
+ */
+export function activeEditor(): EditorHandle | null {
+  let best: Entry | null = null
+  for (const e of entries.values()) {
+    if (!best || e.usedAt > best.usedAt) best = e
+  }
+  return best?.handle ?? null
+}
+
 /** Ids currently held, most recently used first. Exposed for tests. */
 export function liveIds(): string[] {
   return [...entries.values()].sort((a, b) => b.usedAt - a.usedAt).map((e) => e.id)

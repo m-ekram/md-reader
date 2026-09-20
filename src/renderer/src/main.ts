@@ -15,6 +15,7 @@ import {
   registerThemeCommands,
   watchGeneratedCommands,
 } from './commands/app-commands'
+import { registerEditorCommands } from './commands/editor-commands'
 import { adoptFile, closeDoc, newDoc, useDocuments } from './stores/documents'
 import { initSearchListeners, initWorkspaceSync } from './stores/workspace'
 import { initExternalChanges } from './stores/external-changes'
@@ -63,6 +64,7 @@ async function boot(): Promise<void> {
   await initThemes(settings.value.theme)
 
   registerAppCommands()
+  registerEditorCommands()
   registerThemeCommands()
   registerRecentCommands()
   watchGeneratedCommands()
