@@ -326,3 +326,39 @@ export function allMenuCommandIds(nodes: MenuNode[] = MENUS.flatMap((m) => m.ite
   }
   return out
 }
+
+/**
+ * Accelerators for commands that have no home in the menu.
+ *
+ * The menu is a fixed specification and is not grown to give a shortcut
+ * somewhere to live, so the few commands that are keyboard-only are listed
+ * here and bound alongside it.
+ */
+export const EXTRA_ACCELERATORS: Array<{ id: string; accel: string }> = [
+  { id: 'app.commandPalette', accel: 'Ctrl+Shift+P' },
+]
+
+export interface FlatMenuItem {
+  id: string
+  label: string
+  /** Where it sits, e.g. "Paragraph › Table", for disambiguation. */
+  path: string
+  accel?: string
+}
+
+/**
+ * The menu flattened into a searchable list, each item carrying the path that
+ * leads to it: several menus have an "Image" or a "Table", and the label alone
+ * would not say which one is about to run.
+ */
+export function flattenMenu(menus: Menu[] = MENUS): FlatMenuItem[] {
+  const out: FlatMenuItem[] = []
+  const walk = (nodes: MenuNode[], trail: string[]): void => {
+    for (const n of nodes) {
+      if (n.kind === 'item') out.push({ id: n.id, label: n.label, path: trail.join(' › '), accel: n.accel })
+      else if (n.kind === 'submenu') walk(n.items, [...trail, n.label])
+    }
+  }
+  for (const menu of menus) walk(menu.items, [menu.label])
+  return out
+}

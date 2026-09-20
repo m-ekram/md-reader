@@ -7,7 +7,7 @@
  * by registering here.
  */
 import { watch } from 'vue'
-import { MENUS, type MenuNode } from './menus'
+import { EXTRA_ACCELERATORS, MENUS, type MenuNode } from './menus'
 import { bindAccelerators, invalidateCommands, registerAll, type Command } from './registry'
 import {
   activeDoc,
@@ -23,7 +23,7 @@ import {
 import { patchSettings, useSettingsStore } from '../stores/settings'
 import { applyTheme, useThemeStore } from '../stores/theme'
 import { refreshArticles, revealPath, setRoot, useWorkspace } from '../stores/workspace'
-import { quickOpen } from '../stores/ui'
+import { commandPalette, quickOpen } from '../stores/ui'
 
 const docs = useDocuments()
 const settings = useSettingsStore()
@@ -242,6 +242,18 @@ const commands: Command[] = [
     },
   },
 
+  /**
+   * The command palette. Keyboard-only: the menu is a fixed specification and
+   * gains no item for it, so its accelerator is bound from EXTRA_ACCELERATORS.
+   */
+  {
+    id: 'app.commandPalette',
+    label: 'Command Palette',
+    run: () => {
+      commandPalette.open = true
+    },
+  },
+
   // Sidebar panels
   {
     id: 'view.toggleSidebar',
@@ -405,7 +417,10 @@ function collectAccelerators(nodes: MenuNode[]): Array<{ id: string; accel?: str
 }
 
 function rebindAccelerators(): void {
-  bindAccelerators(collectAccelerators(MENUS.flatMap((m) => m.items)))
+  bindAccelerators([
+    ...collectAccelerators(MENUS.flatMap((m) => m.items)),
+    ...EXTRA_ACCELERATORS,
+  ])
 }
 
 export function registerAppCommands(): void {

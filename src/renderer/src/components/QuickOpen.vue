@@ -10,6 +10,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { useWorkspace } from '../stores/workspace'
 import { openPath } from '../stores/documents'
 import type { MarkdownFile } from '../../../main/workspace'
+import { fuzzyScore } from '../utils/fuzzy'
 
 const props = defineProps<{ open: boolean }>()
 const emit = defineEmits<{ close: [] }>()
@@ -35,35 +36,6 @@ interface Scored {
   score: number
 }
 
-/**
- * Subsequence match with a score. Returns null when the pattern does not fit,
- * so the caller can drop the candidate entirely.
- */
-function score(text: string, pattern: string): number | null {
-  if (pattern.length === 0) return 0
-  const lower = text.toLowerCase()
-  let ti = 0
-  let total = 0
-  let streak = 0
-
-  for (const ch of pattern) {
-    const found = lower.indexOf(ch, ti)
-    if (found < 0) return null
-
-    // Consecutive characters and matches after a separator read as a better
-    // match than characters scattered through the name.
-    if (found === ti && ti > 0) streak++
-    else streak = 0
-    total += 10 + streak * 5
-    if (found === 0 || /[\s\-_./\\]/.test(lower[found - 1] ?? '')) total += 8
-    total -= Math.min(found - ti, 10)
-
-    ti = found + 1
-  }
-  // Shorter names matching the same pattern are usually what was meant.
-  return total - Math.min(text.length / 4, 15)
-}
-
 const results = computed<Scored[]>(() => {
   const q = query.value.trim().toLowerCase()
   const out: Scored[] = []
@@ -75,8 +47,8 @@ const results = computed<Scored[]>(() => {
     }
     // Score the name and the relative path, keeping whichever fits better, so
     // typing a folder name also finds files.
-    const byName = score(file.name, q)
-    const byPath = score(file.relativePath, q)
+    const byName = fuzzyScore(file.name, q)
+    const byPath = fuzzyScore(file.relativePath, q)
     const best = Math.max(byName ?? -Infinity, byPath ?? -Infinity)
     if (best === -Infinity) continue
 
