@@ -47,6 +47,13 @@ const api = {
     onDone: (fn: (payload: { id: number; found: number }) => void) => subscribe('search:done', fn),
   },
 
+  edit: {
+    /** Menu-driven editing actions; the keystrokes belong to the editor. */
+    action: (
+      name: 'undo' | 'redo' | 'cut' | 'copy' | 'paste' | 'pastePlain' | 'selectAll' | 'delete'
+    ): void => ipcRenderer.send('edit:action', name),
+  },
+
   images: {
     save: (req: SaveImageRequest): Promise<SaveImageResult> =>
       ipcRenderer.invoke('images:save', req),

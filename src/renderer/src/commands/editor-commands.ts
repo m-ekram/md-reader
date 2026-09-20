@@ -85,7 +85,36 @@ function inTable(): boolean {
   return found
 }
 
+/**
+ * Menu items for actions the editor owns.
+ *
+ * Their accelerators are deliberately never bound - see EDITOR_DELEGATED - but
+ * the menu items still have to do something when clicked, or the Edit menu
+ * looks broken. These route through the host, which applies them to whatever
+ * has focus.
+ */
+const delegatedCommands: Command[] = (
+  [
+    ['edit.undo', 'undo'],
+    ['edit.redo', 'redo'],
+    ['edit.cut', 'cut'],
+    ['edit.copy', 'copy'],
+    ['edit.paste', 'paste'],
+    ['edit.pastePlain', 'pastePlain'],
+    ['edit.selectAll', 'selectAll'],
+    ['edit.delete', 'delete'],
+  ] as const
+).map(([id, action]) => ({
+  id,
+  enabled: hasEditor,
+  run: () => {
+    window.api.edit.action(action)
+    focusEditor()
+  },
+}))
+
 const editorCommands: Command[] = [
+  ...delegatedCommands,
   // --- Paragraph -----------------------------------------------------------
   ...[1, 2, 3, 4, 5, 6].map((level) => ({
     id: `para.h${level}`,

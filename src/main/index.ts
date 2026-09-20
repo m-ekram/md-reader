@@ -117,6 +117,27 @@ function registerWindowIpc(): void {
     w?.setFullScreen(!w.isFullScreen())
   })
   ipcMain.on('window:devtools', (e) => e.sender.toggleDevTools())
+
+  /**
+   * Editing actions the menu offers but must never bind as accelerators.
+   *
+   * The keystrokes belong to the editor (see EDITOR_DELEGATED in the renderer's
+   * registry), but clicking the menu item still has to work. webContents
+   * applies these to whatever has focus, which is the right target.
+   */
+  ipcMain.on('edit:action', (e, action: string) => {
+    const wc = e.sender
+    switch (action) {
+      case 'undo': wc.undo(); break
+      case 'redo': wc.redo(); break
+      case 'cut': wc.cut(); break
+      case 'copy': wc.copy(); break
+      case 'paste': wc.paste(); break
+      case 'pastePlain': wc.pasteAndMatchStyle(); break
+      case 'selectAll': wc.selectAll(); break
+      case 'delete': wc.delete(); break
+    }
+  })
   ipcMain.on('window:zoom', (e, level: number) => e.sender.setZoomLevel(level))
 
   ipcMain.on('window:close-reply', (e, allow: boolean) => {

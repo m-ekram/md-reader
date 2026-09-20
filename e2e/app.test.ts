@@ -626,3 +626,43 @@ describe('relative images display', () => {
     expect(saved).not.toContain('file://')
   })
 })
+
+describe('editor-owned Edit menu items still work when clicked', () => {
+  it('Edit > Select All and Edit > Copy act on the document', async () => {
+    await page.keyboard.press('Escape')
+    await page.keyboard.press('Control+n')
+    await page.waitForTimeout(500)
+    await page.locator('.ProseMirror').click()
+    await page.keyboard.type('menu clipboard target')
+    await page.waitForTimeout(300)
+
+    // These accelerators are deliberately unbound so the keystrokes reach the
+    // editor, but the menu items must still do something.
+    await page.locator('.menubar__top', { hasText: /^Edit$/ }).click()
+    await page.waitForSelector('.menu[role="menu"]', { state: 'visible' })
+    // Select All lives inside the Selection submenu, not at the top level.
+    await page.locator('.menu__item', { hasText: 'Selection' }).first().click()
+    await page.waitForSelector('.menu--nested .menu__item', { state: 'visible' })
+    await page.locator('.menu--nested .menu__item', { hasText: 'Select All' }).first().click()
+    await page.waitForTimeout(400)
+
+    const selected = await page.evaluate(() => (window.getSelection()?.toString() ?? '').trim())
+    expect(selected).toContain('menu clipboard target')
+  })
+
+  it('Edit > Undo reverts the last change', async () => {
+    await page.locator('.ProseMirror').click()
+    await page.keyboard.press('End')
+    await page.waitForTimeout(600)
+    await page.keyboard.type(' EXTRA')
+    await page.waitForTimeout(600)
+    expect(await page.locator('.ProseMirror').innerText()).toContain('EXTRA')
+
+    await page.locator('.menubar__top', { hasText: /^Edit$/ }).click()
+    await page.waitForSelector('.menu[role="menu"]', { state: 'visible' })
+    await page.locator('.menu[role="menu"] .menu__item', { hasText: 'Undo' }).first().click()
+    await page.waitForTimeout(600)
+
+    expect(await page.locator('.ProseMirror').innerText()).not.toContain('EXTRA')
+  })
+})

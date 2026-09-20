@@ -10,17 +10,25 @@ Built on Electron and Milkdown/Crepe (ProseMirror).
 
 ## Status
 
-**Phase 1 complete.** The application shell runs: frameless window with a custom
-themed title bar, the full seven-menu menu bar driven by a single command registry,
-open/edit/save with byte-exact preservation of encoding, BOM and line endings, YAML
-front matter support, the round-trip guard, crash recovery, and two themes.
+**Phases 0–3 complete.**
 
-Phase 0 (feasibility spike) findings are below and still current.
+- **Shell** — frameless window with a themed title bar, the full seven-menu menu
+  bar driven by one command registry, multi-window, crash recovery.
+- **Files** — open, edit and save with byte-exact preservation of encoding, BOM and
+  line endings; a round-trip guard that warns before you edit a file that cannot be
+  written back faithfully.
+- **Workspace** — open a folder, with Outline, Articles, File Tree and folder-wide
+  Search panels, tabs that keep their undo history, file watching, and Open Quickly.
+- **Content** — YAML front matter, GitHub alerts, `[TOC]`, math, mermaid diagrams
+  (loaded on first use), and image paste into a local assets folder.
 
-Measured on the finished Phase 1 shell: **742 ms cold start, 328 MB idle** — both
-inside the targets set in Phase 0.
+Measured: **~700 ms cold start, ~340 MB idle**, well inside the Phase 0 targets.
 
-134 tests pass (115 unit, 19 end-to-end).
+240 tests pass (199 unit, 41 end-to-end).
+
+Still to come: find and replace, source mode, focus and typewriter modes
+(Phase 4); PDF and HTML export, preferences, the remaining themes (Phase 5);
+packaging (Phase 6).
 
 ## Development
 
