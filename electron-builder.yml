@@ -1,0 +1,45 @@
+appId: com.ekram.md
+productName: ekram.md
+# electron-builder derives the binary name from productName, which would give
+# "ekram.md.exe". The displayed name stays ekram.md; only the file is renamed.
+executableName: ekram-md
+
+directories:
+  output: dist
+  buildResources: resources
+
+files:
+  - out/**
+  - package.json
+
+# The folder-search worker is loaded by worker_threads from
+# join(__dirname, 'search-worker.js'), which points inside the asar archive.
+#
+# Tested both ways on Electron 44: search works whether or not this is
+# unpacked, because Electron redirects the read. So this is insurance, not a
+# fix - kept because worker-inside-asar behaviour has changed between Electron
+# versions before, and unpacking one 3 KB file costs nothing. If it ever starts
+# failing in a packaged build, this is the first thing to check.
+asarUnpack:
+  - out/main/search-worker.js
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  # File association, so "Open with" and double-click reach the app.
+  fileAssociations:
+    - ext: md
+      name: Markdown Document
+      role: Editor
+    - ext: markdown
+      name: Markdown Document
+      role: Editor
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: ekram.md

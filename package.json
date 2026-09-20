@@ -1,6 +1,6 @@
 {
   "name": "ekram-md",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "A fast WYSIWYG markdown editor for Windows",
   "productName": "ekram.md",
   "main": "./out/main/index.js",
@@ -14,12 +14,15 @@
     "test": "vitest run --project unit",
     "test:e2e": "electron-vite build && vitest run --project e2e",
     "typecheck": "vue-tsc --noEmit -p tsconfig.json",
-    "spike:roundtrip": "vitest run --project unit spike/"
+    "spike:roundtrip": "vitest run --project unit spike/",
+    "build:win": "electron-vite build && electron-builder --win",
+    "build:dir": "electron-vite build && electron-builder --win --dir"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",
     "@vitejs/plugin-vue": "6.0.9",
     "electron": "44.4.3",
+    "electron-builder": "26.15.3",
     "electron-vite": "5.0.0",
     "happy-dom": "^20.14.5",
     "playwright": "1.63.0",
