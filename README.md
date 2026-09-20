@@ -10,36 +10,43 @@ Built on Electron and Milkdown/Crepe (ProseMirror).
 
 ## Status
 
-**Phases 0–3 complete.**
+**Phases 0–3 complete, plus a hardening pass.**
 
 - **Shell** — frameless window with a themed title bar, the full seven-menu menu
   bar driven by one command registry, multi-window, crash recovery.
 - **Files** — open, edit and save with byte-exact preservation of encoding, BOM and
   line endings; a round-trip guard that warns before you edit a file that cannot be
-  written back faithfully.
+  written back faithfully; Data Recovery restores the version kept before the last save.
 - **Workspace** — open a folder, with Outline, Articles, File Tree and folder-wide
-  Search panels, tabs that keep their undo history, file watching, and Open Quickly.
+  Search panels, tabs that keep their undo history, file watching that follows
+  renames, and Open Quickly.
 - **Content** — YAML front matter, GitHub alerts, `[TOC]`, math, mermaid diagrams
   (loaded on first use), and image paste into a local assets folder.
+- **Packaging** — builds an NSIS installer; proven to work rather than assumed.
 
-Measured: **~700 ms cold start, ~340 MB idle**, well inside the Phase 0 targets.
+Measured with `npm run bench` (median of five launches): **607 ms cold start,
+326 MB idle**, both inside the Phase 0 budgets.
 
-240 tests pass (199 unit, 41 end-to-end).
+313 tests pass (269 unit, 44 end-to-end). `npm run verify` runs typecheck, lint
+and both suites in one command.
 
 Still to come: find and replace, source mode, focus and typewriter modes
 (Phase 4); PDF and HTML export, preferences, the remaining themes (Phase 5);
-packaging (Phase 6).
+the Help menu and file association (Phase 6). Menu coverage is 65 of 140 items.
 
 ## Development
 
 ```powershell
 npm install
 npm run dev              # run the app with hot reload
-npm run build            # build into out/
-npm test                 # unit tests
+npm run verify           # typecheck + lint + unit + e2e, in one command
+npm run bench            # cold start and memory, median of five launches
+npm run build:win        # NSIS installer into dist/
+npm test                 # unit tests only
 npm run test:e2e         # end-to-end tests against the real app
-npm run typecheck
-npm run spike:roundtrip  # markdown fidelity suite
+npm run lint             # eslint
+npm run format           # prettier
+npm run spike:roundtrip  # markdown fidelity corpus
 ```
 
 ---
