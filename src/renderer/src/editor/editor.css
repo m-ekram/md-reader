@@ -102,3 +102,44 @@
   font-size: 12px;
   opacity: 0.6;
 }
+
+/*
+ * GitHub-style alerts. The marker is not in the document text - it lives in an
+ * attribute - so the label is drawn from CSS.
+ */
+.milkdown blockquote[data-alert] {
+  border-left-width: 4px;
+  border-radius: 0 4px 4px 0;
+  padding: 0.6em 1em;
+  background: color-mix(in srgb, var(--alert-color) 8%, transparent);
+  border-left-color: var(--alert-color);
+  color: var(--doc-fg);
+}
+.milkdown blockquote[data-alert]::before {
+  content: attr(data-alert);
+  display: block;
+  margin-bottom: 0.3em;
+  font-size: 0.8em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--alert-color);
+}
+.milkdown blockquote[data-alert='note'] { --alert-color: var(--doc-accent); }
+.milkdown blockquote[data-alert='tip'] { --alert-color: #1a7f37; }
+.milkdown blockquote[data-alert='important'] { --alert-color: #8250df; }
+.milkdown blockquote[data-alert='warning'] { --alert-color: var(--warning); }
+.milkdown blockquote[data-alert='caution'] { --alert-color: var(--danger); }
+
+/* The [TOC] marker, shown as a block rather than raw text. */
+.milkdown .toc-marker {
+  padding: 8px 12px;
+  margin: 1em 0;
+  border: 1px dashed var(--doc-rule);
+  border-radius: 4px;
+  color: var(--doc-muted);
+  font-size: 0.85em;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  user-select: none;
+}
