@@ -7,6 +7,7 @@
  */
 import { reactive } from 'vue'
 import { invalidateCommands } from '../commands/registry'
+import { resetMermaid } from '../editor/mermaid'
 
 export interface ThemeInfo {
   id: string
@@ -45,6 +46,9 @@ export async function applyTheme(id: string): Promise<void> {
   } else if (userStyleEl) {
     userStyleEl.textContent = ''
   }
+  // Mermaid bakes colours into the SVG it produces, so a theme change means
+  // the cached diagrams and the initialized instance are both stale.
+  resetMermaid()
   invalidateCommands()
 }
 

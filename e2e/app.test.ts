@@ -426,3 +426,53 @@ describe('Open Quickly', () => {
     expect(await page.locator('.quick__panel').count()).toBe(0)
   })
 })
+
+describe('mermaid diagrams', () => {
+  it('renders a diagram below its fence', async () => {
+    const file = join(workdir, 'diagram.md')
+    await writeFile(file, '# Diagram\n\n```mermaid\ngraph TD\n  A-->B\n```\n', 'utf8')
+
+    await app.evaluate(async ({ BrowserWindow }, path) => {
+      BrowserWindow.getAllWindows()[0].webContents.send('file:open-path', path)
+    }, file)
+
+    // First use loads roughly a megabyte of library, so allow for that.
+    await page.waitForSelector('.mermaid-figure svg', { timeout: 30_000 })
+    const svg = await page.locator('.mermaid-figure svg').first()
+    expect(await svg.count()).toBeGreaterThan(0)
+  })
+
+  it('shows an error inline instead of throwing on invalid syntax', async () => {
+    const file = join(workdir, 'broken.md')
+    await writeFile(file, '```mermaid\nnot a real diagram !!!\n```\n', 'utf8')
+
+    await app.evaluate(async ({ BrowserWindow }, path) => {
+      BrowserWindow.getAllWindows()[0].webContents.send('file:open-path', path)
+    }, file)
+
+    // More than one figure can be on the page, and rendering is async, so poll
+    // for any of them reporting the failure rather than sampling the first.
+    await page.waitForFunction(
+      () => [...document.querySelectorAll('.mermaid-figure')].some((el) => el.classList.contains('is-error')),
+      { timeout: 25_000 }
+    )
+    const texts = await page.locator('.mermaid-figure.is-error').allTextContents()
+    expect(texts.join(' ')).toMatch(/diagram|syntax|error/i)
+    // The source must survive a failed render: the fence is still editable text.
+    expect(await page.locator('.ProseMirror').innerText()).toContain('not a real diagram')
+  })
+
+  it('keeps the fence source intact when saved', async () => {
+    const file = join(workdir, 'diagram.md')
+    await app.evaluate(async ({ BrowserWindow }, path) => {
+      BrowserWindow.getAllWindows()[0].webContents.send('file:open-path', path)
+    }, file)
+    await page.waitForTimeout(1500)
+    await page.keyboard.press('Control+s')
+    await page.waitForTimeout(1200)
+
+    const after = await readFile(file, 'utf8')
+    expect(after).toContain('```mermaid')
+    expect(after).toContain('graph TD')
+  })
+})

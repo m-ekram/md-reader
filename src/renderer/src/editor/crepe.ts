@@ -19,6 +19,7 @@ import { frontmatterPlugin } from './frontmatter'
 import { applyImageAltFix } from './image'
 import { applyAlerts } from './alerts'
 import { tocPlugin } from './toc'
+import { mermaidPlugin } from './mermaid'
 
 /**
  * Emit conventional markdown, so re-serializing an ordinary file is close to a
@@ -71,6 +72,7 @@ export async function createEditor(opts: {
     .use(listener)
     .use(frontmatterPlugin)
     .use(tocPlugin)
+    .use(mermaidPlugin)
     .config((ctx) => {
       ctx.get(listenerCtx).markdownUpdated((_c, markdown, prevMarkdown) => {
         if (markdown !== prevMarkdown) opts.onChange(markdown)

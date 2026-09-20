@@ -143,3 +143,30 @@
   text-transform: uppercase;
   user-select: none;
 }
+
+/* Rendered mermaid diagrams sit below their source fence. */
+.milkdown .mermaid-figure {
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+  margin: 0 0 1em;
+  background: var(--code-bg);
+  border-radius: 0 0 6px 6px;
+  overflow-x: auto;
+  user-select: none;
+}
+.milkdown .mermaid-figure.is-pending {
+  opacity: 0.55;
+}
+.milkdown .mermaid-figure.is-error {
+  display: block;
+  color: var(--danger);
+  font-family: var(--code-font);
+  font-size: 0.8em;
+  white-space: pre-wrap;
+  user-select: text;
+}
+.milkdown .mermaid-figure svg {
+  max-width: 100%;
+  height: auto;
+}
