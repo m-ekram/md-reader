@@ -70,7 +70,10 @@ onBeforeUnmount(() => void releaseAll())
 // Keyed on document identity, not path: Save As changes the path but is the
 // same document, and reacting there would swap the editor out underneath the
 // user at the moment they expect nothing to happen.
-watch(() => activeDoc.value?.id, () => void show())
+watch(
+  () => activeDoc.value?.id,
+  () => void show()
+)
 
 // A reload replaces the document's content wholesale. A pooled editor holds its
 // own state and will not pick that up, so its editor is discarded and rebuilt.

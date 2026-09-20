@@ -79,7 +79,12 @@ export async function saveActive(saveAs = false): Promise<boolean> {
         eol: d.eol,
       })
       if (!forced.ok) return false
-      Object.assign(d, { path, name: path.split(/[\\/]/).pop(), savedContent: d.content, mtimeMs: forced.mtimeMs })
+      Object.assign(d, {
+        path,
+        name: path.split(/[\\/]/).pop(),
+        savedContent: d.content,
+        mtimeMs: forced.mtimeMs,
+      })
       invalidateCommands()
       return true
     }
@@ -150,7 +155,12 @@ const commands: Command[] = [
         if (choice === 'save' && !(await saveActive())) return
       }
       const f = await window.api.file.read(d.path)
-      Object.assign(d, { content: f.content, savedContent: f.content, mtimeMs: f.mtimeMs, lossy: null })
+      Object.assign(d, {
+        content: f.content,
+        savedContent: f.content,
+        mtimeMs: f.mtimeMs,
+        lossy: null,
+      })
       invalidateCommands()
     },
   },
@@ -323,7 +333,10 @@ The version currently open will be replaced. It is not written to disk until you
   },
 
   // Help
-  { id: 'help.website', run: () => void window.api.app.openExternal('https://github.com/m-ekram/md-reader') },
+  {
+    id: 'help.website',
+    run: () => void window.api.app.openExternal('https://github.com/m-ekram/md-reader'),
+  },
   {
     id: 'help.about',
     run: async () => {

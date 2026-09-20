@@ -75,7 +75,10 @@ export function applyAlerts(ctx: Ctx): void {
       toDOM: (node) => [
         'blockquote',
         node.attrs.alert
-          ? { 'data-alert': String(node.attrs.alert), class: `alert alert--${String(node.attrs.alert)}` }
+          ? {
+              'data-alert': String(node.attrs.alert),
+              class: `alert alert--${String(node.attrs.alert)}`,
+            }
           : {},
         0,
       ],

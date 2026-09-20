@@ -55,7 +55,9 @@ function onDrag(e: PointerEvent): void {
 function endDrag(): void {
   dragging.value = false
   window.removeEventListener('pointermove', onDrag)
-  void patchSettings({ sidebar: { ...settings.value.sidebar, width: settings.value.sidebar.width } })
+  void patchSettings({
+    sidebar: { ...settings.value.sidebar, width: settings.value.sidebar.width },
+  })
 }
 
 onBeforeUnmount(() => window.removeEventListener('pointermove', onDrag))

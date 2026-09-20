@@ -107,7 +107,8 @@ function registerWindowIpc(): void {
   ipcMain.on('window:toggle-maximize', (e) => {
     const w = senderWindow(e)
     if (!w) return
-    w.isMaximized() ? w.unmaximize() : w.maximize()
+    if (w.isMaximized()) w.unmaximize()
+    else w.maximize()
   })
   ipcMain.on('window:close', (e) => senderWindow(e)?.close())
   ipcMain.on('window:new', () => createWindow())
@@ -128,14 +129,30 @@ function registerWindowIpc(): void {
   ipcMain.on('edit:action', (e, action: string) => {
     const wc = e.sender
     switch (action) {
-      case 'undo': wc.undo(); break
-      case 'redo': wc.redo(); break
-      case 'cut': wc.cut(); break
-      case 'copy': wc.copy(); break
-      case 'paste': wc.paste(); break
-      case 'pastePlain': wc.pasteAndMatchStyle(); break
-      case 'selectAll': wc.selectAll(); break
-      case 'delete': wc.delete(); break
+      case 'undo':
+        wc.undo()
+        break
+      case 'redo':
+        wc.redo()
+        break
+      case 'cut':
+        wc.cut()
+        break
+      case 'copy':
+        wc.copy()
+        break
+      case 'paste':
+        wc.paste()
+        break
+      case 'pastePlain':
+        wc.pasteAndMatchStyle()
+        break
+      case 'selectAll':
+        wc.selectAll()
+        break
+      case 'delete':
+        wc.delete()
+        break
     }
   })
   ipcMain.on('window:zoom', (e, level: number) => e.sender.setZoomLevel(level))

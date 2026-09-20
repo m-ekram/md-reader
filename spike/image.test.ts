@@ -17,10 +17,17 @@ describe('image alt-text fidelity under Crepe', () => {
     beforeAll(async () => {
       root = document.createElement('div')
       document.body.appendChild(root)
-      crepe = new Crepe({ root, defaultValue: '', features: { [CrepeFeature.AI]: false, [CrepeFeature.TopBar]: false } })
+      crepe = new Crepe({
+        root,
+        defaultValue: '',
+        features: { [CrepeFeature.AI]: false, [CrepeFeature.TopBar]: false },
+      })
       await crepe.create()
     }, 60_000)
-    afterAll(async () => { await crepe?.destroy(); root?.remove() })
+    afterAll(async () => {
+      await crepe?.destroy()
+      root?.remove()
+    })
 
     it('characterizes the damage', () => {
       const cases = [
@@ -30,7 +37,8 @@ describe('image alt-text fidelity under Crepe', () => {
         'Inline ![alt here](p.png) inside a paragraph.',
         '![multi word alt](https://example.com/x.png)',
       ]
-      for (const c of cases) console.log(`IMGBLOCK  ${JSON.stringify(c)}\n       -> ${JSON.stringify(trip(c))}`)
+      for (const c of cases)
+        console.log(`IMGBLOCK  ${JSON.stringify(c)}\n       -> ${JSON.stringify(trip(c))}`)
       expect(true).toBe(true)
     })
   })
@@ -42,14 +50,30 @@ describe('with ImageBlock disabled', () => {
   beforeAll(async () => {
     r2 = document.createElement('div')
     document.body.appendChild(r2)
-    c2 = new Crepe({ root: r2, defaultValue: '', features: {
-      [CrepeFeature.AI]: false, [CrepeFeature.TopBar]: false, [CrepeFeature.ImageBlock]: false } })
+    c2 = new Crepe({
+      root: r2,
+      defaultValue: '',
+      features: {
+        [CrepeFeature.AI]: false,
+        [CrepeFeature.TopBar]: false,
+        [CrepeFeature.ImageBlock]: false,
+      },
+    })
     await c2.create()
   }, 60_000)
-  afterAll(async () => { await c2?.destroy(); r2?.remove() })
+  afterAll(async () => {
+    await c2?.destroy()
+    r2?.remove()
+  })
 
   it('checks whether alt survives', () => {
-    const t = (md: string) => { let o=''; c2.editor.action(ctx=>{o=ctx.get(serializerCtx)(ctx.get(parserCtx)(md)!)}); return o.trim() }
+    const t = (md: string) => {
+      let o = ''
+      c2.editor.action((ctx) => {
+        o = ctx.get(serializerCtx)(ctx.get(parserCtx)(md)!)
+      })
+      return o.trim()
+    }
     for (const c of ['![alt text](./img/pic.png)', 'Inline ![alt here](p.png) inside.']) {
       console.log(`NOIMGBLK  ${JSON.stringify(c)}\n       -> ${JSON.stringify(t(c))}`)
     }

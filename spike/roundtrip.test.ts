@@ -20,10 +20,13 @@ describe('markdown round-trip fidelity', () => {
         name: f.name,
         ok: r.lossless,
         gap: f.expectedGap,
-        detail: r.error ?? (r.lossless ? '' : `line ${r.firstDiffLine}: ${JSON.stringify(r.output.slice(0, 90))}`),
+        detail:
+          r.error ??
+          (r.lossless ? '' : `line ${r.firstDiffLine}: ${JSON.stringify(r.output.slice(0, 90))}`),
       })
       // Fixtures with a known gap are reported, not enforced, until their phase lands.
-      if (!f.expectedGap) expect(r.lossless, `\n--- in ---\n${f.md}\n--- out ---\n${r.output}\n`).toBe(true)
+      if (!f.expectedGap)
+        expect(r.lossless, `\n--- in ---\n${f.md}\n--- out ---\n${r.output}\n`).toBe(true)
     })
   }
 

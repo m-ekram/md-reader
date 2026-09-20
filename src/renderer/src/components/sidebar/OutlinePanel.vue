@@ -4,9 +4,7 @@ import { computed } from 'vue'
 import { extractHeadings, plainHeadingText } from '../../editor/outline'
 import { activeDoc } from '../../stores/documents'
 
-const headings = computed(() =>
-  activeDoc.value ? extractHeadings(activeDoc.value.content) : []
-)
+const headings = computed(() => (activeDoc.value ? extractHeadings(activeDoc.value.content) : []))
 
 /**
  * Scrolling is by heading text rather than line number: the rendered document
@@ -15,7 +13,9 @@ const headings = computed(() =>
  */
 function goTo(text: string, occurrence: number): void {
   const wanted = plainHeadingText(text).toLowerCase()
-  const nodes = document.querySelectorAll('.ProseMirror h1, .ProseMirror h2, .ProseMirror h3, .ProseMirror h4, .ProseMirror h5, .ProseMirror h6')
+  const nodes = document.querySelectorAll(
+    '.ProseMirror h1, .ProseMirror h2, .ProseMirror h3, .ProseMirror h4, .ProseMirror h5, .ProseMirror h6'
+  )
   let seen = 0
   for (const node of nodes) {
     if ((node.textContent ?? '').trim().toLowerCase() !== wanted) continue
@@ -79,9 +79,15 @@ function occurrenceOf(index: number): number {
 .outline__item:hover {
   background: var(--chrome-hover);
 }
-.outline__item--h1 { font-weight: 600; }
-.outline__item--h2 { font-weight: 500; }
+.outline__item--h1 {
+  font-weight: 600;
+}
+.outline__item--h2 {
+  font-weight: 500;
+}
 .outline__item--h4,
 .outline__item--h5,
-.outline__item--h6 { opacity: 0.8; }
+.outline__item--h6 {
+  opacity: 0.8;
+}
 </style>

@@ -13,7 +13,12 @@
  *     override.
  */
 import { Crepe, CrepeFeature } from '@milkdown/crepe'
-import { editorViewCtx, parserCtx, remarkStringifyOptionsCtx, serializerCtx } from '@milkdown/kit/core'
+import {
+  editorViewCtx,
+  parserCtx,
+  remarkStringifyOptionsCtx,
+  serializerCtx,
+} from '@milkdown/kit/core'
 import type { EditorView } from '@milkdown/kit/prose/view'
 import { listener, listenerCtx } from '@milkdown/kit/plugin/listener'
 import { frontmatterPlugin } from './frontmatter'

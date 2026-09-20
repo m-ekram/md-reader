@@ -44,7 +44,11 @@ export function registerFileIpc(): void {
       try {
         const s = await stat(req.path)
         if (req.expectedMtimeMs !== undefined && s.mtimeMs > req.expectedMtimeMs + 1) {
-          return { ok: false, reason: 'conflict', message: 'The file changed on disk since it was opened.' }
+          return {
+            ok: false,
+            reason: 'conflict',
+            message: 'The file changed on disk since it was opened.',
+          }
         }
         // Raw bytes: a normalized copy is not the file we are about to replace.
         previous = await readFile(req.path)

@@ -64,11 +64,18 @@ describe('crepe round-trip (the shipping configuration)', () => {
     L.push(`**Lossless: ${ok}/${rows.length}**`, '')
     L.push('| construct | result | note |', '|---|---|---|')
     for (const r of rows) {
-      L.push(`| ${r.name} | ${r.ok ? 'ok' : 'LOSSY'} | ${r.ok ? '' : (r.err || r.gap || '**UNPLANNED**')} |`)
+      L.push(
+        `| ${r.name} | ${r.ok ? 'ok' : 'LOSSY'} | ${r.ok ? '' : r.err || r.gap || '**UNPLANNED**'} |`
+      )
     }
     L.push('', '## Lossy detail', '')
     for (const r of rows.filter((x) => !x.ok)) {
-      L.push(`### ${r.name}`, '', r.err ? `error: ${r.err}` : '```markdown\n' + r.out.slice(0, 200) + '\n```', '')
+      L.push(
+        `### ${r.name}`,
+        '',
+        r.err ? `error: ${r.err}` : '```markdown\n' + r.out.slice(0, 200) + '\n```',
+        ''
+      )
     }
     writeFileSync('spike/PHASE0-CREPE.md', L.join('\n'), 'utf8')
   })

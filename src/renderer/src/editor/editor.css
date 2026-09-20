@@ -23,12 +23,24 @@
   margin: 1.6em 0 0.6em;
   font-weight: 600;
 }
-.milkdown h1 { font-size: 1.9em; }
-.milkdown h2 { font-size: 1.5em; border-bottom: 1px solid var(--doc-rule); padding-bottom: 0.25em; }
-.milkdown h3 { font-size: 1.25em; }
+.milkdown h1 {
+  font-size: 1.9em;
+}
+.milkdown h2 {
+  font-size: 1.5em;
+  border-bottom: 1px solid var(--doc-rule);
+  padding-bottom: 0.25em;
+}
+.milkdown h3 {
+  font-size: 1.25em;
+}
 
-.milkdown p { margin: 0.85em 0; }
-.milkdown a { color: var(--doc-accent); }
+.milkdown p {
+  margin: 0.85em 0;
+}
+.milkdown a {
+  color: var(--doc-accent);
+}
 
 .milkdown blockquote {
   margin: 1em 0;
@@ -125,11 +137,21 @@
   text-transform: uppercase;
   color: var(--alert-color);
 }
-.milkdown blockquote[data-alert='note'] { --alert-color: var(--doc-accent); }
-.milkdown blockquote[data-alert='tip'] { --alert-color: #1a7f37; }
-.milkdown blockquote[data-alert='important'] { --alert-color: #8250df; }
-.milkdown blockquote[data-alert='warning'] { --alert-color: var(--warning); }
-.milkdown blockquote[data-alert='caution'] { --alert-color: var(--danger); }
+.milkdown blockquote[data-alert='note'] {
+  --alert-color: var(--doc-accent);
+}
+.milkdown blockquote[data-alert='tip'] {
+  --alert-color: #1a7f37;
+}
+.milkdown blockquote[data-alert='important'] {
+  --alert-color: #8250df;
+}
+.milkdown blockquote[data-alert='warning'] {
+  --alert-color: var(--warning);
+}
+.milkdown blockquote[data-alert='caution'] {
+  --alert-color: var(--danger);
+}
 
 /* The [TOC] marker, shown as a block rather than raw text. */
 .milkdown .toc-marker {

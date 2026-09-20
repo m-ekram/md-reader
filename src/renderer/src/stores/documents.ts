@@ -58,7 +58,7 @@ export function useDocuments() {
 }
 
 export const activeDoc = computed<Doc | null>(() =>
-  state.activeIndex >= 0 ? state.docs[state.activeIndex] ?? null : null
+  state.activeIndex >= 0 ? (state.docs[state.activeIndex] ?? null) : null
 )
 
 export function isDirty(d: Doc): boolean {
@@ -96,7 +96,9 @@ export function newDoc(): Doc {
 
 export function adoptFile(f: DocumentFile): Doc {
   // Re-opening an already-open file focuses it instead of duplicating the tab.
-  const existing = state.docs.findIndex((d) => d.path && d.path.toLowerCase() === f.path.toLowerCase())
+  const existing = state.docs.findIndex(
+    (d) => d.path && d.path.toLowerCase() === f.path.toLowerCase()
+  )
   if (existing >= 0) {
     state.activeIndex = existing
     invalidateCommands()

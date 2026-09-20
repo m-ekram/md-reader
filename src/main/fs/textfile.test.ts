@@ -15,14 +15,26 @@ afterEach(async () => {
 
 describe('detectEncoding', () => {
   it('recognizes a UTF-8 BOM', () => {
-    expect(detectEncoding(Buffer.from([0xef, 0xbb, 0xbf, 0x61]))).toEqual({ encoding: 'utf8', hasBom: true })
+    expect(detectEncoding(Buffer.from([0xef, 0xbb, 0xbf, 0x61]))).toEqual({
+      encoding: 'utf8',
+      hasBom: true,
+    })
   })
   it('recognizes UTF-16 BOMs in both byte orders', () => {
-    expect(detectEncoding(Buffer.from([0xff, 0xfe, 0x61, 0x00]))).toEqual({ encoding: 'utf16le', hasBom: true })
-    expect(detectEncoding(Buffer.from([0xfe, 0xff, 0x00, 0x61]))).toEqual({ encoding: 'utf16be', hasBom: true })
+    expect(detectEncoding(Buffer.from([0xff, 0xfe, 0x61, 0x00]))).toEqual({
+      encoding: 'utf16le',
+      hasBom: true,
+    })
+    expect(detectEncoding(Buffer.from([0xfe, 0xff, 0x00, 0x61]))).toEqual({
+      encoding: 'utf16be',
+      hasBom: true,
+    })
   })
   it('defaults to UTF-8 with no BOM', () => {
-    expect(detectEncoding(Buffer.from('plain', 'utf8'))).toEqual({ encoding: 'utf8', hasBom: false })
+    expect(detectEncoding(Buffer.from('plain', 'utf8'))).toEqual({
+      encoding: 'utf8',
+      hasBom: false,
+    })
   })
 })
 
@@ -46,9 +58,18 @@ describe('round-tripping a file unchanged', () => {
   const cases: Array<[string, Buffer]> = [
     ['utf8 lf', Buffer.from('# Title\n\nBody text.\n', 'utf8')],
     ['utf8 crlf', Buffer.from('# Title\r\n\r\nBody text.\r\n', 'utf8')],
-    ['utf8 bom lf', Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from('# T\nx\n', 'utf8')])],
-    ['utf8 bom crlf', Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from('# T\r\nx\r\n', 'utf8')])],
-    ['utf16le bom', Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from('# T\r\nx\r\n', 'utf16le')])],
+    [
+      'utf8 bom lf',
+      Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from('# T\nx\n', 'utf8')]),
+    ],
+    [
+      'utf8 bom crlf',
+      Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from('# T\r\nx\r\n', 'utf8')]),
+    ],
+    [
+      'utf16le bom',
+      Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from('# T\r\nx\r\n', 'utf16le')]),
+    ],
     ['unicode content', Buffer.from('café 日本語 🎉\nsecond\n', 'utf8')],
     ['no trailing newline', Buffer.from('no newline at end', 'utf8')],
   ]
@@ -80,7 +101,7 @@ describe('round-tripping a file unchanged', () => {
 })
 
 describe('writeTextFile', () => {
-  it('normalizes content to the file\'s own line endings', async () => {
+  it("normalizes content to the file's own line endings", async () => {
     const p = join(dir, 'crlf.md')
     await writeTextFile(p, 'a\nb\n', { encoding: 'utf8', hasBom: false, eol: '\r\n' })
     expect((await readFile(p)).toString('utf8')).toBe('a\r\nb\r\n')

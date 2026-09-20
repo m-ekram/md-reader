@@ -2,7 +2,7 @@
 :root[data-theme='github'] {
   --doc-bg: #ffffff;
   --doc-fg: #24292f;
-  --doc-font: -apple-system, "Segoe UI", system-ui, sans-serif;
+  --doc-font: -apple-system, 'Segoe UI', system-ui, sans-serif;
   --doc-muted: #57606a;
   --doc-accent: #0969da;
   --doc-rule: #d0d7de;

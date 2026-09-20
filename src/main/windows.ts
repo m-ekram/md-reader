@@ -92,7 +92,11 @@ export function createWindow(openPath?: string): BrowserWindow {
 
   // Window chrome is drawn in the renderer, so it needs to track these.
   const sendState = () => {
-    if (!win.isDestroyed()) win.webContents.send('window:state', { maximized: win.isMaximized(), focused: win.isFocused() })
+    if (!win.isDestroyed())
+      win.webContents.send('window:state', {
+        maximized: win.isMaximized(),
+        focused: win.isFocused(),
+      })
   }
   win.on('maximize', sendState)
   win.on('unmaximize', sendState)

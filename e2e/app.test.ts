@@ -78,7 +78,10 @@ describe('menu bar matches the specification', () => {
         .filter((n) => n.kind === 'item' || n.kind === 'submenu' || n.kind === 'dynamic')
         .map((n) => ('label' in n ? n.label : ''))
 
-      const rendered = await page.locator('.menu[role="menu"] > .menu__item, .menu[role="menu"] > .menu__row--sub > .menu__item')
+      const rendered = await page
+        .locator(
+          '.menu[role="menu"] > .menu__item, .menu[role="menu"] > .menu__row--sub > .menu__item'
+        )
         .allTextContents()
 
       for (const label of expectedLabels) {
@@ -117,7 +120,8 @@ describe('menu bar matches the specification', () => {
 describe('the save path preserves the file', () => {
   it('writes back a file it did not change, byte for byte', async () => {
     const file = join(workdir, 'note.md')
-    const original = '---\ntitle: Test\ntags: [a, b]\n---\n\n# Heading\n\n- one\n- two\n\nSome **bold** text.\n'
+    const original =
+      '---\ntitle: Test\ntags: [a, b]\n---\n\n# Heading\n\n- one\n- two\n\nSome **bold** text.\n'
     await writeFile(file, original, 'utf8')
 
     // Open through main, exactly as the File menu would.
@@ -308,9 +312,11 @@ describe('workspace, sidebar and watching', () => {
 
   it('lists the folder in the file tree, markdown only', async () => {
     await openWorkspace()
-    await page.evaluate(() => window.api.settings.patch({
-      sidebar: { visible: true, width: 260, panel: 'files' },
-    }))
+    await page.evaluate(() =>
+      window.api.settings.patch({
+        sidebar: { visible: true, width: 260, panel: 'files' },
+      })
+    )
     await page.waitForSelector('.sidebar', { state: 'visible' })
     await page.waitForTimeout(400)
 
@@ -333,9 +339,11 @@ describe('workspace, sidebar and watching', () => {
   })
 
   it('lists every markdown file in Articles, flat', async () => {
-    await page.evaluate(() => window.api.settings.patch({
-      sidebar: { visible: true, width: 260, panel: 'articles' },
-    }))
+    await page.evaluate(() =>
+      window.api.settings.patch({
+        sidebar: { visible: true, width: 260, panel: 'articles' },
+      })
+    )
     await page.waitForTimeout(600)
     const names = await page.locator('.articles__name').allTextContents()
     // Flat: the nested file appears alongside the top-level ones.
@@ -345,9 +353,11 @@ describe('workspace, sidebar and watching', () => {
   it('shows headings of the active document in the Outline', async () => {
     await page.locator('.articles__item', { hasText: 'second.md' }).first().click()
     await page.waitForTimeout(900)
-    await page.evaluate(() => window.api.settings.patch({
-      sidebar: { visible: true, width: 260, panel: 'outline' },
-    }))
+    await page.evaluate(() =>
+      window.api.settings.patch({
+        sidebar: { visible: true, width: 260, panel: 'outline' },
+      })
+    )
     await page.waitForTimeout(500)
 
     const headings = await page.locator('.outline__item').allTextContents()
@@ -355,9 +365,11 @@ describe('workspace, sidebar and watching', () => {
   })
 
   it('searches the folder and streams results', async () => {
-    await page.evaluate(() => window.api.settings.patch({
-      sidebar: { visible: true, width: 300, panel: 'search' },
-    }))
+    await page.evaluate(() =>
+      window.api.settings.patch({
+        sidebar: { visible: true, width: 300, panel: 'search' },
+      })
+    )
     await page.waitForSelector('.search__input', { state: 'visible' })
     await page.locator('.search__input').fill('searchable haystack')
     await page.waitForSelector('.results__hit', { timeout: 15_000 })
@@ -368,9 +380,11 @@ describe('workspace, sidebar and watching', () => {
   })
 
   it('reloads a clean document when the file changes on disk', async () => {
-    await page.evaluate(() => window.api.settings.patch({
-      sidebar: { visible: true, width: 260, panel: 'articles' },
-    }))
+    await page.evaluate(() =>
+      window.api.settings.patch({
+        sidebar: { visible: true, width: 260, panel: 'articles' },
+      })
+    )
     await page.waitForTimeout(400)
     await page.locator('.articles__item', { hasText: 'first.md' }).first().click()
     await page.waitForTimeout(900)
@@ -379,7 +393,9 @@ describe('workspace, sidebar and watching', () => {
     await writeFile(join(notes(), 'first.md'), '# Rewritten externally\n\nnew body\n', 'utf8')
     // Clean document: no prompt, it should just follow the file.
     await page.waitForFunction(
-      () => document.querySelector('.ProseMirror')?.textContent?.includes('Rewritten externally') ?? false,
+      () =>
+        document.querySelector('.ProseMirror')?.textContent?.includes('Rewritten externally') ??
+        false,
       { timeout: 15_000 }
     )
   })
@@ -453,7 +469,10 @@ describe('mermaid diagrams', () => {
     // More than one figure can be on the page, and rendering is async, so poll
     // for any of them reporting the failure rather than sampling the first.
     await page.waitForFunction(
-      () => [...document.querySelectorAll('.mermaid-figure')].some((el) => el.classList.contains('is-error')),
+      () =>
+        [...document.querySelectorAll('.mermaid-figure')].some((el) =>
+          el.classList.contains('is-error')
+        ),
       { timeout: 25_000 }
     )
     const texts = await page.locator('.mermaid-figure.is-error').allTextContents()
@@ -571,7 +590,9 @@ describe('pasted images', () => {
       dt.items.add(file)
       document
         .querySelector('.ProseMirror')!
-        .dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }))
+        .dispatchEvent(
+          new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true })
+        )
     })
 
     await page.waitForTimeout(2000)
@@ -714,7 +735,8 @@ describe('a renamed file keeps its tab', () => {
       BrowserWindow.getAllWindows()[0].webContents.send('file:open-path', path)
     }, before)
     await page.waitForFunction(
-      () => document.querySelector('.ProseMirror')?.textContent?.includes('Renamed document') ?? false,
+      () =>
+        document.querySelector('.ProseMirror')?.textContent?.includes('Renamed document') ?? false,
       { timeout: 15_000 }
     )
     expect(await page.evaluate(() => document.title)).toContain('before.md')
@@ -723,10 +745,7 @@ describe('a renamed file keeps its tab', () => {
     await rename(before, after)
 
     // The tab should move to the new name rather than detaching.
-    await page.waitForFunction(
-      () => document.title.includes('after.md'),
-      { timeout: 20_000 }
-    )
+    await page.waitForFunction(() => document.title.includes('after.md'), { timeout: 20_000 })
 
     const title = await page.evaluate(() => document.title)
     expect(title).toContain('after.md')
@@ -746,7 +765,8 @@ describe('Data Recovery restores the version kept before the last save', () => {
       BrowserWindow.getAllWindows()[0].webContents.send('file:open-path', path)
     }, file)
     await page.waitForFunction(
-      () => document.querySelector('.ProseMirror')?.textContent?.includes('the good version') ?? false,
+      () =>
+        document.querySelector('.ProseMirror')?.textContent?.includes('the good version') ?? false,
       { timeout: 15_000 }
     )
 
@@ -762,7 +782,8 @@ describe('Data Recovery restores the version kept before the last save', () => {
 
     // Help > Data Recovery, answering the confirm dialog with Restore.
     const restored = page.waitForFunction(
-      () => document.querySelector('.ProseMirror')?.textContent?.includes('the good version') ?? false,
+      () =>
+        document.querySelector('.ProseMirror')?.textContent?.includes('the good version') ?? false,
       { timeout: 20_000 }
     )
     await app.evaluate(async ({ dialog }) => {

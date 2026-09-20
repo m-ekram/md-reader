@@ -47,6 +47,10 @@ export const log = {
 
 /** Captures the failures that would otherwise vanish silently. */
 export function installCrashHandlers(): void {
-  process.on('uncaughtException', (err) => log.error('uncaughtException', { message: err.message, stack: err.stack }))
-  process.on('unhandledRejection', (reason) => log.error('unhandledRejection', { reason: String(reason) }))
+  process.on('uncaughtException', (err) =>
+    log.error('uncaughtException', { message: err.message, stack: err.stack })
+  )
+  process.on('unhandledRejection', (reason) =>
+    log.error('unhandledRejection', { reason: String(reason) })
+  )
 }

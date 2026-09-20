@@ -10,7 +10,10 @@ export interface Fixture {
 }
 
 export const fixtures: Fixture[] = [
-  { name: 'atx headings', md: '# One\n\n## Two\n\n### Three\n\n#### Four\n\n##### Five\n\n###### Six' },
+  {
+    name: 'atx headings',
+    md: '# One\n\n## Two\n\n### Three\n\n#### Four\n\n##### Five\n\n###### Six',
+  },
   { name: 'paragraph', md: 'Just a plain paragraph of text.' },
   { name: 'emphasis', md: 'Some *italic*, **bold**, and ***both*** here.' },
   { name: 'strikethrough (gfm)', md: 'This is ~~struck out~~ text.' },
@@ -25,32 +28,104 @@ export const fixtures: Fixture[] = [
   { name: 'mixed nested list', md: '1. first\n   - bullet\n   - bullet\n2. second' },
   { name: 'task list (gfm)', md: '- [ ] todo\n- [x] done' },
   { name: 'loose list', md: '- one\n\n- two\n\n- three' },
-  { name: 'table (gfm)', expectedGap: 'delimiter row collapses to | - |; content preserved', md: '| a | b |\n| --- | --- |\n| 1 | 2 |' },
-  { name: 'table alignment', expectedGap: 'cell padding normalized; alignment preserved', md: '| l | c | r |\n| :-- | :-: | --: |\n| 1 | 2 | 3 |' },
+  {
+    name: 'table (gfm)',
+    expectedGap: 'delimiter row collapses to | - |; content preserved',
+    md: '| a | b |\n| --- | --- |\n| 1 | 2 |',
+  },
+  {
+    name: 'table alignment',
+    expectedGap: 'cell padding normalized; alignment preserved',
+    md: '| l | c | r |\n| :-- | :-: | --: |\n| 1 | 2 | 3 |',
+  },
   { name: 'link', md: 'See [the docs](https://example.com).' },
   { name: 'link with title', md: 'See [docs](https://example.com "Title").' },
-  { name: 'reference link', expectedGap: 'definition inlined; link target preserved', md: 'See [the docs][ref].\n\n[ref]: https://example.com' },
+  {
+    name: 'reference link',
+    expectedGap: 'definition inlined; link target preserved',
+    md: 'See [the docs][ref].\n\n[ref]: https://example.com',
+  },
   { name: 'autolink', md: 'Visit <https://example.com> today.' },
   { name: 'image', md: '![alt text](./img/pic.png)' },
   { name: 'thematic break', md: 'before\n\n---\n\nafter' },
-  { name: 'hard line break', expectedGap: 'two-space break becomes backslash; renders identically', md: 'line one  \nline two' },
+  {
+    name: 'hard line break',
+    expectedGap: 'two-space break becomes backslash; renders identically',
+    md: 'line one  \nline two',
+  },
   { name: 'backslash break', md: 'line one\\nline two' },
   { name: 'escaped chars', md: String.raw`A literal \* asterisk and \_ underscore.` },
-  { name: 'literal asterisk (unescaped)', expectedGap: 'serializer adds protective escapes', md: 'A literal * asterisk and _ underscore.' },
-  { name: 'html entity', expectedGap: 'entities decoded to literal characters; renders identically', md: 'Caf&eacute; &amp; bar' },
+  {
+    name: 'literal asterisk (unescaped)',
+    expectedGap: 'serializer adds protective escapes',
+    md: 'A literal * asterisk and _ underscore.',
+  },
+  {
+    name: 'html entity',
+    expectedGap: 'entities decoded to literal characters; renders identically',
+    md: 'Caf&eacute; &amp; bar',
+  },
   { name: 'setext heading', expectedGap: 'normalizes to ATX', md: 'Title\n=====\n\nSub\n---' },
-  { name: 'inline html', expectedGap: 'Format > Underline emits this', md: 'Some <u>underlined</u> text.' },
-  { name: 'html comment', expectedGap: 'Format > Comment emits this', md: '<!-- a note to self -->' },
-  { name: 'html block', expectedGap: 'raw html passthrough', md: '<div align="center">\n  hi\n</div>' },
-  { name: 'footnote (gfm)', expectedGap: 'may need footnote plugin', md: 'Text with a note[^1].\n\n[^1]: The note.' },
-  { name: 'yaml front matter', expectedGap: 'Phase 3 custom node', md: '---\ntitle: Test\ntags: [a, b]\n---\n\nBody text.' },
-  { name: 'inline math', expectedGap: 'Phase 3 (remark-math via Crepe latex)', md: 'Euler: $e^{i\pi} + 1 = 0$.' },
-  { name: 'block math', expectedGap: 'Phase 3 (remark-math via Crepe latex)', md: '$$\n\int_0^1 x^2 dx\n$$' },
-  { name: 'mermaid fence', expectedGap: 'Phase 3 custom node', md: '```mermaid\ngraph TD\n  A-->B\n```' },
-  { name: 'github alert', expectedGap: 'Phase 3 custom node', md: '> [!NOTE]\n> Useful information.' },
+  {
+    name: 'inline html',
+    expectedGap: 'Format > Underline emits this',
+    md: 'Some <u>underlined</u> text.',
+  },
+  {
+    name: 'html comment',
+    expectedGap: 'Format > Comment emits this',
+    md: '<!-- a note to self -->',
+  },
+  {
+    name: 'html block',
+    expectedGap: 'raw html passthrough',
+    md: '<div align="center">\n  hi\n</div>',
+  },
+  {
+    name: 'footnote (gfm)',
+    expectedGap: 'may need footnote plugin',
+    md: 'Text with a note[^1].\n\n[^1]: The note.',
+  },
+  {
+    name: 'yaml front matter',
+    expectedGap: 'Phase 3 custom node',
+    md: '---\ntitle: Test\ntags: [a, b]\n---\n\nBody text.',
+  },
+  {
+    name: 'inline math',
+    // Needs the latex plugin; bare commonmark escapes the LaTeX. The shipping
+    // editor handles it, and corpus.test.ts enforces that.
+    expectedGap: 'needs remark-math, which only the shipping config has',
+    // String.raw, because an ordinary literal turns \pi into "pi" and the
+    // fixture then tests math containing no LaTeX commands at all — which is
+    // exactly what it did for several phases.
+    md: String.raw`Euler: $e^{i\pi} + 1 = 0$.`,
+  },
+  {
+    name: 'block math',
+    expectedGap: 'needs remark-math, which only the shipping config has',
+    md: String.raw`$$` + '\n' + String.raw`\int_0^1 x^2 dx` + '\n' + String.raw`$$`,
+  },
+  {
+    name: 'mermaid fence',
+    expectedGap: 'Phase 3 custom node',
+    md: '```mermaid\ngraph TD\n  A-->B\n```',
+  },
+  {
+    name: 'github alert',
+    expectedGap: 'Phase 3 custom node',
+    md: '> [!NOTE]\n> Useful information.',
+  },
   { name: 'toc directive', expectedGap: 'Phase 3 custom node', md: '[TOC]\n\n# Heading' },
   { name: 'emoji shortcode', md: 'Ship it :rocket:' },
   { name: 'unicode + cjk', md: 'Unicode: café, naïve, 日本語, emoji 🎉' },
-  { name: 'indented code block', expectedGap: 'often normalized to fences', md: 'Text:\n\n    indented code\n    second line' },
-  { name: 'long paragraph (no rewrap)', md: 'A '.repeat(60).trim() + ' end of a deliberately long line that must not be re-wrapped.' },
+  {
+    name: 'indented code block',
+    expectedGap: 'often normalized to fences',
+    md: 'Text:\n\n    indented code\n    second line',
+  },
+  {
+    name: 'long paragraph (no rewrap)',
+    md: 'A '.repeat(60).trim() + ' end of a deliberately long line that must not be re-wrapped.',
+  },
 ]

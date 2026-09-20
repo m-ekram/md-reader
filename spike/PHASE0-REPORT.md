@@ -45,7 +45,7 @@ Measured against Milkdown/Crepe 7.22.1 with the commonmark + gfm presets.
 | footnote (gfm) | ok | ok |  |
 | yaml front matter | lossy | lossy | Phase 3 custom node |
 | inline math | ok | ok |  |
-| block math | lossy | lossy | Phase 3 (remark-math via Crepe latex) |
+| block math | lossy | lossy | needs remark-math, which only the shipping config has |
 | mermaid fence | ok | ok |  |
 | github alert | lossy | lossy | Phase 3 custom node |
 | toc directive | lossy | lossy | Phase 3 custom node |
@@ -143,11 +143,11 @@ Body text.
 
 ### block math
 
-Planned mitigation: Phase 3 (remark-math via Crepe latex)
+Planned mitigation: needs remark-math, which only the shipping config has
 
 ```markdown
 $$
-int\_0^1 x^2 dx
+\int\_0^1 x^2 dx
 $$
 
 ```

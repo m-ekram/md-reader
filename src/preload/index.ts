@@ -23,10 +23,12 @@ const api = {
     confirmClose: (names: string[]): Promise<'save' | 'discard' | 'cancel'> =>
       ipcRenderer.invoke('file:confirm-close', names),
     /** Fire-and-forget: journalling must never block a keystroke. */
-    journal: (path: string, content: string): void => ipcRenderer.send('file:journal', path, content),
+    journal: (path: string, content: string): void =>
+      ipcRenderer.send('file:journal', path, content),
     pendingRecoveries: (): Promise<JournalEntry[]> => ipcRenderer.invoke('file:pending-recoveries'),
     backupInfo: (path: string): Promise<BackupInfo> => ipcRenderer.invoke('file:backup-info', path),
-    discardRecovery: (path: string): Promise<void> => ipcRenderer.invoke('file:discard-recovery', path),
+    discardRecovery: (path: string): Promise<void> =>
+      ipcRenderer.invoke('file:discard-recovery', path),
     onOpenPath: (fn: (path: string) => void) => subscribe('file:open-path', fn),
   },
 
@@ -70,7 +72,8 @@ const api = {
 
   settings: {
     get: (): Promise<Settings> => ipcRenderer.invoke('settings:get'),
-    patch: (patch: Partial<Settings>): Promise<Settings> => ipcRenderer.invoke('settings:patch', patch),
+    patch: (patch: Partial<Settings>): Promise<Settings> =>
+      ipcRenderer.invoke('settings:patch', patch),
     onChanged: (fn: (s: Settings) => void) => subscribe('settings:changed', fn),
   },
 

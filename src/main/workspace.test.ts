@@ -109,7 +109,12 @@ describe('allMarkdown', () => {
     await file('sub/deeper/d.md')
 
     const found = await allMarkdown(root)
-    expect(found.map((f) => f.relativePath)).toEqual(['a.md', 'b.md', 'sub/c.md', 'sub/deeper/d.md'])
+    expect(found.map((f) => f.relativePath)).toEqual([
+      'a.md',
+      'b.md',
+      'sub/c.md',
+      'sub/deeper/d.md',
+    ])
   })
 
   it('uses forward slashes in relative paths, whatever the platform', async () => {

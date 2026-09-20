@@ -54,13 +54,11 @@ const close = () => window.api.window.close()
 
     <div class="titlebar__controls">
       <button class="cap" aria-label="Minimize" @click="minimize">
-        <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M0 5h10" stroke="currentColor" stroke-width="1" /></svg>
+        <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+          <path d="M0 5h10" stroke="currentColor" stroke-width="1" />
+        </svg>
       </button>
-      <button
-        class="cap"
-        :aria-label="maximized ? 'Restore' : 'Maximize'"
-        @click="toggleMaximize"
-      >
+      <button class="cap" :aria-label="maximized ? 'Restore' : 'Maximize'" @click="toggleMaximize">
         <svg v-if="!maximized" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
           <rect x="0.5" y="0.5" width="9" height="9" fill="none" stroke="currentColor" />
         </svg>

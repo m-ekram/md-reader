@@ -22,11 +22,9 @@ import remarkFrontmatter from 'remark-frontmatter'
 import type { MilkdownPlugin } from '@milkdown/kit/ctx'
 
 /** Teaches remark to recognize `---` fenced YAML at the top of a document. */
-export const remarkFrontmatterPlugin = $remark(
-  'frontmatter',
-  () => remarkFrontmatter as never,
-  ['yaml'] as never
-)
+export const remarkFrontmatterPlugin = $remark('frontmatter', () => remarkFrontmatter as never, [
+  'yaml',
+] as never)
 
 export const frontmatterSchema = $nodeSchema('frontmatter', () => ({
   content: 'text*',

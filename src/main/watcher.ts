@@ -66,8 +66,7 @@ export function watchRoot(root: string | null): void {
       ignoreInitial: true,
       // Large files and slow disks: wait until the writer has finished.
       awaitWriteFinish: { stabilityThreshold: 200, pollInterval: 50 },
-      ignored: (p: string) =>
-        /[\\/](\.git|node_modules|\.svn|\.hg)([\\/]|$)/.test(p),
+      ignored: (p: string) => /[\\/](\.git|node_modules|\.svn|\.hg)([\\/]|$)/.test(p),
       depth: 12,
     })
 

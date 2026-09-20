@@ -57,7 +57,8 @@ describe('YAML front matter', () => {
   })
 
   it('preserves nested and multi-line YAML', () => {
-    const md = '---\ntitle: A Note\nauthor:\n  name: Ekram\n  email: x@y.z\ndraft: false\n---\n\n# Heading'
+    const md =
+      '---\ntitle: A Note\nauthor:\n  name: Ekram\n  email: x@y.z\ndraft: false\n---\n\n# Heading'
     expect(trip(md).trim()).toBe(md)
   })
 

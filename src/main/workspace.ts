@@ -13,7 +13,14 @@ import { log } from './log'
 export const MARKDOWN_EXTENSIONS = ['.md', '.markdown', '.mdown', '.mkd', '.mdx']
 
 /** Never worth walking, and walking them is how a scan turns into a hang. */
-const ALWAYS_SKIP = new Set(['.git', 'node_modules', '.svn', '.hg', '$RECYCLE.BIN', 'System Volume Information'])
+const ALWAYS_SKIP = new Set([
+  '.git',
+  'node_modules',
+  '.svn',
+  '.hg',
+  '$RECYCLE.BIN',
+  'System Volume Information',
+])
 
 export interface DirEntry {
   name: string
@@ -138,7 +145,9 @@ export async function allMarkdown(
   }
 
   await walk(root, 0)
-  out.sort((a, b) => a.relativePath.localeCompare(b.relativePath, undefined, { sensitivity: 'base' }))
+  out.sort((a, b) =>
+    a.relativePath.localeCompare(b.relativePath, undefined, { sensitivity: 'base' })
+  )
   if (out.length >= maxFiles) log.warn('markdown scan hit its cap', { root, maxFiles })
   return out
 }

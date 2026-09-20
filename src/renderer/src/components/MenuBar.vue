@@ -36,7 +36,13 @@ function resolve(node: MenuNode): MenuNode[] {
 
   const recent = settings.value.recentFiles
   if (recent.length === 0) {
-    return [{ kind: 'submenu', label: node.label, items: [{ kind: 'item', id: 'file.noRecent', label: 'No Recent Files' }] }]
+    return [
+      {
+        kind: 'submenu',
+        label: node.label,
+        items: [{ kind: 'item', id: 'file.noRecent', label: 'No Recent Files' }],
+      },
+    ]
   }
   return [
     {
@@ -74,7 +80,8 @@ function openMenu(i: number): void {
 function closeMenu(refocus = true): void {
   openIndex.value = null
   activePath.value = []
-  if (refocus) (bar.value?.querySelector('[data-top="true"][tabindex="0"]') as HTMLElement | null)?.focus()
+  if (refocus)
+    (bar.value?.querySelector('[data-top="true"][tabindex="0"]') as HTMLElement | null)?.focus()
 }
 
 async function activate(id: string): Promise<void> {
@@ -247,10 +254,7 @@ watch([openIndex, activePath], async () => {
 })
 
 function isActive(path: number[]): boolean {
-  return (
-    path.length === activePath.value.length &&
-    path.every((v, i) => v === activePath.value[i])
-  )
+  return path.length === activePath.value.length && path.every((v, i) => v === activePath.value[i])
 }
 </script>
 
@@ -337,7 +341,9 @@ function isActive(path: number[]): boolean {
             @click="activate(node.id)"
             @mouseenter="activePath = [j]"
           >
-            <span class="menu__check" aria-hidden="true">{{ itemState(node.id).checked ? '✓' : '' }}</span>
+            <span class="menu__check" aria-hidden="true">{{
+              itemState(node.id).checked ? '✓' : ''
+            }}</span>
             <span class="menu__label">{{ node.label }}</span>
             <span class="menu__accel">{{ node.accel ?? '' }}</span>
           </button>

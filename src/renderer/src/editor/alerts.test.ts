@@ -63,7 +63,7 @@ describe('alerts round-trip', () => {
   })
 
   it('does not treat an unknown marker as an alert', () => {
-    const md = '> \[!UNKNOWN]\n> Body.'
+    const md = String.raw`> \[!UNKNOWN]` + '\n> Body.'
     expect(trip(md)).toContain('UNKNOWN')
   })
 

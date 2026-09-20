@@ -8,7 +8,7 @@
 :root[data-theme='night'] {
   --doc-bg: #191b1f;
   --doc-fg: #d7dae0;
-  --doc-font: -apple-system, "Segoe UI", system-ui, sans-serif;
+  --doc-font: -apple-system, 'Segoe UI', system-ui, sans-serif;
   --doc-heading-fg: #f0f3f6;
   --doc-muted: #8b949e;
   --doc-accent: #6cb6ff;

@@ -71,7 +71,9 @@ describe('round-trip corpus (shipping editor)', () => {
     it(`preserves: ${name}`, () => {
       expect(fixture, `fixture "${name}" is missing`).toBeDefined()
       const out = handle.reserialize(fixture!.md)
-      expect(norm(out), `\n--- in ---\n${fixture!.md}\n--- out ---\n${out}\n`).toBe(norm(fixture!.md))
+      expect(norm(out), `\n--- in ---\n${fixture!.md}\n--- out ---\n${out}\n`).toBe(
+        norm(fixture!.md)
+      )
     })
   }
 

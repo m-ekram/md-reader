@@ -1,0 +1,6 @@
+out
+dist
+node_modules
+package-lock.json
+spike/PHASE0-CREPE.md
+spike/PHASE0-REPORT.md

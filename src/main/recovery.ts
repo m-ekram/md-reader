@@ -13,7 +13,15 @@
  */
 import { app } from 'electron'
 import { createHash } from 'node:crypto'
-import { mkdirSync, readFileSync, writeFileSync, existsSync, readdirSync, unlinkSync, statSync } from 'node:fs'
+import {
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  readdirSync,
+  unlinkSync,
+  statSync,
+} from 'node:fs'
 import { join } from 'node:path'
 import { log } from './log'
 import { decodeTextBuffer, readTextFileSync } from './fs/textfile'

@@ -39,12 +39,17 @@ describe('default vs tuned serializer', () => {
 
     L.push('# Phase 0 - round-trip findings', '')
     L.push('Measured against Milkdown/Crepe 7.22.1 with the commonmark + gfm presets.', '')
-    L.push(`- Lossless with Milkdown defaults: **${rows.filter((r) => r.before).length}/${rows.length}**`)
-    L.push(`- Lossless with a tuned serializer: **${rows.filter((r) => r.after).length}/${rows.length}**`)
+    L.push(
+      `- Lossless with Milkdown defaults: **${rows.filter((r) => r.before).length}/${rows.length}**`
+    )
+    L.push(
+      `- Lossless with a tuned serializer: **${rows.filter((r) => r.after).length}/${rows.length}**`
+    )
     L.push(`- Closed by serializer configuration alone: **${fixed.length}**`, '')
     L.push('## Per-construct', '', '| construct | default | tuned | note |', '|---|---|---|---|')
     for (const r of rows) {
-      const note = !r.before && r.after ? 'fixed by config' : r.after ? '' : (r.gap ?? '**UNPLANNED**')
+      const note =
+        !r.before && r.after ? 'fixed by config' : r.after ? '' : (r.gap ?? '**UNPLANNED**')
       L.push(`| ${r.name} | ${r.before ? 'ok' : 'lossy'} | ${r.after ? 'ok' : 'lossy'} | ${note} |`)
     }
     L.push('', '## Still lossy after tuning', '')

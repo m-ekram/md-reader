@@ -21,7 +21,12 @@ export interface Menu {
 }
 
 const sep: MenuNode = { kind: 'separator' }
-const item = (id: string, label: string, accel?: string): MenuNode => ({ kind: 'item', id, label, accel })
+const item = (id: string, label: string, accel?: string): MenuNode => ({
+  kind: 'item',
+  id,
+  label,
+  accel,
+})
 
 export const MENUS: Menu[] = [
   {
@@ -181,7 +186,10 @@ export const MENUS: Menu[] = [
       {
         kind: 'submenu',
         label: 'Code Tools',
-        items: [item('para.setLanguage', 'Set Language…'), item('para.copyCode', 'Copy Code Block')],
+        items: [
+          item('para.setLanguage', 'Set Language…'),
+          item('para.copyCode', 'Copy Code Block'),
+        ],
       },
       {
         kind: 'submenu',

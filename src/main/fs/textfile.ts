@@ -109,7 +109,8 @@ export async function writeTextFile(
   content: string,
   format: Pick<TextFile, 'encoding' | 'hasBom' | 'eol'>
 ): Promise<void> {
-  const withEol = format.eol === '\r\n' ? content.replace(/\r?\n/g, '\r\n') : content.replace(/\r\n/g, '\n')
+  const withEol =
+    format.eol === '\r\n' ? content.replace(/\r?\n/g, '\r\n') : content.replace(/\r\n/g, '\n')
   const buf = encode(withEol, format.encoding, format.hasBom)
   const tmp = join(dirname(path), `.${randomBytes(6).toString('hex')}.tmp`)
 

@@ -7,7 +7,13 @@
 import { BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import { rename, stat } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
-import { allMarkdown, loadIgnores, readDirectory, type DirEntry, type MarkdownFile } from '../workspace'
+import {
+  allMarkdown,
+  loadIgnores,
+  readDirectory,
+  type DirEntry,
+  type MarkdownFile,
+} from '../workspace'
 import { watchRoot } from '../watcher'
 import { cancelSearch, startSearch } from '../search'
 import { clearJournal } from '../recovery'
