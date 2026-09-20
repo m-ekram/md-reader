@@ -6,6 +6,7 @@
 import { ref } from 'vue'
 import { DEFAULT_SETTINGS, type Settings } from '../../../shared/settings'
 import { invalidateCommands } from '../commands/registry'
+import { setCapacity } from '../editor/pool'
 
 const state = ref<Settings>(structuredClone(DEFAULT_SETTINGS))
 
@@ -15,8 +16,10 @@ export function useSettingsStore() {
 
 export async function initSettings(): Promise<void> {
   state.value = await window.api.settings.get()
+  setCapacity(state.value.editor.liveEditors)
   window.api.settings.onChanged((s) => {
     state.value = s
+    setCapacity(s.editor.liveEditors)
     invalidateCommands()
   })
 }

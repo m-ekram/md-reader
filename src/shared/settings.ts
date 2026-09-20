@@ -15,6 +15,11 @@ export interface Settings {
     sourceModeOfferLines: number
     /** Default to source mode above this many lines. */
     sourceModeForceLines: number
+    /**
+     * How many editors stay alive so undo survives tab switches. Each one costs
+     * memory, so this is the dial to turn if RSS becomes a problem.
+     */
+    liveEditors: number
     typewriter: boolean
     focusMode: boolean
     spellcheck: boolean
@@ -32,6 +37,7 @@ export const DEFAULT_SETTINGS: Settings = {
   editor: {
     sourceModeOfferLines: 5000,
     sourceModeForceLines: 10000,
+    liveEditors: 5,
     typewriter: false,
     focusMode: false,
     spellcheck: true,

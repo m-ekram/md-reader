@@ -8,6 +8,7 @@
 import { reactive, computed } from 'vue'
 import type { DocumentFile } from '../../../shared/ipc'
 import { invalidateCommands } from '../commands/registry'
+import { release } from '../editor/pool'
 
 export interface Doc {
   /**
@@ -111,7 +112,8 @@ export function adoptFile(f: DocumentFile): Doc {
 }
 
 export function closeDoc(index: number): void {
-  state.docs.splice(index, 1)
+  const [removed] = state.docs.splice(index, 1)
+  if (removed) void release(removed.id)
   if (state.docs.length === 0) state.activeIndex = -1
   else state.activeIndex = Math.min(state.activeIndex, state.docs.length - 1)
   invalidateCommands()

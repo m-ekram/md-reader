@@ -238,3 +238,46 @@ describe('Open Recent stays in step with its labels', () => {
     expect(await page.locator('.ProseMirror').innerText()).toContain(expected)
   })
 })
+
+describe('undo history survives switching tabs', () => {
+  /**
+   * The reason the editor pool exists. Phase 1 rebuilt the editor on every
+   * switch, so coming back to a tab found an empty undo stack and Ctrl+Z did
+   * nothing — losing work the user assumed was recoverable.
+   */
+  it('undoes edits made before switching away and back', async () => {
+    // Earlier tests leave their own tabs open, so address ours by index rather
+    // than assuming this is the only document in the window.
+    await page.keyboard.press('Control+n')
+    await page.waitForTimeout(500)
+    const alphaIndex = (await page.locator('.tab__select').count()) - 1
+    await page.locator('.ProseMirror').click()
+    await page.keyboard.type('alpha base')
+    // ProseMirror groups edits made within ~500ms into a single undo step, so
+    // the two edits need a gap to become separately undoable.
+    await page.waitForTimeout(900)
+    await page.keyboard.type(' ALPHA-EXTRA')
+    await page.waitForTimeout(400)
+
+    await page.keyboard.press('Control+n')
+    await page.waitForTimeout(500)
+    await page.locator('.ProseMirror').click()
+    await page.keyboard.type('beta document')
+    await page.waitForTimeout(400)
+
+    // Back to the alpha document via the tab bar.
+    await page.locator('.tab__select').nth(alphaIndex).click()
+    await page.waitForTimeout(700)
+
+    const before = await page.locator('.ProseMirror').innerText()
+    expect(before).toContain('ALPHA-EXTRA')
+
+    await page.locator('.ProseMirror').click()
+    await page.keyboard.press('Control+z')
+    await page.waitForTimeout(500)
+
+    const after = await page.locator('.ProseMirror').innerText()
+    expect(after, 'Ctrl+Z after a tab switch must still undo').not.toContain('ALPHA-EXTRA')
+    expect(after).toContain('alpha')
+  })
+})
