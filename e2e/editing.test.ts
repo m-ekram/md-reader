@@ -227,3 +227,87 @@ describe('editor-owned Edit menu items still work when clicked', () => {
     expect(await ctx.page.locator('.ProseMirror').innerText()).not.toContain('EXTRA')
   })
 })
+
+describe('smart punctuation substitutes while typing', () => {
+  /**
+   * Asserted on the rendered text rather than on the stored options, because
+   * the options being true has never been the thing in doubt: what matters is
+   * whether the character on screen changed.
+   */
+  const LEFT_DOUBLE = '“'
+  const RIGHT_DOUBLE = '”'
+  const EN_DASH = '–'
+  const EM_DASH = '—'
+  const ELLIPSIS = '…'
+
+  async function blank(): Promise<void> {
+    await ctx.page.keyboard.press('Escape')
+    await ctx.page.keyboard.press('Control+n')
+    await ctx.page.waitForTimeout(500)
+    await ctx.page.locator('.ProseMirror').click()
+  }
+
+  const text = (): Promise<string> => ctx.page.locator('.ProseMirror').innerText()
+
+  async function chooseSmart(label: string): Promise<void> {
+    await ctx.page.keyboard.press('Escape')
+    await ctx.page.locator('.menubar__top', { hasText: /^Edit$/ }).click()
+    await ctx.page.waitForSelector('.menu[role="menu"]', { state: 'visible' })
+    await ctx.page.locator('.menu__item', { hasText: 'Smart Punctuation' }).first().click()
+    await ctx.page.waitForSelector('.menu--nested .menu__item', { state: 'visible' })
+    await ctx.page.locator('.menu--nested .menu__item', { hasText: label }).first().click()
+    await ctx.page.waitForTimeout(400)
+  }
+
+  it('curls quotes, and opens before it closes', async () => {
+    await blank()
+    await ctx.page.keyboard.type('"quoted"')
+    await ctx.page.waitForTimeout(400)
+    const typed = await text()
+    expect(typed).toContain(`${LEFT_DOUBLE}quoted${RIGHT_DOUBLE}`)
+    expect(typed).not.toContain('"')
+  })
+
+  it('makes dashes and ellipses', async () => {
+    await blank()
+    await ctx.page.keyboard.type('a -- b --- c...')
+    await ctx.page.waitForTimeout(400)
+    const typed = await text()
+    expect(typed).toContain(EN_DASH)
+    expect(typed).toContain(EM_DASH)
+    expect(typed).toContain(ELLIPSIS)
+  })
+
+  it('leaves code alone', async () => {
+    await blank()
+    // Made from the menu rather than by typing a fence: three backticks alone
+    // do not open a block, so typing them left the text in a paragraph and the
+    // test passed through the very substitution it meant to rule out.
+    await ctx.page.locator('.menubar__top', { hasText: /^Paragraph$/ }).click()
+    await ctx.page.waitForSelector('.menu[role="menu"]', { state: 'visible' })
+    await ctx.page.locator('.menu__item', { hasText: 'Code Fences' }).first().click()
+    await ctx.page.waitForTimeout(600)
+    await ctx.page.locator('.ProseMirror .cm-content').first().click()
+    await ctx.page.keyboard.type('print("hi") -- x')
+    await ctx.page.waitForTimeout(400)
+    const typed = await text()
+    expect(typed).toContain('"hi"')
+    expect(typed).not.toContain(LEFT_DOUBLE)
+    expect(typed).not.toContain(EN_DASH)
+  })
+
+  it('stops curling quotes once Smart Quotes is switched off, dashes unaffected', async () => {
+    await chooseSmart('Smart Quotes')
+    await blank()
+    await ctx.page.keyboard.type('"plain" -- still')
+    await ctx.page.waitForTimeout(400)
+    const typed = await text()
+    expect(typed).toContain('"plain"')
+    expect(typed).not.toContain(LEFT_DOUBLE)
+    // Each kind is its own switch, so the dashes must survive the quotes going.
+    expect(typed).toContain(EN_DASH)
+
+    // Left on for anything that runs after this.
+    await chooseSmart('Smart Quotes')
+  })
+})

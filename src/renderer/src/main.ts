@@ -17,10 +17,12 @@ import {
 } from './commands/app-commands'
 import { registerEditorCommands } from './commands/editor-commands'
 import { registerViewCommands } from './commands/view-commands'
+import { registerSelectionCommands } from './commands/selection-commands'
 import { adoptFile, closeDoc, newDoc, useDocuments } from './stores/documents'
 import { initSearchListeners, initWorkspaceSync } from './stores/workspace'
 import { initExternalChanges } from './stores/external-changes'
 import { setEditorModes } from './editor/typewriter'
+import { setPunctuation } from './editor/punctuation'
 
 /**
  * Offers back anything a crash left behind, before the user starts typing.
@@ -65,6 +67,12 @@ async function boot(): Promise<void> {
 
   await initThemes(settings.value.theme)
 
+  setPunctuation({
+    quotes: settings.value.editor.smartQuotes,
+    dashes: settings.value.editor.smartDashes,
+    ellipses: settings.value.editor.smartEllipses,
+  })
+
   setEditorModes({
     focus: settings.value.editor.focusMode,
     typewriter: settings.value.editor.typewriter,
@@ -73,6 +81,7 @@ async function boot(): Promise<void> {
   registerAppCommands()
   registerEditorCommands()
   registerViewCommands()
+  registerSelectionCommands()
   registerThemeCommands()
   registerRecentCommands()
   watchGeneratedCommands()

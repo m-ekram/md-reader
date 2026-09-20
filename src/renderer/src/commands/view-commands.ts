@@ -11,6 +11,7 @@ import { patchSettings, useSettingsStore } from '../stores/settings'
 import { registerAll, invalidateCommands, type Command } from './registry'
 import { activeEditor } from '../editor/pool'
 import { uiState } from '../stores/ui'
+import { setPunctuation } from '../editor/punctuation'
 
 const settings = useSettingsStore()
 
@@ -137,6 +138,23 @@ const viewCommands: Command[] = [
     // the stylesheet, never inline.
     run: () => copy(currentHtml()),
   },
+
+  // Smart punctuation, one switch per kind.
+  ...(
+    [
+      ['edit.smartQuotes', 'smartQuotes'],
+      ['edit.smartDashes', 'smartDashes'],
+      ['edit.smartEllipses', 'smartEllipses'],
+    ] as const
+  ).map(([id, key]) => ({
+    id,
+    checked: () => settings.value.editor[key],
+    run: async () => {
+      const next = !settings.value.editor[key]
+      setPunctuation({ [key.replace('smart', '').toLowerCase()]: next })
+      await patchSettings({ editor: { ...settings.value.editor, [key]: next } })
+    },
+  })),
 
   {
     id: 'edit.spellCheck',

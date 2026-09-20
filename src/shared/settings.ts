@@ -27,6 +27,10 @@ export interface Settings {
     spellcheck: boolean
     /** Folder for pasted images, relative to the document. */
     assetsFolder: string
+    /** Smart punctuation, each kind separately switchable. */
+    smartQuotes: boolean
+    smartDashes: boolean
+    smartEllipses: boolean
   }
   statusBar: boolean
   /** The formatting toolbar above the document. */
@@ -47,6 +51,9 @@ export const DEFAULT_SETTINGS: Settings = {
     focusMode: false,
     spellcheck: true,
     assetsFolder: 'assets',
+    smartQuotes: true,
+    smartDashes: true,
+    smartEllipses: true,
   },
   statusBar: true,
   toolbar: false,
