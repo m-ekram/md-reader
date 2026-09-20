@@ -8,15 +8,30 @@
  * discard the buffer.
  */
 import type { WatchEvent } from '../../../main/watcher'
-import { isDirty, useDocuments } from './documents'
+import { isDirty, journalKey, useDocuments, type Doc } from './documents'
 import { refreshArticles, useWorkspace } from './workspace'
 import { invalidateCommands } from '../commands/registry'
 
 const docs = useDocuments()
 
-function docFor(path: string) {
+function docFor(path: string): Doc | undefined {
   const lower = path.toLowerCase()
   return docs.docs.find((d) => d.path?.toLowerCase() === lower)
+}
+
+function nameOf(path: string): string {
+  return path.split(/[\\/]/).pop() ?? path
+}
+
+/** Applies file content to a document that has nothing unsaved to lose. */
+function adoptFromDisk(doc: Doc, file: { content: string; mtimeMs: number }): void {
+  doc.content = file.content
+  doc.savedContent = file.content
+  doc.mtimeMs = file.mtimeMs
+  doc.lossy = null
+  doc.reloadToken++
+  doc.detached = false
+  invalidateCommands()
 }
 
 async function handleChanged(path: string): Promise<void> {
@@ -41,16 +56,10 @@ async function handleChanged(path: string): Promise<void> {
 
   if (!isDirty(doc)) {
     // Nothing to lose, so take the newer version without interrupting.
-    doc.content = file.content
-    doc.savedContent = file.content
-    doc.mtimeMs = file.mtimeMs
     doc.encoding = file.encoding
     doc.hasBom = file.hasBom
     doc.eol = file.eol
-    doc.lossy = null
-    doc.reloadToken++
-    doc.detached = false
-    invalidateCommands()
+    adoptFromDisk(doc, file)
     return
   }
 
@@ -64,17 +73,69 @@ async function handleChanged(path: string): Promise<void> {
     doc.mtimeMs = file.mtimeMs
     return
   }
+  adoptFromDisk(doc, file)
+}
 
-  doc.content = file.content
-  doc.savedContent = file.content
-  doc.mtimeMs = file.mtimeMs
-  doc.lossy = null
-  doc.reloadToken++
+/**
+ * Moves an open document to a new path after a rename.
+ *
+ * The journal is keyed by path, so it has to move too — otherwise the next
+ * launch offers to recover a file that no longer exists at that location.
+ */
+function followRename(doc: Doc, newPath: string, mtimeMs: number): void {
+  const oldKey = journalKey(doc)
+  doc.path = newPath
+  doc.name = nameOf(newPath)
+  doc.mtimeMs = mtimeMs
   doc.detached = false
+
+  void window.api.file.discardRecovery(oldKey)
+  if (isDirty(doc)) window.api.file.journal(journalKey(doc), doc.content)
   invalidateCommands()
 }
 
-function handleRemoved(path: string): void {
+/**
+ * Correlates removals with additions to recognise a rename.
+ *
+ * A rename reaches the watcher as a remove of the old path and an add of the
+ * new one, with no indication that they are related. They are matched by
+ * content: if a file appears holding exactly what a just-removed open document
+ * held, it is the same file under a new name. Content rather than timing,
+ * because two unrelated files moving in the same instant would otherwise be
+ * mistaken for each other.
+ */
+async function resolveRenames(removed: string[], added: string[]): Promise<Set<string>> {
+  const handled = new Set<string>()
+  if (removed.length === 0 || added.length === 0) return handled
+
+  const candidates = removed
+    .map((path) => ({ path, doc: docFor(path) }))
+    .filter((c): c is { path: string; doc: Doc } => c.doc !== undefined)
+  if (candidates.length === 0) return handled
+
+  for (const addedPath of added) {
+    if (docFor(addedPath)) continue // already open in its own right
+
+    let file
+    try {
+      file = await window.api.file.read(addedPath)
+    } catch {
+      continue
+    }
+
+    const match = candidates.find(
+      (c) => !handled.has(c.path) && c.doc.savedContent === file.content
+    )
+    if (!match) continue
+
+    followRename(match.doc, addedPath, file.mtimeMs)
+    handled.add(match.path)
+  }
+
+  return handled
+}
+
+function markDetached(path: string): void {
   const doc = docFor(path)
   if (!doc) return
   // The tab stays, with its content. Closing it here would destroy work every
@@ -85,27 +146,36 @@ function handleRemoved(path: string): void {
 
 export function initExternalChanges(): void {
   window.api.workspace.onWatchEvents((events: WatchEvent[]) => {
-    const ws = useWorkspace()
-    let touchedTree = false
+    void processEvents(events)
+  })
+}
 
-    for (const e of events) {
-      if (e.kind === 'changed') void handleChanged(e.path)
-      else if (e.kind === 'removed') {
-        handleRemoved(e.path)
-        touchedTree = true
-      } else if (e.kind === 'added') {
-        touchedTree = true
-        // An add for an open, detached document means it came back.
-        const doc = docFor(e.path)
-        if (doc?.detached) {
-          doc.detached = false
-          void handleChanged(e.path)
-        }
+async function processEvents(events: WatchEvent[]): Promise<void> {
+  const ws = useWorkspace()
+  const removed = events.filter((e) => e.kind === 'removed').map((e) => e.path)
+  const added = events.filter((e) => e.kind === 'added').map((e) => e.path)
+
+  // Renames first: a removal that turns out to be a rename must not detach the
+  // tab on its way through.
+  const renamed = await resolveRenames(removed, added)
+
+  for (const path of removed) {
+    if (!renamed.has(path)) markDetached(path)
+  }
+
+  for (const e of events) {
+    if (e.kind === 'changed') void handleChanged(e.path)
+    else if (e.kind === 'added') {
+      // A file reappearing at a path we already have open: it came back.
+      const doc = docFor(e.path)
+      if (doc?.detached) {
+        doc.detached = false
+        void handleChanged(e.path)
       }
     }
+  }
 
-    // The flat list is what Articles and Open Quickly read from, so it has to
-    // follow files appearing and disappearing.
-    if (touchedTree && ws.root) void refreshArticles()
-  })
+  // The flat list is what Articles and Open Quickly read from, so it has to
+  // follow files appearing and disappearing.
+  if ((removed.length > 0 || added.length > 0) && ws.root) void refreshArticles()
 }

@@ -697,3 +697,86 @@ describe('documents are labelled by filename, not by path', () => {
     expect(tabs.every((t) => !t.includes(SEP))).toBe(true)
   })
 })
+
+describe('a renamed file keeps its tab', () => {
+  it('follows the rename and relabels the tab', async () => {
+    const { mkdir, rename } = await import('node:fs/promises')
+    const dir = join(workdir, 'renames')
+    await mkdir(dir, { recursive: true })
+    const before = join(dir, 'before.md')
+    const after = join(dir, 'after.md')
+    await writeFile(before, '# Renamed document\n\nbody text\n', 'utf8')
+
+    await page.evaluate((root) => window.api.workspace.set(root), dir)
+    await page.waitForTimeout(800)
+
+    await app.evaluate(async ({ BrowserWindow }, path) => {
+      BrowserWindow.getAllWindows()[0].webContents.send('file:open-path', path)
+    }, before)
+    await page.waitForFunction(
+      () => document.querySelector('.ProseMirror')?.textContent?.includes('Renamed document') ?? false,
+      { timeout: 15_000 }
+    )
+    expect(await page.evaluate(() => document.title)).toContain('before.md')
+
+    // Rename it the way Explorer would, while the tab is open.
+    await rename(before, after)
+
+    // The tab should move to the new name rather than detaching.
+    await page.waitForFunction(
+      () => document.title.includes('after.md'),
+      { timeout: 20_000 }
+    )
+
+    const title = await page.evaluate(() => document.title)
+    expect(title).toContain('after.md')
+    expect(title).not.toContain('before.md')
+
+    // And the content is still there, unsaved-work intact.
+    expect(await page.locator('.ProseMirror').innerText()).toContain('body text')
+  })
+})
+
+describe('Data Recovery restores the version kept before the last save', () => {
+  it('offers the backup and puts it back in the editor', async () => {
+    const file = join(workdir, 'recoverable.md')
+    await writeFile(file, '# Original content\n\nthe good version\n', 'utf8')
+
+    await app.evaluate(async ({ BrowserWindow }, path) => {
+      BrowserWindow.getAllWindows()[0].webContents.send('file:open-path', path)
+    }, file)
+    await page.waitForFunction(
+      () => document.querySelector('.ProseMirror')?.textContent?.includes('the good version') ?? false,
+      { timeout: 15_000 }
+    )
+
+    // Wreck it and save, which is what a bad save looks like from the user's
+    // side. The pre-save bytes become the backup.
+    await page.locator('.ProseMirror').click()
+    await page.keyboard.press('Control+a')
+    await page.keyboard.type('ruined')
+    await page.waitForTimeout(400)
+    await page.keyboard.press('Control+s')
+    await page.waitForTimeout(1200)
+    expect(await readFile(file, 'utf8')).toContain('ruined')
+
+    // Help > Data Recovery, answering the confirm dialog with Restore.
+    const restored = page.waitForFunction(
+      () => document.querySelector('.ProseMirror')?.textContent?.includes('the good version') ?? false,
+      { timeout: 20_000 }
+    )
+    await app.evaluate(async ({ dialog }) => {
+      // The prompt is a native dialog; answer it as the user would.
+      dialog.showMessageBox = async () => ({ response: 0, checkboxChecked: false })
+    })
+    await page.locator('.menubar__top', { hasText: /^Help$/ }).click()
+    await page.waitForSelector('.menu[role="menu"]', { state: 'visible' })
+    await page.locator('.menu__item', { hasText: 'Data Recovery' }).first().click()
+
+    await restored
+    expect(await page.locator('.ProseMirror').innerText()).toContain('the good version')
+
+    // Restoring does not touch the disk until the user saves.
+    expect(await readFile(file, 'utf8')).toContain('ruined')
+  })
+})

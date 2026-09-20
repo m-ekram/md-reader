@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { DocumentFile, SaveRequest, SaveResult, WindowState } from '../shared/ipc'
 import type { Settings } from '../shared/settings'
-import type { JournalEntry } from '../main/recovery'
+import type { BackupInfo, JournalEntry } from '../main/recovery'
 import type { DirEntry, MarkdownFile } from '../main/workspace'
 import type { FileProperties } from '../main/ipc/workspace'
 import type { SearchHit } from '../main/search-worker'
@@ -25,6 +25,7 @@ const api = {
     /** Fire-and-forget: journalling must never block a keystroke. */
     journal: (path: string, content: string): void => ipcRenderer.send('file:journal', path, content),
     pendingRecoveries: (): Promise<JournalEntry[]> => ipcRenderer.invoke('file:pending-recoveries'),
+    backupInfo: (path: string): Promise<BackupInfo> => ipcRenderer.invoke('file:backup-info', path),
     discardRecovery: (path: string): Promise<void> => ipcRenderer.invoke('file:discard-recovery', path),
     onOpenPath: (fn: (path: string) => void) => subscribe('file:open-path', fn),
   },

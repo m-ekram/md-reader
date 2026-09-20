@@ -16,7 +16,7 @@ import { createHash } from 'node:crypto'
 import { mkdirSync, readFileSync, writeFileSync, existsSync, readdirSync, unlinkSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { log } from './log'
-import { readTextFileSync } from './fs/textfile'
+import { decodeTextBuffer, readTextFileSync } from './fs/textfile'
 
 export interface JournalEntry {
   path: string
@@ -54,6 +54,39 @@ export function backup(path: string, previousBytes: Buffer): void {
     writeFileSync(join(dir('backups'), `${keyFor(path)}.bak`), previousBytes)
   } catch (err) {
     log.warn('backup failed', { path, err: String(err) })
+  }
+}
+
+export interface BackupInfo {
+  exists: boolean
+  /** Decoded content of the backup, ready to put in the editor. */
+  content?: string
+  savedAtMs?: number
+  size?: number
+}
+
+/**
+ * The backup for a path, decoded and described.
+ *
+ * Backups were written from the first save onwards but nothing could read them,
+ * which made the whole mechanism false comfort. This is what Help > Data
+ * Recovery uses.
+ */
+export function backupInfo(path: string): BackupInfo {
+  const p = join(dir('backups'), `${keyFor(path)}.bak`)
+  try {
+    if (!existsSync(p)) return { exists: false }
+    const buf = readFileSync(p)
+    const s = statSync(p)
+    return {
+      exists: true,
+      content: decodeTextBuffer(buf).content,
+      savedAtMs: s.mtimeMs,
+      size: buf.length,
+    }
+  } catch (err) {
+    log.warn('backup read failed', { path, err: String(err) })
+    return { exists: false }
   }
 }
 

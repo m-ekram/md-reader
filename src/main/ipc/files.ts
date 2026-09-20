@@ -5,7 +5,7 @@
 import { ipcMain, dialog, shell, BrowserWindow } from 'electron'
 import { readFile, stat } from 'node:fs/promises'
 import { readTextFile, writeTextFile } from '../fs/textfile'
-import { backup, clearJournal, journal, pendingRecoveries } from '../recovery'
+import { backup, backupInfo, clearJournal, journal, pendingRecoveries } from '../recovery'
 import { addRecentFile } from '../settings'
 import { log } from '../log'
 import type { DocumentFile, SaveRequest, SaveResult } from '../../shared/ipc'
@@ -78,6 +78,7 @@ export function registerFileIpc(): void {
   // Journalling is fire-and-forget: it must never block or fail a keystroke.
   ipcMain.on('file:journal', (_e, path: string, content: string) => journal(path, content))
   ipcMain.handle('file:pending-recoveries', () => pendingRecoveries())
+  ipcMain.handle('file:backup-info', (_e, path: string) => backupInfo(path))
   ipcMain.handle('file:discard-recovery', (_e, path: string) => clearJournal(path))
 
   ipcMain.handle('file:show-in-folder', (_e, path: string) => shell.showItemInFolder(path))

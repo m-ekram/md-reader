@@ -74,6 +74,11 @@ function encode(content: string, encoding: Encoding, hasBom: boolean): Buffer {
   return hasBom ? Buffer.concat([UTF8_BOM, body]) : body
 }
 
+/** Decodes raw bytes the way a file read would, for callers holding a Buffer. */
+export function decodeTextBuffer(buf: Buffer): TextFile {
+  return fromBuffer(buf)
+}
+
 function fromBuffer(buf: Buffer): TextFile {
   const { encoding, hasBom } = detectEncoding(buf)
   const raw = decode(buf, encoding, hasBom)
