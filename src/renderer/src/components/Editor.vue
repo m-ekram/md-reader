@@ -8,7 +8,7 @@
  * document is opened.
  */
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { acquire, releaseAll } from '../editor/pool'
+import { acquire, release, releaseAll } from '../editor/pool'
 import { checkRoundTrip } from '../editor/roundtrip'
 import { activeDoc, journalKey, useDocuments, type Doc } from '../stores/documents'
 
@@ -70,6 +70,20 @@ onBeforeUnmount(() => void releaseAll())
 // same document, and reacting there would swap the editor out underneath the
 // user at the moment they expect nothing to happen.
 watch(() => activeDoc.value?.id, () => void show())
+
+// A reload replaces the document's content wholesale. A pooled editor holds its
+// own state and will not pick that up, so its editor is discarded and rebuilt.
+watch(
+  () => (activeDoc.value ? `${activeDoc.value.id}:${activeDoc.value.reloadToken}` : ''),
+  async (next, prev) => {
+    if (!next || !prev) return
+    const [id, token] = next.split(':')
+    const [prevId, prevToken] = prev.split(':')
+    if (id !== prevId || token === prevToken) return
+    await release(id)
+    await show()
+  }
+)
 </script>
 
 <template>

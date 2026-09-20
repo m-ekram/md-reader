@@ -20,6 +20,8 @@ export default defineConfig({
           name: 'e2e',
           environment: 'node',
           include: ['e2e/**/*.test.ts'],
+          // The suite runs against out/, so it must build first.
+          globalSetup: ['e2e/global-setup.ts'],
           // Electron launch plus a full menu walk needs room.
           testTimeout: 60_000,
           hookTimeout: 90_000,

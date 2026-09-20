@@ -22,10 +22,23 @@ import {
 } from '../stores/documents'
 import { patchSettings, useSettingsStore } from '../stores/settings'
 import { applyTheme, useThemeStore } from '../stores/theme'
+import { refreshArticles, revealPath, setRoot, useWorkspace } from '../stores/workspace'
+import { quickOpen } from '../stores/ui'
 
 const docs = useDocuments()
 const settings = useSettingsStore()
 const theme = useThemeStore()
+const ws = useWorkspace()
+
+type PanelId = 'outline' | 'articles' | 'files' | 'search'
+
+/** Shows a sidebar panel, revealing the sidebar if it is hidden. */
+async function showPanel(panel: PanelId): Promise<void> {
+  await patchSettings({ sidebar: { ...settings.value.sidebar, panel, visible: true } })
+}
+
+const panelIsActive = (panel: PanelId) => () =>
+  settings.value.sidebar.visible && settings.value.sidebar.panel === panel
 
 const hasDoc = () => activeDoc.value !== null
 const hasPath = () => !!activeDoc.value?.path
@@ -147,6 +160,91 @@ const commands: Command[] = [
     run: () => void window.api.file.showInFolder(activeDoc.value!.path!),
   },
   { id: 'file.close', run: closeActive },
+
+  // Workspace
+  {
+    id: 'file.openFolder',
+    run: async () => {
+      const root = await window.api.workspace.openDialog()
+      if (root) await setRoot(root)
+    },
+  },
+  {
+    id: 'file.revealInSidebar',
+    enabled: () => hasPath() && ws.root !== null,
+    run: async () => {
+      const path = activeDoc.value?.path
+      if (!path) return
+      await patchSettings({ sidebar: { ...settings.value.sidebar, panel: 'files', visible: true } })
+      await revealPath(path)
+    },
+  },
+  {
+    id: 'file.properties',
+    enabled: hasPath,
+    run: async () => {
+      const path = activeDoc.value!.path!
+      const p = await window.api.fileops.properties(path)
+      const kb = (p.size / 1024).toFixed(1)
+      await window.api.app.info(
+        p.name,
+        [
+          p.path,
+          '',
+          `Size: ${kb} KB (${p.size} bytes)`,
+          `Modified: ${new Date(p.modifiedMs).toLocaleString()}`,
+          `Created: ${new Date(p.createdMs).toLocaleString()}`,
+        ].join('\n')
+      )
+    },
+  },
+  {
+    id: 'file.moveTo',
+    enabled: hasPath,
+    run: async () => {
+      const d = activeDoc.value
+      if (!d?.path) return
+      const moved = await window.api.fileops.move(d.path)
+      if (!moved) return
+      Object.assign(d, { path: moved, name: moved.split(/[\\/]/).pop() ?? moved })
+      await refreshArticles()
+      invalidateCommands()
+    },
+  },
+  {
+    id: 'file.delete',
+    enabled: hasPath,
+    run: async () => {
+      const d = activeDoc.value
+      if (!d?.path) return
+      const deleted = await window.api.fileops.delete(d.path)
+      if (!deleted) return
+      closeDoc(docs.activeIndex)
+      await refreshArticles()
+    },
+  },
+
+  {
+    id: 'file.openQuickly',
+    enabled: () => ws.root !== null,
+    run: () => {
+      quickOpen.open = true
+    },
+  },
+
+  // Sidebar panels
+  {
+    id: 'view.toggleSidebar',
+    checked: () => settings.value.sidebar.visible,
+    run: () =>
+      void patchSettings({
+        sidebar: { ...settings.value.sidebar, visible: !settings.value.sidebar.visible },
+      }),
+  },
+  { id: 'view.outline', checked: panelIsActive('outline'), run: () => showPanel('outline') },
+  { id: 'view.articles', checked: panelIsActive('articles'), run: () => showPanel('articles') },
+  { id: 'view.fileTree', checked: panelIsActive('files'), run: () => showPanel('files') },
+  { id: 'view.search', checked: panelIsActive('search'), run: () => showPanel('search') },
 
   // View — the toggles Phase 1 can honour.
   {

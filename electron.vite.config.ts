@@ -5,7 +5,15 @@ import { resolve } from 'node:path'
 export default defineConfig({
   main: {
     build: {
-      rollupOptions: { input: resolve(__dirname, 'src/main/index.ts') },
+      rollupOptions: {
+        // The search worker is a second entry point, not part of the main
+        // bundle: worker_threads loads it from disk by path at runtime.
+        input: {
+          index: resolve(__dirname, 'src/main/index.ts'),
+          'search-worker': resolve(__dirname, 'src/main/search-worker.ts'),
+        },
+        output: { entryFileNames: '[name].js' },
+      },
     },
   },
   preload: {

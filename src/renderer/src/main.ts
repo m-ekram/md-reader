@@ -16,6 +16,8 @@ import {
   watchGeneratedCommands,
 } from './commands/app-commands'
 import { adoptFile, closeDoc, newDoc, useDocuments } from './stores/documents'
+import { initSearchListeners, initWorkspaceSync } from './stores/workspace'
+import { initExternalChanges } from './stores/external-changes'
 
 /**
  * Offers back anything a crash left behind, before the user starts typing.
@@ -64,6 +66,11 @@ async function boot(): Promise<void> {
   registerThemeCommands()
   registerRecentCommands()
   watchGeneratedCommands()
+
+  initSearchListeners()
+  initExternalChanges()
+  // Also reopens the last workspace, since settings already carry it.
+  initWorkspaceSync()
 
   createApp(App).mount('#app')
 

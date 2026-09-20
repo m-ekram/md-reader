@@ -4,6 +4,9 @@ import { installCrashHandlers, log } from './log'
 import { flushSettings, getSettings, patchSettings } from './settings'
 import { allWindows, createWindow } from './windows'
 import { registerFileIpc } from './ipc/files'
+import { registerWorkspaceIpc } from './ipc/workspace'
+import { stopWatching, watchRoot } from './watcher'
+import { cancelAllSearches } from './search'
 import { listThemes, readUserTheme, watchUserThemes } from './themes'
 import { flushJournals } from './recovery'
 import type { Settings } from '../shared/settings'
@@ -38,11 +41,16 @@ if (!app.requestSingleInstanceLock()) {
     app.setAppUserModelId('com.ekram.md')
 
     registerFileIpc()
+    registerWorkspaceIpc()
     registerSettingsIpc()
     registerThemeIpc()
     registerWindowIpc()
     registerAppIpc()
     watchUserThemes()
+
+    // Reopen the last workspace so the sidebar is populated on launch.
+    const savedWorkspace = getSettings().workspace
+    if (savedWorkspace) watchRoot(savedWorkspace)
 
     const files = markdownArgs(process.argv)
     createWindow(files[0])
@@ -69,6 +77,8 @@ app.on('before-quit', () => {
   quitting = true
   flushJournals()
   flushSettings()
+  cancelAllSearches()
+  void stopWatching()
 })
 
 function registerSettingsIpc(): void {

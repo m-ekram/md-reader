@@ -91,3 +91,14 @@
   font-size: 0.85em;
   white-space: pre-wrap;
 }
+
+/* Sidebar panels share their empty-state and scrolling behaviour. */
+.panel {
+  height: 100%;
+}
+.panel__empty {
+  margin: 0;
+  padding: 10px 8px;
+  font-size: 12px;
+  opacity: 0.6;
+}

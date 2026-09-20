@@ -289,3 +289,140 @@ describe('undo history survives switching tabs', () => {
     expect(after).toContain('alpha')
   })
 })
+
+describe('workspace, sidebar and watching', () => {
+  const notes = () => join(workdir, 'notes')
+
+  async function openWorkspace(): Promise<void> {
+    const { mkdir } = await import('node:fs/promises')
+    await mkdir(join(notes(), 'sub'), { recursive: true })
+    await writeFile(join(notes(), 'first.md'), '# First note\n\nsearchable haystack here\n', 'utf8')
+    await writeFile(join(notes(), 'second.md'), '# Second note\n\n## Nested heading\n', 'utf8')
+    await writeFile(join(notes(), 'sub', 'third.md'), '# Third note\n', 'utf8')
+    await writeFile(join(notes(), 'ignored.txt'), 'not markdown\n', 'utf8')
+
+    // Set through main, exactly as Open Folder would; settings broadcast back.
+    await page.evaluate((root) => window.api.workspace.set(root), notes())
+    await page.waitForTimeout(1200)
+  }
+
+  it('lists the folder in the file tree, markdown only', async () => {
+    await openWorkspace()
+    await page.evaluate(() => window.api.settings.patch({
+      sidebar: { visible: true, width: 260, panel: 'files' },
+    }))
+    await page.waitForSelector('.sidebar', { state: 'visible' })
+    await page.waitForTimeout(400)
+
+    const names = await page.locator('.tree__name').allTextContents()
+    expect(names).toContain('first.md')
+    expect(names).toContain('second.md')
+    expect(names).toContain('sub')
+    // A .txt file is not a markdown file and must not be listed.
+    expect(names).not.toContain('ignored.txt')
+  })
+
+  it('expands a folder lazily and opens a nested file', async () => {
+    await page.locator('.tree__item', { hasText: 'sub' }).first().click()
+    await page.waitForTimeout(500)
+    expect(await page.locator('.tree__name').allTextContents()).toContain('third.md')
+
+    await page.locator('.tree__item', { hasText: 'third.md' }).first().click()
+    await page.waitForTimeout(900)
+    expect(await page.locator('.ProseMirror').innerText()).toContain('Third note')
+  })
+
+  it('lists every markdown file in Articles, flat', async () => {
+    await page.evaluate(() => window.api.settings.patch({
+      sidebar: { visible: true, width: 260, panel: 'articles' },
+    }))
+    await page.waitForTimeout(600)
+    const names = await page.locator('.articles__name').allTextContents()
+    // Flat: the nested file appears alongside the top-level ones.
+    expect(names).toEqual(expect.arrayContaining(['first.md', 'second.md', 'third.md']))
+  })
+
+  it('shows headings of the active document in the Outline', async () => {
+    await page.locator('.articles__item', { hasText: 'second.md' }).first().click()
+    await page.waitForTimeout(900)
+    await page.evaluate(() => window.api.settings.patch({
+      sidebar: { visible: true, width: 260, panel: 'outline' },
+    }))
+    await page.waitForTimeout(500)
+
+    const headings = await page.locator('.outline__item').allTextContents()
+    expect(headings.map((h) => h.trim())).toEqual(['Second note', 'Nested heading'])
+  })
+
+  it('searches the folder and streams results', async () => {
+    await page.evaluate(() => window.api.settings.patch({
+      sidebar: { visible: true, width: 300, panel: 'search' },
+    }))
+    await page.waitForSelector('.search__input', { state: 'visible' })
+    await page.locator('.search__input').fill('searchable haystack')
+    await page.waitForSelector('.results__hit', { timeout: 15_000 })
+
+    const previews = await page.locator('.results__preview').allTextContents()
+    expect(previews.join(' ')).toContain('searchable haystack')
+    expect(await page.locator('.results__name').first().innerText()).toContain('first.md')
+  })
+
+  it('reloads a clean document when the file changes on disk', async () => {
+    await page.evaluate(() => window.api.settings.patch({
+      sidebar: { visible: true, width: 260, panel: 'articles' },
+    }))
+    await page.waitForTimeout(400)
+    await page.locator('.articles__item', { hasText: 'first.md' }).first().click()
+    await page.waitForTimeout(900)
+    expect(await page.locator('.ProseMirror').innerText()).toContain('First note')
+
+    await writeFile(join(notes(), 'first.md'), '# Rewritten externally\n\nnew body\n', 'utf8')
+    // Clean document: no prompt, it should just follow the file.
+    await page.waitForFunction(
+      () => document.querySelector('.ProseMirror')?.textContent?.includes('Rewritten externally') ?? false,
+      { timeout: 15_000 }
+    )
+  })
+
+  it('keeps the tab and its content when the file is deleted', async () => {
+    const { rm } = await import('node:fs/promises')
+    const before = await page.locator('.ProseMirror').innerText()
+    await rm(join(notes(), 'first.md'), { force: true })
+    await page.waitForTimeout(2500)
+
+    // The tab must survive: a sync client removing a file must not discard work.
+    expect(await page.locator('.ProseMirror').innerText()).toBe(before)
+  })
+})
+
+describe('Open Quickly', () => {
+  it('ranks an exact filename match first and opens it', async () => {
+    // The workspace from the previous block is still open.
+    await page.keyboard.press('Escape')
+    await page.keyboard.press('Control+p')
+    await page.waitForSelector('.quick__panel', { state: 'visible', timeout: 10_000 })
+
+    await page.locator('.quick__input').fill('second')
+    await page.waitForTimeout(400)
+
+    const names = await page.locator('.quick__name').allTextContents()
+    expect(names.length).toBeGreaterThan(0)
+    expect(names[0]).toBe('second.md')
+
+    await page.keyboard.press('Enter')
+    await page.waitForTimeout(900)
+    expect(await page.locator('.ProseMirror').innerText()).toContain('Second note')
+  })
+
+  it('matches a subsequence, not just a prefix', async () => {
+    await page.keyboard.press('Control+p')
+    await page.waitForSelector('.quick__panel', { state: 'visible' })
+    // "trd" is a subsequence of "third.md" but not a prefix of anything.
+    await page.locator('.quick__input').fill('trd')
+    await page.waitForTimeout(400)
+    expect(await page.locator('.quick__name').allTextContents()).toContain('third.md')
+    await page.keyboard.press('Escape')
+    await page.waitForTimeout(200)
+    expect(await page.locator('.quick__panel').count()).toBe(0)
+  })
+})

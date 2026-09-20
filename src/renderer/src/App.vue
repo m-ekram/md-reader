@@ -4,6 +4,9 @@ import TitleBar from './components/TitleBar.vue'
 import Editor from './components/Editor.vue'
 import StatusBar from './components/StatusBar.vue'
 import TabBar from './components/TabBar.vue'
+import Sidebar from './components/sidebar/Sidebar.vue'
+import QuickOpen from './components/QuickOpen.vue'
+import { quickOpen } from './stores/ui'
 import { commandForAccel, isEnabled, isRegistered, run } from './commands/registry'
 import { adoptFile, anyDirty, useDocuments, isDirty } from './stores/documents'
 import { saveActive } from './commands/app-commands'
@@ -76,11 +79,15 @@ onBeforeUnmount(() => {
 <template>
   <div class="app">
     <TitleBar />
-    <TabBar />
     <main class="app__body">
-      <Editor />
+      <Sidebar />
+      <div class="app__doc">
+        <TabBar />
+        <Editor />
+      </div>
     </main>
     <StatusBar />
+    <QuickOpen :open="quickOpen.open" @close="quickOpen.open = false" />
   </div>
 </template>
 
@@ -107,6 +114,13 @@ body {
 .app__body {
   flex: 1;
   display: flex;
+  min-height: 0;
+}
+.app__doc {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
   min-height: 0;
 }
 ::selection {

@@ -10,6 +10,8 @@ export interface Settings {
   /** Serialized window bounds, restored on launch. */
   window: { width: number; height: number; x?: number; y?: number; maximized: boolean }
   sidebar: { visible: boolean; width: number; panel: 'outline' | 'articles' | 'files' | 'search' }
+  /** Last opened folder, reopened on launch. Null when none. */
+  workspace: string | null
   editor: {
     /** Offer source mode above this many lines; measured in Phase 0. */
     sourceModeOfferLines: number
@@ -34,6 +36,7 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'github',
   window: { width: 1200, height: 820, maximized: false },
   sidebar: { visible: true, width: 260, panel: 'files' },
+  workspace: null,
   editor: {
     sourceModeOfferLines: 5000,
     sourceModeForceLines: 10000,

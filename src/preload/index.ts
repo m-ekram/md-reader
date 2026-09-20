@@ -2,6 +2,10 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type { DocumentFile, SaveRequest, SaveResult, WindowState } from '../shared/ipc'
 import type { Settings } from '../shared/settings'
 import type { JournalEntry } from '../main/recovery'
+import type { DirEntry, MarkdownFile } from '../main/workspace'
+import type { FileProperties } from '../main/ipc/workspace'
+import type { SearchHit } from '../main/search-worker'
+import type { WatchEvent } from '../main/watcher'
 
 /**
  * The entire surface the renderer is allowed to reach. Everything touching the
@@ -22,6 +26,32 @@ const api = {
     pendingRecoveries: (): Promise<JournalEntry[]> => ipcRenderer.invoke('file:pending-recoveries'),
     discardRecovery: (path: string): Promise<void> => ipcRenderer.invoke('file:discard-recovery', path),
     onOpenPath: (fn: (path: string) => void) => subscribe('file:open-path', fn),
+  },
+
+  workspace: {
+    openDialog: (): Promise<string | null> => ipcRenderer.invoke('workspace:open-dialog'),
+    current: (): Promise<string | null> => ipcRenderer.invoke('workspace:current'),
+    set: (root: string | null): Promise<string | null> => ipcRenderer.invoke('workspace:set', root),
+    readDir: (dir: string): Promise<DirEntry[]> => ipcRenderer.invoke('workspace:read-dir', dir),
+    allMarkdown: (root?: string): Promise<MarkdownFile[]> =>
+      ipcRenderer.invoke('workspace:all-markdown', root),
+    onWatchEvents: (fn: (events: WatchEvent[]) => void) => subscribe('watcher:events', fn),
+  },
+
+  search: {
+    start: (query: string, caseSensitive?: boolean): Promise<number> =>
+      ipcRenderer.invoke('search:start', query, caseSensitive),
+    cancel: (): Promise<void> => ipcRenderer.invoke('search:cancel'),
+    onHit: (fn: (payload: { id: number; hit: SearchHit }) => void) => subscribe('search:hit', fn),
+    onDone: (fn: (payload: { id: number; found: number }) => void) => subscribe('search:done', fn),
+  },
+
+  fileops: {
+    properties: (path: string): Promise<FileProperties> =>
+      ipcRenderer.invoke('fileops:properties', path),
+    move: (path: string): Promise<string | null> => ipcRenderer.invoke('fileops:move', path),
+    delete: (path: string): Promise<boolean> => ipcRenderer.invoke('fileops:delete', path),
+    parentDir: (path: string): Promise<string> => ipcRenderer.invoke('fileops:parent-dir', path),
   },
 
   settings: {

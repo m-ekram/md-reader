@@ -31,6 +31,13 @@ export interface Doc {
   /** Set when the round-trip guard finds constructs we cannot preserve. */
   lossy: { lossy: boolean; note: string } | null
   sourceMode: boolean
+  /** The file went away while the tab stayed open; content is still here. */
+  detached: boolean
+  /**
+   * Bumped when content is replaced wholesale from disk. The editor watches it
+   * to rebuild, since a live editor does not re-read its document otherwise.
+   */
+  reloadToken: number
 }
 
 let untitledCounter = 0
@@ -76,6 +83,8 @@ export function newDoc(): Doc {
     mtimeMs: 0,
     lossy: null,
     sourceMode: false,
+    detached: false,
+    reloadToken: 0,
   }
   state.docs.push(d)
   state.activeIndex = state.docs.length - 1
@@ -104,11 +113,18 @@ export function adoptFile(f: DocumentFile): Doc {
     mtimeMs: f.mtimeMs,
     lossy: null,
     sourceMode: false,
+    detached: false,
+    reloadToken: 0,
   }
   state.docs.push(d)
   state.activeIndex = state.docs.length - 1
   invalidateCommands()
   return d
+}
+
+/** Opens a path, focusing it if it is already open. Used by every panel. */
+export async function openPath(path: string): Promise<Doc> {
+  return adoptFile(await window.api.file.read(path))
 }
 
 export function closeDoc(index: number): void {
