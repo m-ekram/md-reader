@@ -27,8 +27,14 @@ Built on Electron and Milkdown/Crepe (ProseMirror).
   on Ctrl+Shift+P that searches every implemented command.
 - **Packaging** — builds an NSIS installer; proven to work rather than assumed.
 
-Measured with `npm run bench` (median of five launches): **607 ms cold start,
-326 MB idle**, both inside the Phase 0 budgets.
+Measured with `npm run bench` (median of five launches): **1046 ms cold start,
+340 MB idle**, both inside the Phase 0 budgets of 1.5 s and 350 MB.
+
+Those numbers are higher than the 607 ms / 326 MB recorded after the hardening
+pass, and the difference is the machine rather than the code: benchmarked on
+the same day, that same commit gives 970 ms / 340 MB. Cold start on this
+machine swings far enough that only same-session comparisons mean anything,
+which is why the two were measured together rather than compared from memory.
 
 353 tests pass (279 unit, 74 end-to-end). `npm run verify` runs typecheck, lint
 and both suites in one command.
