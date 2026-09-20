@@ -1,0 +1,62 @@
+/*
+ * Whitey — as little as possible.
+ *
+ * Pure white, near-black text, one grey for everything secondary and no accent
+ * colour in the document at all: links are distinguished by underline rather
+ * than by hue. The point of the theme is that nothing competes with the words.
+ */
+:root[data-theme='whitey'] {
+  --doc-bg: #ffffff;
+  --doc-fg: #1a1a1a;
+  --doc-font: 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif;
+  --doc-font-size: 16px;
+  --doc-line-height: 1.72;
+  --doc-measure: 760px;
+
+  --doc-heading-fg: #000000;
+  --doc-muted: #8a8a8a;
+  --doc-accent: #1a1a1a;
+  --doc-rule: #e8e8e8;
+  --doc-selection: rgba(0, 0, 0, 0.12);
+
+  --code-bg: #f7f7f7;
+  --code-fg: #1a1a1a;
+
+  --quote-bar: #e0e0e0;
+  --quote-fg: #767676;
+
+  --table-border: #e8e8e8;
+  --table-header-bg: #fafafa;
+  --table-stripe: #fcfcfc;
+
+  --chrome-bg: #fafafa;
+  --chrome-fg: #1a1a1a;
+  --chrome-fg-dim: #8a8a8a;
+  --chrome-hover: rgba(0, 0, 0, 0.05);
+  --chrome-active: rgba(0, 0, 0, 0.09);
+  --chrome-border: rgba(0, 0, 0, 0.09);
+  --chrome-accent: #1a1a1a;
+
+  --menu-bg: #ffffff;
+  --menu-fg: #1a1a1a;
+  --menu-fg-disabled: #b4b4b4;
+  --menu-hover: #f0f0f0;
+  --menu-border: rgba(0, 0, 0, 0.12);
+  --menu-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
+
+  --sidebar-bg: #fafafa;
+  --sidebar-fg: #1a1a1a;
+  --status-bg: #fafafa;
+  --status-fg: #8a8a8a;
+}
+
+/*
+ * The one rule beyond the tokens.
+ *
+ * With no accent colour, links need some other signal or they are invisible,
+ * so this theme underlines them. Scoped to the theme, as the contract requires.
+ */
+:root[data-theme='whitey'] .milkdown a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

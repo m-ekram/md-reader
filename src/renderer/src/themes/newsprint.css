@@ -1,0 +1,48 @@
+/*
+ * Newsprint — a printed page rather than a screen.
+ *
+ * Warm off-white paper, a serif face, and a narrower measure than the sans
+ * themes use: serif text reads best at roughly 65 characters a line, and the
+ * default 860px is set for a sans face at the same size.
+ */
+:root[data-theme='newsprint'] {
+  --doc-bg: #f7f5ef;
+  --doc-fg: #2b2a26;
+  --doc-font: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+  --doc-font-size: 17px;
+  --doc-line-height: 1.75;
+  --doc-measure: 720px;
+
+  --doc-heading-fg: #1a1916;
+  --doc-muted: #6d6a60;
+  --doc-accent: #9a3b26;
+  --doc-rule: #ddd8ca;
+  --doc-selection: rgba(154, 59, 38, 0.16);
+
+  --code-bg: #efece2;
+  --code-fg: #3a382f;
+  --code-font-size: 0.86em;
+
+  --quote-bar: #cec8b6;
+  --quote-fg: #605d54;
+
+  --table-border: #ddd8ca;
+  --table-header-bg: #efece2;
+  --table-stripe: #f2efe6;
+
+  /* The chrome stays warm and light, so the window reads as one surface. */
+  --chrome-bg: #3a372f;
+  --chrome-fg: #f2efe6;
+  --chrome-fg-dim: #b3ada0;
+  --chrome-accent: #d9a273;
+
+  --menu-bg: #423f36;
+  --menu-fg: #f2efe6;
+  --menu-fg-disabled: #8a857a;
+  --menu-hover: #514d42;
+
+  --sidebar-bg: #f1eee5;
+  --sidebar-fg: #3a382f;
+  --status-bg: #f1eee5;
+  --status-fg: #6d6a60;
+}

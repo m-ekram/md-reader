@@ -11,6 +11,10 @@ import contractCss from '../themes/contract.css?inline'
 import editorCss from '../editor/editor.css?inline'
 import githubCss from '../themes/github.css?inline'
 import nightCss from '../themes/night.css?inline'
+import claudeLightCss from '../themes/claude-light.css?inline'
+import newsprintCss from '../themes/newsprint.css?inline'
+import pixyllCss from '../themes/pixyll.css?inline'
+import whiteyCss from '../themes/whitey.css?inline'
 import katexCss from 'katex/dist/katex.min.css?inline'
 import { cleanForExport } from './clean'
 import { activeDoc } from '../stores/documents'
@@ -18,8 +22,12 @@ import { useThemeStore } from '../stores/theme'
 import type { ExportPayload } from '../../../main/export/html'
 
 const BUILTIN_CSS: Record<string, string> = {
+  'claude-light': claudeLightCss,
   github: githubCss,
+  newsprint: newsprintCss,
   night: nightCss,
+  pixyll: pixyllCss,
+  whitey: whiteyCss,
 }
 
 /**

@@ -23,9 +23,6 @@ export const BUILTIN_THEMES: ThemeInfo[] = [
   { id: 'whitey', name: 'Whitey', builtin: true },
 ]
 
-/** Themes implemented so far; the rest are listed but disabled until Phase 5. */
-export const IMPLEMENTED_THEMES = new Set(['github', 'night'])
-
 export function userThemeDir(): string {
   const d = join(app.getPath('userData'), 'themes')
   mkdirSync(d, { recursive: true })

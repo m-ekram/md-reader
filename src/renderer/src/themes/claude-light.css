@@ -1,0 +1,46 @@
+/*
+ * Claude Light — warm paper, terracotta accent.
+ *
+ * A light theme that is not white: a slightly warm background is easier to
+ * read against for long stretches, and the accent carries enough saturation to
+ * mark links and the active tab without shouting.
+ */
+:root[data-theme='claude-light'] {
+  --doc-bg: #faf9f6;
+  --doc-fg: #2f2e2b;
+  --doc-font: 'Segoe UI', -apple-system, system-ui, sans-serif;
+  --doc-font-size: 16px;
+  --doc-line-height: 1.75;
+  --doc-measure: 820px;
+
+  --doc-heading-fg: #1f1e1c;
+  --doc-muted: #74716a;
+  --doc-accent: #c15f3c;
+  --doc-rule: #e6e2d9;
+  --doc-selection: rgba(193, 95, 60, 0.16);
+
+  --code-bg: #f2efe8;
+  --code-fg: #3b3933;
+
+  --quote-bar: #ddd6c8;
+  --quote-fg: #6b6860;
+
+  --table-border: #e6e2d9;
+  --table-header-bg: #f2efe8;
+  --table-stripe: #f7f5f0;
+
+  --chrome-bg: #2f2e2b;
+  --chrome-fg: #f2efe8;
+  --chrome-fg-dim: #a9a49a;
+  --chrome-accent: #e08a67;
+
+  --menu-bg: #3a3936;
+  --menu-fg: #f2efe8;
+  --menu-fg-disabled: #85817a;
+  --menu-hover: #474540;
+
+  --sidebar-bg: #f5f3ee;
+  --sidebar-fg: #2f2e2b;
+  --status-bg: #f5f3ee;
+  --status-fg: #74716a;
+}

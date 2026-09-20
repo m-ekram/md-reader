@@ -15,13 +15,19 @@ export interface ThemeInfo {
   builtin: boolean
 }
 
-/** Built-ins with real stylesheets so far; the rest are listed but inert. */
-const IMPLEMENTED = new Set(['github', 'night'])
+/**
+ * Built-in stylesheets, keyed by the id main reports.
+ *
+ * This is the one place a built-in theme has to be registered in the renderer:
+ * the entry exists because the file is imported below it, so a theme cannot be
+ * listed as available while having no stylesheet behind it.
+ */
+const BUILTIN_IDS = new Set(['claude-light', 'github', 'newsprint', 'night', 'pixyll', 'whitey'])
 
 const state = reactive({
   available: [] as ThemeInfo[],
   current: 'github',
-  isImplemented: (id: string) => IMPLEMENTED.has(id),
+  isImplemented: (id: string) => BUILTIN_IDS.has(id),
 })
 
 export function useThemeStore() {
@@ -60,5 +66,5 @@ export async function refreshThemes(): Promise<void> {
 export async function initThemes(current: string): Promise<void> {
   await refreshThemes()
   window.api.themes.onChanged(() => void refreshThemes())
-  await applyTheme(IMPLEMENTED.has(current) ? current : 'github')
+  await applyTheme(state.available.some((t) => t.id === current) ? current : 'github')
 }
