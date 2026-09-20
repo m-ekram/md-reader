@@ -122,3 +122,69 @@ describe('typewriter mode', () => {
     expect(position!).toBeLessThan(0.8)
   })
 })
+
+describe('whitespace and line breaks', () => {
+  /**
+   * Show Whitespace is asserted through the markers that appear in the
+   * document, and Strip Trailing Spaces through those markers disappearing —
+   * the stored setting flipping proves nothing about what is on screen.
+   */
+  async function chooseWhitespaceItem(label: string): Promise<void> {
+    await ctx.page.keyboard.press('Escape')
+    await ctx.page.locator('.menubar__top', { hasText: /^Edit$/ }).click()
+    await ctx.page.waitForSelector('.menu[role="menu"]', { state: 'visible' })
+    await ctx.page
+      .locator('.menu__item', { hasText: 'Whitespace and Line Breaks' })
+      .first()
+      .click()
+    await ctx.page.waitForSelector('.menu--nested .menu__item', { state: 'visible' })
+    await ctx.page.locator('.menu--nested .menu__item', { hasText: label }).first().click()
+    await ctx.page.waitForTimeout(500)
+  }
+
+  const spaceMarkers = (): Promise<number> => ctx.page.locator('.ProseMirror .ws-space').count()
+
+  it('draws a marker for each space once it is switched on', async () => {
+    const file = join(ctx.workdir, 'whitespace.md')
+    await writeFile(file, 'one two three\n', 'utf8')
+    await openFile(ctx, file)
+    await waitForText(ctx, 'one two three')
+
+    expect(await spaceMarkers()).toBe(0)
+    await chooseWhitespaceItem('Show Whitespace')
+    // Two spaces in "one two three", and one marker per space rather than one
+    // stretched across a run.
+    await expect.poll(spaceMarkers, { timeout: 10_000 }).toBe(2)
+  })
+
+  it('strips trailing spaces without touching the words', async () => {
+    // Typed, not loaded from a file: markdown parsing discards whitespace at
+    // the end of a line, so trailing spaces only ever exist as something the
+    // user has just typed. That is exactly what this command is for, and a
+    // fixture on disk cannot reproduce it.
+    const file = join(ctx.workdir, 'trailing.md')
+    await writeFile(file, 'keep me\n', 'utf8')
+    await openFile(ctx, file)
+    await waitForText(ctx, 'keep me')
+
+    await ctx.page.locator('.ProseMirror').click()
+    await ctx.page.keyboard.press('Control+End')
+    await ctx.page.keyboard.type('    ')
+    await ctx.page.waitForTimeout(400)
+
+    // Markers are still on from the previous test: one space between the words
+    // plus the four just typed.
+    await expect.poll(spaceMarkers, { timeout: 10_000 }).toBe(5)
+
+    await chooseWhitespaceItem('Strip Trailing Spaces')
+
+    // The space between "keep" and "me" survives; the trailing run does not.
+    await expect.poll(spaceMarkers, { timeout: 10_000 }).toBe(1)
+    expect(await ctx.page.locator('.ProseMirror').innerText()).toContain('keep me')
+  })
+
+  it('switches the markers back off', async () => {
+    await chooseWhitespaceItem('Show Whitespace')
+    await expect.poll(spaceMarkers, { timeout: 10_000 }).toBe(0)
+  })
+})

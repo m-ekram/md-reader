@@ -23,6 +23,7 @@ import { initSearchListeners, initWorkspaceSync } from './stores/workspace'
 import { initExternalChanges } from './stores/external-changes'
 import { setEditorModes } from './editor/typewriter'
 import { setPunctuation } from './editor/punctuation'
+import { setShowWhitespace } from './editor/whitespace'
 
 /**
  * Offers back anything a crash left behind, before the user starts typing.
@@ -72,6 +73,8 @@ async function boot(): Promise<void> {
     dashes: settings.value.editor.smartDashes,
     ellipses: settings.value.editor.smartEllipses,
   })
+
+  setShowWhitespace(settings.value.editor.showWhitespace)
 
   setEditorModes({
     focus: settings.value.editor.focusMode,

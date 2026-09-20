@@ -31,6 +31,7 @@ import { attachImageHandlers } from './paste'
 import { searchPlugin } from './find'
 import { typewriterPlugin } from './typewriter'
 import { punctuationPlugin } from './punctuation'
+import { whitespacePlugin } from './whitespace'
 
 /**
  * Emit conventional markdown, so re-serializing an ordinary file is close to a
@@ -91,6 +92,7 @@ export async function createEditor(opts: {
     .use(searchPlugin)
     .use(typewriterPlugin)
     .use(punctuationPlugin)
+    .use(whitespacePlugin)
     .config((ctx) => {
       ctx.get(listenerCtx).markdownUpdated((_c, markdown, prevMarkdown) => {
         if (markdown !== prevMarkdown) opts.onChange(markdown)

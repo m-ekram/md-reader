@@ -12,6 +12,7 @@ import { registerAll, invalidateCommands, type Command } from './registry'
 import { activeEditor } from '../editor/pool'
 import { uiState } from '../stores/ui'
 import { setPunctuation } from '../editor/punctuation'
+import { setShowWhitespace, stripTrailingWhitespace } from '../editor/whitespace'
 
 const settings = useSettingsStore()
 
@@ -53,6 +54,23 @@ function currentPlainText(): string {
     }
   })
   return text
+}
+
+/**
+ * Decorations only rebuild when a transaction arrives, so a toggle that changes
+ * nothing in the document needs an empty one to become visible.
+ */
+function refreshDecorations(): void {
+  const handle = activeEditor()
+  if (!handle) return
+  handle.crepe.editor.action((ctx) => {
+    try {
+      const view = ctx.get(editorViewCtx)
+      view.dispatch(view.state.tr)
+    } catch {
+      // Mid-teardown during a document switch.
+    }
+  })
 }
 
 async function copy(text: string): Promise<void> {
@@ -137,6 +155,41 @@ const viewCommands: Command[] = [
     // for this application is the same as the rendered HTML: styling lives in
     // the stylesheet, never inline.
     run: () => copy(currentHtml()),
+  },
+
+  /**
+   * Whitespace and line breaks.
+   *
+   * Showing is a persisted preference; stripping is a one-shot edit, so it is
+   * enabled only when there is a document to act on.
+   */
+  {
+    id: 'edit.showWhitespace',
+    checked: () => settings.value.editor.showWhitespace,
+    run: async () => {
+      const next = !settings.value.editor.showWhitespace
+      setShowWhitespace(next)
+      refreshDecorations()
+      await patchSettings({ editor: { ...settings.value.editor, showWhitespace: next } })
+    },
+  },
+  {
+    id: 'edit.stripTrailing',
+    enabled: hasDocument,
+    run: () => {
+      const handle = activeEditor()
+      handle?.crepe.editor.action((ctx) => {
+        try {
+          const view = ctx.get(editorViewCtx)
+          const tr = stripTrailingWhitespace(view.state)
+          // Null when there was nothing to strip: dispatching anyway would put
+          // a no-op on the undo stack for a menu item that did nothing.
+          if (tr) view.dispatch(tr)
+        } catch {
+          // Mid-teardown during a document switch.
+        }
+      })
+    },
   },
 
   // Smart punctuation, one switch per kind.

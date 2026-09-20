@@ -28,6 +28,8 @@ export interface Settings {
     /** Folder for pasted images, relative to the document. */
     assetsFolder: string
     /** Smart punctuation, each kind separately switchable. */
+    /** Draws markers for spaces, tabs and line breaks. */
+    showWhitespace: boolean
     smartQuotes: boolean
     smartDashes: boolean
     smartEllipses: boolean
@@ -51,6 +53,7 @@ export const DEFAULT_SETTINGS: Settings = {
     focusMode: false,
     spellcheck: true,
     assetsFolder: 'assets',
+    showWhitespace: false,
     smartQuotes: true,
     smartDashes: true,
     smartEllipses: true,

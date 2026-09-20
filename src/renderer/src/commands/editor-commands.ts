@@ -24,6 +24,8 @@ import {
   toggleStrongCommand,
   wrapInBlockquoteCommand,
   wrapInBulletListCommand,
+  sinkListItemCommand,
+  liftListItemCommand,
   wrapInHeadingCommand,
   wrapInOrderedListCommand,
 } from '@milkdown/kit/preset/commonmark'
@@ -91,6 +93,27 @@ function refreshDecorations(): void {
 }
 
 /** True when the cursor is inside a table, for the table-only commands. */
+/** True when the caret is inside a list item, at any nesting depth. */
+function inListItem(): boolean {
+  const handle = activeEditor()
+  if (!handle) return false
+  let found = false
+  handle.crepe.editor.action((ctx) => {
+    try {
+      const { state } = ctx.get(editorViewCtx)
+      for (let d = state.selection.$from.depth; d > 0; d--) {
+        if (state.selection.$from.node(d).type.name === 'list_item') {
+          found = true
+          return
+        }
+      }
+    } catch {
+      // Mid-teardown during a document switch.
+    }
+  })
+  return found
+}
+
 function inTable(): boolean {
   const handle = activeEditor()
   if (!handle) return false
@@ -154,6 +177,16 @@ const editorCommands: Command[] = [
   { id: 'para.quote', enabled: hasEditor, run: () => run(wrapInBlockquoteCommand.key) },
   { id: 'para.orderedList', enabled: hasEditor, run: () => run(wrapInOrderedListCommand.key) },
   { id: 'para.unorderedList', enabled: hasEditor, run: () => run(wrapInBulletListCommand.key) },
+  /**
+   * List indentation.
+   *
+   * Tab and Shift+Tab are EDITOR_DELEGATED and never bound at the application
+   * level, so these exist for the menu items, which would otherwise grey out
+   * while the keys they advertise worked perfectly well.
+   */
+  { id: 'para.indent', enabled: inListItem, run: () => run(sinkListItemCommand.key) },
+  { id: 'para.outdent', enabled: inListItem, run: () => run(liftListItemCommand.key) },
+
   { id: 'para.codeFence', enabled: hasEditor, run: () => run(createCodeBlockCommand.key) },
   { id: 'para.horizontalLine', enabled: hasEditor, run: () => run(insertHrCommand.key) },
 

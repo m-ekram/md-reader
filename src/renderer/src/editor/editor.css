@@ -204,3 +204,32 @@
 .focus-mode .milkdown .ProseMirror > .is-focused-block {
   opacity: 1;
 }
+
+/*
+ * Show Whitespace.
+ *
+ * Markers are drawn as backgrounds on a decoration span rather than inserted
+ * as characters: a visible dot that lived in the text would be selectable,
+ * copyable, and eventually saved into the file.
+ */
+.milkdown .ProseMirror .ws-space {
+  background-image: radial-gradient(circle, var(--doc-muted) 1.1px, transparent 1.2px);
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.milkdown .ProseMirror .ws-tab {
+  background-image: linear-gradient(to right, var(--doc-muted) 0 100%);
+  background-size: 100% 1px;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0.85;
+}
+/*
+ * A hard break has no width of its own, so the marker is drawn after it with
+ * ::after on the decorated node.
+ */
+.milkdown .ProseMirror .ws-break::after {
+  content: '\21B5';
+  color: var(--doc-muted);
+  font-size: 0.85em;
+}

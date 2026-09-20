@@ -10,7 +10,7 @@ Built on Electron and Milkdown/Crepe (ProseMirror).
 
 ## Status
 
-**Phases 0–3 complete, plus a hardening pass.**
+**Phases 0–4 complete, plus a hardening pass.**
 
 - **Shell** — frameless window with a themed title bar, the full seven-menu menu
   bar driven by one command registry, multi-window, crash recovery.
@@ -22,17 +22,22 @@ Built on Electron and Milkdown/Crepe (ProseMirror).
   renames, and Open Quickly.
 - **Content** — YAML front matter, GitHub alerts, `[TOC]`, math, mermaid diagrams
   (loaded on first use), and image paste into a local assets folder.
+- **Editing** — find and replace, source mode, focus and typewriter modes, readonly,
+  zoom, word count, smart punctuation, visible whitespace, and a command palette
+  on Ctrl+Shift+P that searches every implemented command.
 - **Packaging** — builds an NSIS installer; proven to work rather than assumed.
 
 Measured with `npm run bench` (median of five launches): **607 ms cold start,
 326 MB idle**, both inside the Phase 0 budgets.
 
-313 tests pass (269 unit, 44 end-to-end). `npm run verify` runs typecheck, lint
+353 tests pass (279 unit, 74 end-to-end). `npm run verify` runs typecheck, lint
 and both suites in one command.
 
-Still to come: find and replace, source mode, focus and typewriter modes
-(Phase 4); PDF and HTML export, preferences, the remaining themes (Phase 5);
-the Help menu and file association (Phase 6). Menu coverage is 65 of 140 items.
+Still to come: PDF and HTML export, preferences and the remaining four themes
+(Phase 5); the Help menu and file association (Phase 6).
+
+Menu coverage is **110 of 140 items**, counted rather than estimated:
+`node scripts/menu-coverage.cjs --list` names the ones still missing.
 
 ## Development
 
