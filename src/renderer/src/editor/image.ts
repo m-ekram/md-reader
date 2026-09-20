@@ -18,10 +18,49 @@
  * collide with Crepe's own registration.
  */
 import type { Ctx } from '@milkdown/kit/ctx'
-import { imageBlockSchema } from '@milkdown/kit/component/image-block'
+import { imageBlockConfig, imageBlockSchema } from '@milkdown/kit/component/image-block'
+import { imageSchema } from '@milkdown/kit/preset/commonmark'
 import type { NodeSchema } from '@milkdown/transformer'
+import { resolveAssetSrc } from './assets'
 
-export function applyImageAltFix(ctx: Ctx): void {
+/**
+ * Makes relative image links display.
+ *
+ * The page is loaded from the application bundle, so `assets/pic.png` resolves
+ * against `out/renderer/` and the image fails to load. Resolution happens only
+ * in `toDOM`: the markdown keeps the relative link, which is what makes a notes
+ * folder portable between machines.
+ */
+export function applyImageSrcResolution(ctx: Ctx, documentDir: string | null): void {
+  // The block image is drawn by a node view, not by `toDOM`, so overriding the
+  // schema's rendering has no effect on it. `proxyDomURL` is the component's
+  // own hook for exactly this: it transforms the URL used for display and
+  // leaves the stored attribute alone.
+  ctx.update(imageBlockConfig.key, (prev) => ({
+    ...prev,
+    proxyDomURL: (url: string) => resolveAssetSrc(url, documentDir),
+  }))
+
+  const key = imageSchema.key
+  const base = ctx.get(key)
+
+  ctx.set(key, (c: Ctx): NodeSchema => {
+    const schema = base(c)
+    return {
+      ...schema,
+      toDOM: (node) => [
+        'img',
+        {
+          src: resolveAssetSrc(String(node.attrs.src ?? ''), documentDir),
+          alt: node.attrs.alt ?? '',
+          title: node.attrs.title ?? '',
+        },
+      ],
+    }
+  })
+}
+
+export function applyImageAltFix(ctx: Ctx, documentDir: string | null): void {
   const key = imageBlockSchema.key
   const base = ctx.get(key)
 
@@ -53,7 +92,8 @@ export function applyImageAltFix(ctx: Ctx): void {
         'img',
         {
           'data-type': 'image-block',
-          src: node.attrs.src,
+          // Resolved for display only; the markdown keeps the relative path.
+          src: resolveAssetSrc(String(node.attrs.src ?? ''), documentDir),
           caption: node.attrs.caption,
           alt: node.attrs.alt,
           ratio: node.attrs.ratio,

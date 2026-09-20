@@ -34,6 +34,7 @@ async function show(): Promise<void> {
   const pooled = await acquire({
     id: doc.id,
     getContent: () => doc.content,
+    documentPath: doc.path,
     onChange: (markdown) => {
       // Route by the id this editor was built for, not the active document: a
       // pooled editor can emit after focus has already moved elsewhere.

@@ -85,6 +85,7 @@ async function evictIfNeeded(): Promise<void> {
 export async function acquire(opts: {
   id: string
   getContent: () => string
+  documentPath?: string | null
   onChange: (markdown: string) => void
 }): Promise<PooledEditor> {
   const existing = entries.get(opts.id)
@@ -99,6 +100,7 @@ export async function acquire(opts: {
   const handle = await createEditor({
     root: el,
     value: opts.getContent(),
+    documentPath: opts.documentPath ?? null,
     onChange: opts.onChange,
   })
 

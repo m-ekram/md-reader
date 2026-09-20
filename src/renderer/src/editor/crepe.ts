@@ -13,13 +13,16 @@
  *     override.
  */
 import { Crepe, CrepeFeature } from '@milkdown/crepe'
-import { parserCtx, remarkStringifyOptionsCtx, serializerCtx } from '@milkdown/kit/core'
+import { editorViewCtx, parserCtx, remarkStringifyOptionsCtx, serializerCtx } from '@milkdown/kit/core'
+import type { EditorView } from '@milkdown/kit/prose/view'
 import { listener, listenerCtx } from '@milkdown/kit/plugin/listener'
 import { frontmatterPlugin } from './frontmatter'
-import { applyImageAltFix } from './image'
+import { applyImageAltFix, applyImageSrcResolution } from './image'
+import { directoryOf } from './assets'
 import { applyAlerts } from './alerts'
 import { tocPlugin } from './toc'
 import { mermaidPlugin } from './mermaid'
+import { attachImageHandlers } from './paste'
 
 /**
  * Emit conventional markdown, so re-serializing an ordinary file is close to a
@@ -50,8 +53,11 @@ export async function createEditor(opts: {
   root: HTMLElement
   value: string
   readonly?: boolean
+  /** The document's path, so relative image links can be displayed. */
+  documentPath?: string | null
   onChange(markdown: string): void
 }): Promise<EditorHandle> {
+  const documentDir = directoryOf(opts.documentPath ?? null)
   const crepe = new Crepe({
     root: opts.root,
     defaultValue: opts.value,
@@ -66,7 +72,8 @@ export async function createEditor(opts: {
     .config((ctx) => {
       const prev = ctx.get(remarkStringifyOptionsCtx)
       ctx.set(remarkStringifyOptionsCtx, { ...prev, ...SERIALIZER_OPTIONS })
-      applyImageAltFix(ctx)
+      applyImageAltFix(ctx, documentDir)
+      applyImageSrcResolution(ctx, documentDir)
       applyAlerts(ctx)
     })
     .use(listener)
@@ -82,6 +89,19 @@ export async function createEditor(opts: {
   await crepe.create()
   if (opts.readonly) crepe.setReadonly(true)
 
+  // Attached after create(), when the view exists.
+  const detachImages = attachImageHandlers(opts.root, () => {
+    let view: EditorView | null = null
+    try {
+      crepe.editor.action((ctx) => {
+        view = ctx.get(editorViewCtx)
+      })
+    } catch {
+      view = null
+    }
+    return view
+  })
+
   return {
     crepe,
     getMarkdown: () => crepe.getMarkdown(),
@@ -95,6 +115,9 @@ export async function createEditor(opts: {
       return out
     },
     setReadonly: (v: boolean) => void crepe.setReadonly(v),
-    destroy: async () => void (await crepe.destroy()),
+    destroy: async () => {
+      detachImages()
+      await crepe.destroy()
+    },
   }
 }

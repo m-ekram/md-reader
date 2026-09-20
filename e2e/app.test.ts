@@ -540,3 +540,89 @@ describe('Paragraph and Format menus act on the document', () => {
     await page.keyboard.press('Escape')
   })
 })
+
+describe('pasted images', () => {
+  it('writes the image beside the document and links it relatively', async () => {
+    const { mkdir, readdir } = await import('node:fs/promises')
+    const dir = join(workdir, 'withimages')
+    await mkdir(dir, { recursive: true })
+    const file = join(dir, 'note.md')
+    await writeFile(file, '# Has images\n\n', 'utf8')
+
+    await app.evaluate(async ({ BrowserWindow }, path) => {
+      BrowserWindow.getAllWindows()[0].webContents.send('file:open-path', path)
+    }, file)
+    await page.waitForFunction(
+      () => document.querySelector('.ProseMirror')?.textContent?.includes('Has images') ?? false,
+      { timeout: 15_000 }
+    )
+
+    // A real paste with a real PNG: a 1x1 image, built in the page and put on
+    // the editor's clipboard as a File, which is what a screenshot paste looks
+    // like to the handler.
+    await page.locator('.ProseMirror').click()
+    await page.keyboard.press('Control+End')
+    await page.evaluate(() => {
+      const b64 =
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+      const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))
+      const file = new File([bytes], 'pasted-shot.png', { type: 'image/png' })
+      const dt = new DataTransfer()
+      dt.items.add(file)
+      document
+        .querySelector('.ProseMirror')!
+        .dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }))
+    })
+
+    await page.waitForTimeout(2000)
+
+    // The bytes must be on disk, in the assets folder next to the note.
+    const assets = await readdir(join(dir, 'assets')).catch(() => [] as string[])
+    expect(assets.some((f) => f.endsWith('.png'))).toBe(true)
+
+    await page.keyboard.press('Control+s')
+    await page.waitForTimeout(1200)
+
+    const saved = await readFile(file, 'utf8')
+    // Relative, forward-slashed, and not a base64 blob.
+    expect(saved).toMatch(/!\[[^\]]*\]\(assets\/[^)]+\.png\)/)
+    expect(saved).not.toContain('base64')
+  })
+})
+
+describe('relative images display', () => {
+  it('loads an image linked relatively to the document', async () => {
+    const { mkdir } = await import('node:fs/promises')
+    const dir = join(workdir, 'shows')
+    await mkdir(join(dir, 'assets'), { recursive: true })
+
+    const png = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+      'base64'
+    )
+    await writeFile(join(dir, 'assets', 'pic.png'), png)
+    const file = join(dir, 'note.md')
+    await writeFile(file, '# Pic\n\n![a picture](assets/pic.png)\n', 'utf8')
+
+    await app.evaluate(async ({ BrowserWindow }, path) => {
+      BrowserWindow.getAllWindows()[0].webContents.send('file:open-path', path)
+    }, file)
+    await page.waitForSelector('.ProseMirror img', { timeout: 15_000 })
+
+    // Writing the file and rendering it are different things: the earlier paste
+    // test only checked the bytes landed, and the image still did not display.
+    const info = await page.evaluate(() => {
+      const img = document.querySelector('.ProseMirror img') as HTMLImageElement | null
+      return img ? { src: img.getAttribute('src'), loaded: img.naturalWidth > 0 } : null
+    })
+    expect(info?.loaded, `image did not load: ${JSON.stringify(info)}`).toBe(true)
+    expect(info?.src).toContain('file://')
+
+    // The markdown itself must stay relative, or the folder stops being portable.
+    await page.keyboard.press('Control+s')
+    await page.waitForTimeout(1000)
+    const saved = await readFile(file, 'utf8')
+    expect(saved).toContain('(assets/pic.png)')
+    expect(saved).not.toContain('file://')
+  })
+})

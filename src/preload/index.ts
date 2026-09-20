@@ -6,6 +6,7 @@ import type { DirEntry, MarkdownFile } from '../main/workspace'
 import type { FileProperties } from '../main/ipc/workspace'
 import type { SearchHit } from '../main/search-worker'
 import type { WatchEvent } from '../main/watcher'
+import type { SaveImageRequest, SaveImageResult } from '../main/ipc/images'
 
 /**
  * The entire surface the renderer is allowed to reach. Everything touching the
@@ -44,6 +45,11 @@ const api = {
     cancel: (): Promise<void> => ipcRenderer.invoke('search:cancel'),
     onHit: (fn: (payload: { id: number; hit: SearchHit }) => void) => subscribe('search:hit', fn),
     onDone: (fn: (payload: { id: number; found: number }) => void) => subscribe('search:done', fn),
+  },
+
+  images: {
+    save: (req: SaveImageRequest): Promise<SaveImageResult> =>
+      ipcRenderer.invoke('images:save', req),
   },
 
   fileops: {
