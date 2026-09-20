@@ -134,7 +134,14 @@ export function pendingRecoveries(): JournalEntry[] {
       // Must decode the way the editor does. A plain utf8 read mangles UTF-16,
       // so those files never matched and were offered for recovery every launch.
       const onDisk = readTextFileSync(entry.path).content
-      const stale = statSync(entry.path).mtimeMs > entry.at
+      // A file modified after the journal was written supersedes it. The
+      // comparison needs slack, though: journalling and a save that happen in
+      // the same millisecond are indistinguishable, and filesystem timestamp
+      // granularity is coarser than Date.now(). Where it is ambiguous, keep the
+      // journal — the user is only ever *offered* the recovery, so a spurious
+      // offer costs a dialog while a wrongly discarded one costs their work.
+      const STALE_TOLERANCE_MS = 1000
+      const stale = statSync(entry.path).mtimeMs > entry.at + STALE_TOLERANCE_MS
       if (!stale && onDisk !== entry.content) out.push(entry)
       else unlinkSync(full)
     } catch (err) {

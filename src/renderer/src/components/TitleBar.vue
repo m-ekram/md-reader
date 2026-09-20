@@ -3,7 +3,7 @@
  * Custom title bar. The window is frameless so the menu can be themed, which
  * means the caption buttons and drag region are ours to provide.
  */
-import { onMounted, onBeforeUnmount, ref, computed } from 'vue'
+import { onMounted, onBeforeUnmount, ref, computed, watchEffect } from 'vue'
 import { activeDoc, isDirty, useDocuments } from '../stores/documents'
 import MenuBar from './MenuBar.vue'
 
@@ -22,9 +22,16 @@ onMounted(() => {
 })
 onBeforeUnmount(() => stop?.())
 
-// Keep the OS window title in step for the taskbar and Alt-Tab.
-const _sync = computed(() => (document.title = title.value))
-void _sync
+/**
+ * Keep the OS window title in step, for the taskbar and Alt-Tab.
+ *
+ * `watchEffect`, not `computed`: a computed is lazy, so one whose only purpose
+ * is a side effect never runs if nothing reads it. That is exactly what
+ * happened here — the title stayed at its initial value for the whole session.
+ */
+watchEffect(() => {
+  document.title = title.value
+})
 void docs
 
 // `window` does not resolve inside a Vue template, so the bridge is reached

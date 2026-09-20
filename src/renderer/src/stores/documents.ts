@@ -89,7 +89,9 @@ export function newDoc(): Doc {
   state.docs.push(d)
   state.activeIndex = state.docs.length - 1
   invalidateCommands()
-  return d
+  // The reactive proxy, not the raw object: re-opening an already-open file
+  // returns the proxy from the array, and callers compare these by identity.
+  return state.docs[state.activeIndex]
 }
 
 export function adoptFile(f: DocumentFile): Doc {
@@ -104,7 +106,9 @@ export function adoptFile(f: DocumentFile): Doc {
   const d: Doc = {
     id: `doc-${++docSeq}`,
     path: f.path,
-    name: f.path.split(/[\/]/).pop() ?? f.path,
+    // Both separators: on Windows a forward-slash-only split leaves the whole
+    // path as the document name, which then shows in the tab and title bar.
+    name: f.path.split(/[\\/]/).pop() ?? f.path,
     content: f.content,
     savedContent: f.content,
     encoding: f.encoding,
@@ -119,7 +123,9 @@ export function adoptFile(f: DocumentFile): Doc {
   state.docs.push(d)
   state.activeIndex = state.docs.length - 1
   invalidateCommands()
-  return d
+  // The reactive proxy, not the raw object: re-opening an already-open file
+  // returns the proxy from the array, and callers compare these by identity.
+  return state.docs[state.activeIndex]
 }
 
 /** Opens a path, focusing it if it is already open. Used by every panel. */

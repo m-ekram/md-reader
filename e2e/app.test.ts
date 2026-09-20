@@ -666,3 +666,34 @@ describe('editor-owned Edit menu items still work when clicked', () => {
     expect(await page.locator('.ProseMirror').innerText()).not.toContain('EXTRA')
   })
 })
+
+describe('documents are labelled by filename, not by path', () => {
+  it('shows the bare filename in the window title and the tab', async () => {
+    // This existed as a bug: the path split handled forward slashes only, so on
+    // Windows every opened file was labelled with its entire path. 240 tests
+    // passed because none of them looked at what was displayed.
+    const file = join(workdir, 'labelled.md')
+    await writeFile(file, '# Labelled\n', 'utf8')
+
+    await app.evaluate(async ({ BrowserWindow }, path) => {
+      BrowserWindow.getAllWindows()[0].webContents.send('file:open-path', path)
+    }, file)
+    await page.waitForFunction(
+      () => document.querySelector('.ProseMirror')?.textContent?.includes('Labelled') ?? false,
+      { timeout: 15_000 }
+    )
+
+    // Not String.raw: a raw template cannot end in a backslash, since it would
+    // escape its own closing backtick.
+    const SEP = '\\'
+
+    const title = await page.evaluate(() => document.title)
+    expect(title).toContain('labelled.md')
+    expect(title).not.toContain(SEP)
+    expect(title).not.toContain('Temp')
+
+    const tabs = await page.locator('.tab__name').allTextContents()
+    expect(tabs.some((t) => t.trim() === 'labelled.md')).toBe(true)
+    expect(tabs.every((t) => !t.includes(SEP))).toBe(true)
+  })
+})
