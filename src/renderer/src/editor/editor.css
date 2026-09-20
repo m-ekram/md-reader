@@ -192,3 +192,15 @@
   max-width: 100%;
   height: auto;
 }
+
+/*
+ * Focus mode: everything except the block being edited recedes. A transition
+ * rather than a hard switch, so moving between paragraphs does not flash.
+ */
+.focus-mode .milkdown .ProseMirror > * {
+  opacity: 0.32;
+  transition: opacity 180ms ease-out;
+}
+.focus-mode .milkdown .ProseMirror > .is-focused-block {
+  opacity: 1;
+}

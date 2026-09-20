@@ -41,6 +41,8 @@ import { registerAll, type Command } from './registry'
 import { activeEditor } from '../editor/pool'
 import { ALERT_KINDS } from '../editor/alerts'
 import { find, findState, openFind } from '../editor/find'
+import { setEditorModes } from '../editor/typewriter'
+import { patchSettings, useSettingsStore } from '../stores/settings'
 
 /** Runs a Milkdown command against whichever editor is on screen. */
 function run<T>(key: CmdKey<T>, payload?: T): void {
@@ -64,6 +66,29 @@ function focusEditor(): void {
 }
 
 const hasEditor = () => activeDoc.value !== null && activeEditor() !== null
+/** Source mode has no pooled editor, so commands that only need a document. */
+const hasDocument = () => activeDoc.value !== null
+const settings = useSettingsStore()
+
+/**
+ * Forces the editor to recompute its decorations.
+ *
+ * Focus mode is read when decorations are built, and those are only rebuilt on
+ * a transaction. Without this, toggling did nothing visible until the next
+ * keystroke or caret move.
+ */
+function refreshDecorations(): void {
+  const handle = activeEditor()
+  if (!handle) return
+  handle.crepe.editor.action((ctx) => {
+    try {
+      const view = ctx.get(editorViewCtx)
+      view.dispatch(view.state.tr)
+    } catch {
+      // Mid-teardown during a document switch.
+    }
+  })
+}
 
 /** True when the cursor is inside a table, for the table-only commands. */
 function inTable(): boolean {
@@ -168,6 +193,55 @@ const editorCommands: Command[] = [
       focusEditor()
     },
   })),
+
+  // --- View ----------------------------------------------------------------
+  /**
+   * Source Code Mode.
+   *
+   * Per document rather than global: one file can be open as source while
+   * another stays WYSIWYG, which is what makes it usable as the escape hatch
+   * for a document too large for the rich view.
+   */
+  {
+    id: 'view.sourceMode',
+    enabled: hasDocument,
+    checked: () => activeDoc.value?.sourceMode ?? false,
+    run: () => {
+      const d = activeDoc.value
+      if (!d) return
+      d.sourceMode = !d.sourceMode
+      // The round-trip guard is about the rich view's serializer; source mode
+      // writes the text verbatim, so any previous warning no longer applies.
+      if (d.sourceMode) d.lossy = null
+    },
+  },
+
+  /**
+   * Focus and typewriter modes.
+   *
+   * Persisted, because they are a way of working rather than a per-document
+   * choice: someone who writes in focus mode wants it on again next launch.
+   */
+  {
+    id: 'view.focusMode',
+    checked: () => settings.value.editor.focusMode,
+    run: async () => {
+      const next = !settings.value.editor.focusMode
+      setEditorModes({ focus: next })
+      refreshDecorations()
+      await patchSettings({ editor: { ...settings.value.editor, focusMode: next } })
+    },
+  },
+  {
+    id: 'view.typewriter',
+    checked: () => settings.value.editor.typewriter,
+    run: async () => {
+      const next = !settings.value.editor.typewriter
+      setEditorModes({ typewriter: next })
+      refreshDecorations()
+      await patchSettings({ editor: { ...settings.value.editor, typewriter: next } })
+    },
+  },
 
   // --- Find and replace ----------------------------------------------------
   { id: 'edit.find', enabled: hasEditor, run: () => openFind(false) },

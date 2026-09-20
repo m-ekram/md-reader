@@ -19,6 +19,7 @@ import { registerEditorCommands } from './commands/editor-commands'
 import { adoptFile, closeDoc, newDoc, useDocuments } from './stores/documents'
 import { initSearchListeners, initWorkspaceSync } from './stores/workspace'
 import { initExternalChanges } from './stores/external-changes'
+import { setEditorModes } from './editor/typewriter'
 
 /**
  * Offers back anything a crash left behind, before the user starts typing.
@@ -62,6 +63,11 @@ async function boot(): Promise<void> {
   const settings = useSettingsStore()
 
   await initThemes(settings.value.theme)
+
+  setEditorModes({
+    focus: settings.value.editor.focusMode,
+    typewriter: settings.value.editor.typewriter,
+  })
 
   registerAppCommands()
   registerEditorCommands()

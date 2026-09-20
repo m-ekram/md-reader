@@ -29,6 +29,7 @@ import { tocPlugin } from './toc'
 import { mermaidPlugin } from './mermaid'
 import { attachImageHandlers } from './paste'
 import { searchPlugin } from './find'
+import { typewriterPlugin } from './typewriter'
 
 /**
  * Emit conventional markdown, so re-serializing an ordinary file is close to a
@@ -87,6 +88,7 @@ export async function createEditor(opts: {
     .use(tocPlugin)
     .use(mermaidPlugin)
     .use(searchPlugin)
+    .use(typewriterPlugin)
     .config((ctx) => {
       ctx.get(listenerCtx).markdownUpdated((_c, markdown, prevMarkdown) => {
         if (markdown !== prevMarkdown) opts.onChange(markdown)
