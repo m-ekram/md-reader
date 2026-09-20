@@ -223,15 +223,23 @@ describe('Open Recent stays in step with its labels', () => {
       await page.waitForTimeout(700)
     }
 
+    // Start from a known state: an earlier test may have left a menu open, and
+    // hovering a submenu that is already open does not re-trigger it.
+    await page.keyboard.press('Escape')
+    await page.waitForTimeout(150)
+
     await page.locator('.menubar__top', { hasText: /^File$/ }).click()
-    await page.waitForSelector('.menu[role="menu"]')
-    await page.locator('.menu__item', { hasText: 'Open Recent' }).first().hover()
-    await page.waitForTimeout(300)
+    await page.waitForSelector('.menu[role="menu"]', { state: 'visible' })
+
+    // Clicking is deterministic where hovering depends on pointer timing.
+    await page.locator('.menu__item', { hasText: 'Open Recent' }).first().click()
+    await page.waitForSelector('.menu--nested .menu__item', { state: 'visible', timeout: 5000 })
 
     const first = page.locator('.menu--nested .menu__item').first()
     const label = (await first.innerText()).trim()
     await first.click()
-    await page.waitForTimeout(800)
+    await page.waitForSelector('.menu[role="menu"]', { state: 'detached', timeout: 5000 })
+    await page.waitForTimeout(600)
 
     // Whichever file the entry named must be the one now on screen.
     const expected = label.startsWith('alpha') ? 'Alpha document' : 'Beta document'

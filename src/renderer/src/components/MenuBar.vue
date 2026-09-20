@@ -287,7 +287,7 @@ function isActive(path: number[]): boolean {
               :aria-expanded="activePath.length > 1 && activePath[0] === j"
               :data-active="isActive([j]) || (activePath[0] === j && activePath.length > 1)"
               tabindex="-1"
-              @click="activePath = activePath[0] === j && activePath.length > 1 ? [j] : [j, 0]"
+              @click="activePath = [j, 0]"
               @mouseenter="activePath = [j, 0]"
             >
               <span class="menu__label">{{ node.label }}</span>
