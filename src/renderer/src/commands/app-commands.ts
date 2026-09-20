@@ -23,7 +23,7 @@ import {
 import { patchSettings, useSettingsStore } from '../stores/settings'
 import { applyTheme, useThemeStore } from '../stores/theme'
 import { refreshArticles, revealPath, setRoot, useWorkspace } from '../stores/workspace'
-import { commandPalette, quickOpen } from '../stores/ui'
+import { commandPalette, preferences, quickOpen } from '../stores/ui'
 
 const docs = useDocuments()
 const settings = useSettingsStore()
@@ -246,6 +246,13 @@ const commands: Command[] = [
    * The command palette. Keyboard-only: the menu is a fixed specification and
    * gains no item for it, so its accelerator is bound from EXTRA_ACCELERATORS.
    */
+  {
+    id: 'file.preferences',
+    run: () => {
+      preferences.open = true
+    },
+  },
+
   {
     id: 'app.commandPalette',
     label: 'Command Palette',

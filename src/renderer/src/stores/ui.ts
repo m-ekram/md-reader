@@ -8,6 +8,8 @@ export const quickOpen = reactive({ open: false })
 
 export const commandPalette = reactive({ open: false })
 
+export const preferences = reactive({ open: false })
+
 /**
  * A transient message for the status bar.
  *

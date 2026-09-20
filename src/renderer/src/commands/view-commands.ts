@@ -13,6 +13,7 @@ import { activeEditor } from '../editor/pool'
 import { uiState } from '../stores/ui'
 import { setPunctuation } from '../editor/punctuation'
 import { setShowWhitespace, stripTrailingWhitespace } from '../editor/whitespace'
+import { refreshDecorations } from '../editor/refresh'
 
 const settings = useSettingsStore()
 
@@ -54,23 +55,6 @@ function currentPlainText(): string {
     }
   })
   return text
-}
-
-/**
- * Decorations only rebuild when a transaction arrives, so a toggle that changes
- * nothing in the document needs an empty one to become visible.
- */
-function refreshDecorations(): void {
-  const handle = activeEditor()
-  if (!handle) return
-  handle.crepe.editor.action((ctx) => {
-    try {
-      const view = ctx.get(editorViewCtx)
-      view.dispatch(view.state.tr)
-    } catch {
-      // Mid-teardown during a document switch.
-    }
-  })
 }
 
 async function copy(text: string): Promise<void> {

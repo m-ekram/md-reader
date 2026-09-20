@@ -39,6 +39,7 @@ import {
   toggleStrikethroughCommand,
 } from '@milkdown/kit/preset/gfm'
 import { activeDoc } from '../stores/documents'
+import { refreshDecorations } from '../editor/refresh'
 import { registerAll, type Command } from './registry'
 import { activeEditor } from '../editor/pool'
 import { ALERT_KINDS } from '../editor/alerts'
@@ -79,19 +80,6 @@ const settings = useSettingsStore()
  * a transaction. Without this, toggling did nothing visible until the next
  * keystroke or caret move.
  */
-function refreshDecorations(): void {
-  const handle = activeEditor()
-  if (!handle) return
-  handle.crepe.editor.action((ctx) => {
-    try {
-      const view = ctx.get(editorViewCtx)
-      view.dispatch(view.state.tr)
-    } catch {
-      // Mid-teardown during a document switch.
-    }
-  })
-}
-
 /** True when the cursor is inside a table, for the table-only commands. */
 /** True when the caret is inside a list item, at any nesting depth. */
 function inListItem(): boolean {

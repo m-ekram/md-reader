@@ -7,9 +7,10 @@ import TabBar from './components/TabBar.vue'
 import Sidebar from './components/sidebar/Sidebar.vue'
 import QuickOpen from './components/QuickOpen.vue'
 import CommandPalette from './components/CommandPalette.vue'
+import PreferencesDialog from './components/PreferencesDialog.vue'
 import FindReplace from './components/FindReplace.vue'
 import WordCountPopover from './components/WordCountPopover.vue'
-import { commandPalette, quickOpen } from './stores/ui'
+import { commandPalette, preferences, quickOpen } from './stores/ui'
 import { commandForAccel, isEnabled, isRegistered, run } from './commands/registry'
 import { adoptFile, anyDirty, useDocuments, isDirty } from './stores/documents'
 import { saveActive } from './commands/app-commands'
@@ -94,6 +95,7 @@ onBeforeUnmount(() => {
     <StatusBar />
     <QuickOpen :open="quickOpen.open" @close="quickOpen.open = false" />
     <CommandPalette :open="commandPalette.open" @close="commandPalette.open = false" />
+    <PreferencesDialog :open="preferences.open" @close="preferences.open = false" />
   </div>
 </template>
 

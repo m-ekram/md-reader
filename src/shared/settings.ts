@@ -27,9 +27,9 @@ export interface Settings {
     spellcheck: boolean
     /** Folder for pasted images, relative to the document. */
     assetsFolder: string
-    /** Smart punctuation, each kind separately switchable. */
     /** Draws markers for spaces, tabs and line breaks. */
     showWhitespace: boolean
+    /** Smart punctuation, each kind separately switchable. */
     smartQuotes: boolean
     smartDashes: boolean
     smartEllipses: boolean
