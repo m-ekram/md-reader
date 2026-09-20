@@ -10,7 +10,7 @@ Built on Electron and Milkdown/Crepe (ProseMirror).
 
 ## Status
 
-**Phases 0–4 complete, plus a hardening pass.**
+**Phases 0–5 complete, plus a hardening pass.**
 
 - **Shell** — frameless window with a themed title bar, the full seven-menu menu
   bar driven by one command registry, multi-window, crash recovery.
@@ -25,10 +25,17 @@ Built on Electron and Milkdown/Crepe (ProseMirror).
 - **Editing** — find and replace, source mode, focus and typewriter modes, readonly,
   zoom, word count, smart punctuation, visible whitespace, and a command palette
   on Ctrl+Shift+P that searches every implemented command.
+- **Export** — self-contained HTML with inlined styles and embedded images, PDF
+  through Chromium's own printing, and print through the same path. Both are
+  styled by the theme file the application itself loads, so an export matches
+  the screen.
+- **Themes and preferences** — six built-in themes covering both polarities, user
+  themes picked up from the config folder without a restart, and a preferences
+  dialog on Ctrl+, whose every control applies as you change it.
 - **Packaging** — builds an NSIS installer; proven to work rather than assumed.
 
-Measured with `npm run bench` (median of five launches): **1046 ms cold start,
-340 MB idle**, both inside the Phase 0 budgets of 1.5 s and 350 MB.
+Measured with `npm run bench` (median of five launches): **1115 ms cold start,
+341 MB idle**, both inside the Phase 0 budgets of 1.5 s and 350 MB.
 
 Those numbers are higher than the 607 ms / 326 MB recorded after the hardening
 pass, and the difference is the machine rather than the code: benchmarked on
@@ -36,14 +43,16 @@ the same day, that same commit gives 970 ms / 340 MB. Cold start on this
 machine swings far enough that only same-session comparisons mean anything,
 which is why the two were measured together rather than compared from memory.
 
-353 tests pass (279 unit, 74 end-to-end). `npm run verify` runs typecheck, lint
+420 tests pass (327 unit, 93 end-to-end). `npm run verify` runs typecheck, lint
 and both suites in one command.
 
-Still to come: PDF and HTML export, preferences and the remaining four themes
-(Phase 5); the Help menu and file association (Phase 6).
+Still to come: the Help menu, file association, and the remaining editor items
+— task lists, footnotes, link references and hyperlink actions (Phase 6).
 
-Menu coverage is **110 of 140 items**, counted rather than estimated:
-`node scripts/menu-coverage.cjs --list` names the ones still missing.
+Menu coverage is **114 of 140 items**, counted rather than estimated:
+`node scripts/menu-coverage.cjs --list` names the ones still missing. Math Block
+is deliberately not among them: the editor's schema has inline math and no block
+equivalent, so the item stays greyed rather than being faked.
 
 ## Development
 
