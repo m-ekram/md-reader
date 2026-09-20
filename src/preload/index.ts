@@ -7,6 +7,8 @@ import type { FileProperties } from '../main/ipc/workspace'
 import type { SearchHit } from '../main/search-worker'
 import type { WatchEvent } from '../main/watcher'
 import type { SaveImageRequest, SaveImageResult } from '../main/ipc/images'
+import type { ExportResult } from '../main/ipc/export'
+import type { ExportPayload } from '../main/export/html'
 
 /**
  * The entire surface the renderer is allowed to reach. Everything touching the
@@ -60,6 +62,15 @@ const api = {
   images: {
     save: (req: SaveImageRequest): Promise<SaveImageResult> =>
       ipcRenderer.invoke('images:save', req),
+  },
+
+  export: {
+    html: (payload: ExportPayload): Promise<ExportResult> =>
+      ipcRenderer.invoke('export:html', payload),
+    pdf: (payload: ExportPayload): Promise<ExportResult> =>
+      ipcRenderer.invoke('export:pdf', payload),
+    print: (payload: ExportPayload): Promise<ExportResult> =>
+      ipcRenderer.invoke('export:print', payload),
   },
 
   fileops: {

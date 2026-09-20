@@ -7,6 +7,7 @@
 import { computed, ref, watch, onBeforeUnmount } from 'vue'
 import { activeDoc, isDirty } from '../stores/documents'
 import { useSettingsStore } from '../stores/settings'
+import { notice } from '../stores/ui'
 
 const settings = useSettingsStore()
 
@@ -48,7 +49,10 @@ const eolLabel = computed(() => (activeDoc.value?.eol === '\r\n' ? 'CRLF' : 'LF'
 <template>
   <footer v-if="settings.statusBar" class="status">
     <div class="status__left">
-      <span v-if="activeDoc?.lossy?.lossy" class="warn" :title="activeDoc.lossy.note">
+      <span v-if="notice.text" class="notice" :class="{ warn: notice.kind === 'error' }">
+        {{ notice.text }}
+      </span>
+      <span v-else-if="activeDoc?.lossy?.lossy" class="warn" :title="activeDoc.lossy.note">
         ⚠ {{ activeDoc.lossy.note }}
       </span>
       <span v-else-if="large" class="warn">
@@ -92,6 +96,9 @@ const eolLabel = computed(() => (activeDoc.value?.eol === '\r\n' ? 'CRLF' : 'LF'
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.notice {
+  color: var(--doc-accent);
 }
 .warn {
   color: var(--warning);

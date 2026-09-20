@@ -6,6 +6,7 @@ import { allWindows, createWindow } from './windows'
 import { registerFileIpc } from './ipc/files'
 import { registerWorkspaceIpc } from './ipc/workspace'
 import { registerImageIpc } from './ipc/images'
+import { registerExportIpc } from './ipc/export'
 import { stopWatching, watchRoot } from './watcher'
 import { cancelAllSearches } from './search'
 import { listThemes, readUserTheme, watchUserThemes } from './themes'
@@ -44,6 +45,7 @@ if (!app.requestSingleInstanceLock()) {
     registerFileIpc()
     registerWorkspaceIpc()
     registerImageIpc()
+    registerExportIpc()
     registerSettingsIpc()
     registerThemeIpc()
     registerWindowIpc()
