@@ -29,6 +29,8 @@ export interface Settings {
     assetsFolder: string
   }
   statusBar: boolean
+  /** The formatting toolbar above the document. */
+  toolbar: boolean
   recentFiles: string[]
 }
 
@@ -47,6 +49,7 @@ export const DEFAULT_SETTINGS: Settings = {
     assetsFolder: 'assets',
   },
   statusBar: true,
+  toolbar: false,
   recentFiles: [],
 }
 

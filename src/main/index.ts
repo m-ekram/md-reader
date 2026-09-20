@@ -120,6 +120,14 @@ function registerWindowIpc(): void {
   ipcMain.on('window:devtools', (e) => e.sender.toggleDevTools())
 
   /**
+   * Spell checking is Chromium's, not ours: the dictionaries and the red
+   * underline come free with the renderer session. Only the switch is here.
+   */
+  ipcMain.on('window:spellcheck', (e, enabled: boolean) => {
+    e.sender.session.setSpellCheckerEnabled(enabled)
+  })
+
+  /**
    * Editing actions the menu offers but must never bind as accelerators.
    *
    * The keystrokes belong to the editor (see EDITOR_DELEGATED in the renderer's

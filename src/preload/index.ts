@@ -93,6 +93,7 @@ const api = {
     toggleFullscreen: (): void => ipcRenderer.send('window:fullscreen'),
     toggleDevTools: (): void => ipcRenderer.send('window:devtools'),
     setZoom: (level: number): void => ipcRenderer.send('window:zoom', level),
+    setSpellcheck: (enabled: boolean): void => ipcRenderer.send('window:spellcheck', enabled),
     onState: (fn: (s: WindowState) => void) => subscribe('window:state', fn),
     /** Main asks the renderer whether it may close; renderer replies. */
     onCloseRequest: (fn: () => void) => subscribe('window:close-request', fn),

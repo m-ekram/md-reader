@@ -97,6 +97,9 @@ async function show(): Promise<void> {
   // Adopting the element rather than re-rendering is what preserves the editor
   // state, including its undo stack and cursor position.
   if (host.value.firstChild !== pooled.el) host.value.replaceChildren(pooled.el)
+  // Re-applied on every show: a pooled editor keeps its own state, so a
+  // document marked readonly would come back editable after a tab switch.
+  pooled.handle.setReadonly(doc.readonly)
   runGuard(doc, pooled.handle.reserialize)
 }
 

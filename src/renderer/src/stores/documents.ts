@@ -33,6 +33,8 @@ export interface Doc {
   sourceMode: boolean
   /** The file went away while the tab stayed open; content is still here. */
   detached: boolean
+  /** Guards this document against edits. Per document, not persisted. */
+  readonly: boolean
   /**
    * Bumped when content is replaced wholesale from disk. The editor watches it
    * to rebuild, since a live editor does not re-read its document otherwise.
@@ -84,6 +86,7 @@ export function newDoc(): Doc {
     lossy: null,
     sourceMode: false,
     detached: false,
+    readonly: false,
     reloadToken: 0,
   }
   state.docs.push(d)
@@ -120,6 +123,7 @@ export function adoptFile(f: DocumentFile): Doc {
     lossy: null,
     sourceMode: false,
     detached: false,
+    readonly: false,
     reloadToken: 0,
   }
   state.docs.push(d)

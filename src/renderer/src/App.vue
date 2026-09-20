@@ -7,6 +7,7 @@ import TabBar from './components/TabBar.vue'
 import Sidebar from './components/sidebar/Sidebar.vue'
 import QuickOpen from './components/QuickOpen.vue'
 import FindReplace from './components/FindReplace.vue'
+import WordCountPopover from './components/WordCountPopover.vue'
 import { quickOpen } from './stores/ui'
 import { commandForAccel, isEnabled, isRegistered, run } from './commands/registry'
 import { adoptFile, anyDirty, useDocuments, isDirty } from './stores/documents'
@@ -86,6 +87,7 @@ onBeforeUnmount(() => {
         <TabBar />
         <FindReplace />
         <Editor />
+        <WordCountPopover />
       </div>
     </main>
     <StatusBar />
