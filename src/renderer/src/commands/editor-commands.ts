@@ -40,6 +40,7 @@ import { activeDoc } from '../stores/documents'
 import { registerAll, type Command } from './registry'
 import { activeEditor } from '../editor/pool'
 import { ALERT_KINDS } from '../editor/alerts'
+import { find, findState, openFind } from '../editor/find'
 
 /** Runs a Milkdown command against whichever editor is on screen. */
 function run<T>(key: CmdKey<T>, payload?: T): void {
@@ -167,6 +168,21 @@ const editorCommands: Command[] = [
       focusEditor()
     },
   })),
+
+  // --- Find and replace ----------------------------------------------------
+  { id: 'edit.find', enabled: hasEditor, run: () => openFind(false) },
+  { id: 'edit.replace', enabled: hasEditor, run: () => openFind(true) },
+  {
+    id: 'edit.findNext',
+    // Only meaningful once there is something to look for.
+    enabled: () => hasEditor() && findState.query.length > 0,
+    run: () => find.next(),
+  },
+  {
+    id: 'edit.findPrevious',
+    enabled: () => hasEditor() && findState.query.length > 0,
+    run: () => find.previous(),
+  },
 
   // --- Format --------------------------------------------------------------
   { id: 'format.strong', enabled: hasEditor, run: () => run(toggleStrongCommand.key) },

@@ -6,6 +6,7 @@ import StatusBar from './components/StatusBar.vue'
 import TabBar from './components/TabBar.vue'
 import Sidebar from './components/sidebar/Sidebar.vue'
 import QuickOpen from './components/QuickOpen.vue'
+import FindReplace from './components/FindReplace.vue'
 import { quickOpen } from './stores/ui'
 import { commandForAccel, isEnabled, isRegistered, run } from './commands/registry'
 import { adoptFile, anyDirty, useDocuments, isDirty } from './stores/documents'
@@ -83,6 +84,7 @@ onBeforeUnmount(() => {
       <Sidebar />
       <div class="app__doc">
         <TabBar />
+        <FindReplace />
         <Editor />
       </div>
     </main>
@@ -117,6 +119,7 @@ body {
   min-height: 0;
 }
 .app__doc {
+  position: relative;
   flex: 1;
   display: flex;
   flex-direction: column;
