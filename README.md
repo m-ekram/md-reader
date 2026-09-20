@@ -10,7 +10,7 @@ Built on Electron and Milkdown/Crepe (ProseMirror).
 
 ## Status
 
-**Phases 0–5 complete, plus a hardening pass.**
+**Phases 0–6 complete, plus a hardening pass.** All six phases are done.
 
 - **Shell** — frameless window with a themed title bar, the full seven-menu menu
   bar driven by one command registry, multi-window, crash recovery.
@@ -32,7 +32,10 @@ Built on Electron and Milkdown/Crepe (ProseMirror).
 - **Themes and preferences** — six built-in themes covering both polarities, user
   themes picked up from the config folder without a restart, and a preferences
   dialog on Ctrl+, whose every control applies as you change it.
-- **Packaging** — builds an NSIS installer; proven to work rather than assumed.
+- **Help** — the Help topics are markdown files opened in the editor itself, so the
+  documentation is rendered by the code it documents.
+- **Packaging** — builds an NSIS installer, associates `.md` and `.markdown`, and
+  handles files passed on the command line.
 
 Measured with `npm run bench` (median of five launches): **1115 ms cold start,
 341 MB idle**, both inside the Phase 0 budgets of 1.5 s and 350 MB.
@@ -43,16 +46,22 @@ the same day, that same commit gives 970 ms / 340 MB. Cold start on this
 machine swings far enough that only same-session comparisons mean anything,
 which is why the two were measured together rather than compared from memory.
 
-420 tests pass (327 unit, 93 end-to-end). `npm run verify` runs typecheck, lint
+476 tests pass (359 unit, 117 end-to-end). `npm run verify` runs typecheck, lint
 and both suites in one command.
 
-Still to come: the Help menu, file association, and the remaining editor items
-— task lists, footnotes, link references and hyperlink actions (Phase 6).
+One gap worth stating rather than leaving implied: the packaged build could not
+be launched on the development machine, because Windows Application Control
+blocks the unsigned executable. The Help topics were confirmed to ship to
+`resources/docs`, which is where the packaged code looks for them, but that path
+has been checked by inspection rather than by running the installed app. Signing
+the build, or testing on a machine without that policy, would close it.
 
-Menu coverage is **114 of 140 items**, counted rather than estimated:
-`node scripts/menu-coverage.cjs --list` names the ones still missing. Math Block
-is deliberately not among them: the editor's schema has inline math and no block
-equivalent, so the item stays greyed rather than being faked.
+Menu coverage is **135 of 140 items, with the other 5 deliberately unavailable**
+and no item left merely unimplemented. Run `node scripts/menu-coverage.cjs --list`
+for the count. The five are refusals rather than gaps: block math and reference
+links are read correctly but are not modelled separately, so a command to create
+either would be undone by the next save, and Import needs Pandoc this build does
+not bundle. Each says so in its tooltip rather than reading as unfinished.
 
 ## Development
 
