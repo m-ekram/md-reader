@@ -452,10 +452,7 @@ function collectAccelerators(nodes: MenuNode[]): Array<{ id: string; accel?: str
 }
 
 function rebindAccelerators(): void {
-  bindAccelerators([
-    ...collectAccelerators(MENUS.flatMap((m) => m.items)),
-    ...EXTRA_ACCELERATORS,
-  ])
+  bindAccelerators([...collectAccelerators(MENUS.flatMap((m) => m.items)), ...EXTRA_ACCELERATORS])
 }
 
 export function registerAppCommands(): void {

@@ -355,7 +355,8 @@ export function flattenMenu(menus: Menu[] = MENUS): FlatMenuItem[] {
   const out: FlatMenuItem[] = []
   const walk = (nodes: MenuNode[], trail: string[]): void => {
     for (const n of nodes) {
-      if (n.kind === 'item') out.push({ id: n.id, label: n.label, path: trail.join(' › '), accel: n.accel })
+      if (n.kind === 'item')
+        out.push({ id: n.id, label: n.label, path: trail.join(' › '), accel: n.accel })
       else if (n.kind === 'submenu') walk(n.items, [...trail, n.label])
     }
   }

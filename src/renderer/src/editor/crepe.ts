@@ -53,8 +53,7 @@ import { whitespacePlugin } from './whitespace'
  */
 export function withoutTrailingParagraph(markdown: string, doc: ProseNode): string {
   const last = doc.lastChild
-  const appended =
-    doc.childCount > 1 && last?.type.name === 'paragraph' && last.content.size === 0
+  const appended = doc.childCount > 1 && last?.type.name === 'paragraph' && last.content.size === 0
   return appended && markdown.endsWith('\n\n') ? markdown.slice(0, -1) : markdown
 }
 

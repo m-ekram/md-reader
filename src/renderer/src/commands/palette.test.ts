@@ -31,7 +31,11 @@ describe('flattenMenu', () => {
 
 describe('accelerators outside the menu', () => {
   it('do not collide with one the menu already claims', () => {
-    const claimed = new Set(flattenMenu(MENUS).map((e) => e.accel).filter(Boolean))
+    const claimed = new Set(
+      flattenMenu(MENUS)
+        .map((e) => e.accel)
+        .filter(Boolean)
+    )
     for (const extra of EXTRA_ACCELERATORS) {
       expect(claimed.has(extra.accel), `${extra.accel} is already a menu accelerator`).toBe(false)
     }

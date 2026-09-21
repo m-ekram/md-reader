@@ -33,10 +33,12 @@ function setChecked(value: boolean | null): void {
   withView((view) => {
     const item = ancestor(view, 'list_item')
     if (!item) return
-    view.dispatch(view.state.tr.setNodeMarkup(item.pos, undefined, {
-      ...item.node.attrs,
-      checked: value,
-    }))
+    view.dispatch(
+      view.state.tr.setNodeMarkup(item.pos, undefined, {
+        ...item.node.attrs,
+        checked: value,
+      })
+    )
   })
 }
 
@@ -266,16 +268,13 @@ async function copyImageContent(): Promise<void> {
 
 /** Reports what the document records about the image. */
 function imageProperties(): void {
-  const info = fromView(
-    (v) => {
-      const node = selectedImage(v)
-      if (!node) return ''
-      const alt = String(node.attrs.alt ?? '') || 'none'
-      const title = String(node.attrs.caption ?? node.attrs.title ?? '') || 'none'
-      return `${node.attrs.src} — alt: ${alt}, title: ${title}`
-    },
-    ''
-  )
+  const info = fromView((v) => {
+    const node = selectedImage(v)
+    if (!node) return ''
+    const alt = String(node.attrs.alt ?? '') || 'none'
+    const title = String(node.attrs.caption ?? node.attrs.title ?? '') || 'none'
+    return `${node.attrs.src} — alt: ${alt}, title: ${title}`
+  }, '')
   if (info) showNotice(info)
 }
 

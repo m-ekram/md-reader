@@ -36,13 +36,7 @@ import {
   toggleStrikethroughCommand,
 } from '@milkdown/kit/preset/gfm'
 import { activeDoc } from '../stores/documents'
-import {
-  caretIn,
-  hasEditor,
-  refreshDecorations,
-  runCommand as run,
-  withView,
-} from '../editor/view'
+import { caretIn, hasEditor, refreshDecorations, runCommand as run, withView } from '../editor/view'
 import { registerAll, type Command } from './registry'
 import { flushAll } from '../editor/pool'
 import { ALERT_KINDS } from '../editor/alerts'

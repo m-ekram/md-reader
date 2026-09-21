@@ -45,9 +45,7 @@ function selectLine(view: EditorView): void {
   const { state } = view
   const { $from } = state.selection
   if (!$from.parent.isTextblock) return
-  view.dispatch(
-    state.tr.setSelection(TextSelection.create(state.doc, $from.start(), $from.end()))
-  )
+  view.dispatch(state.tr.setSelection(TextSelection.create(state.doc, $from.start(), $from.end())))
 }
 
 /** The enclosing top-level block, as a node selection. */
@@ -110,8 +108,16 @@ const selectionCommands: Command[] = [
   { id: 'edit.deleteBlock', enabled: hasEditor, run: deleteWith(selectBlock) },
 
   // Table rows. The accelerators are Alt+Up/Down, which nothing else claims.
-  { id: 'edit.moveRowUp', enabled: hasEditor, run: () => runCommand(moveRowCommand.key, { pos: -1 }) },
-  { id: 'edit.moveRowDown', enabled: hasEditor, run: () => runCommand(moveRowCommand.key, { pos: 1 }) },
+  {
+    id: 'edit.moveRowUp',
+    enabled: hasEditor,
+    run: () => runCommand(moveRowCommand.key, { pos: -1 }),
+  },
+  {
+    id: 'edit.moveRowDown',
+    enabled: hasEditor,
+    run: () => runCommand(moveRowCommand.key, { pos: 1 }),
+  },
 
   { id: 'para.insertBefore', enabled: hasEditor, run: insertParagraph('before') },
   { id: 'para.insertAfter', enabled: hasEditor, run: insertParagraph('after') },
