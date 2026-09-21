@@ -37,17 +37,41 @@ Built on Electron and Milkdown/Crepe (ProseMirror).
 - **Packaging** — builds an NSIS installer, associates `.md` and `.markdown`, and
   handles files passed on the command line.
 
-Measured with `npm run bench` (median of five launches): **1115 ms cold start,
-341 MB idle**, both inside the Phase 0 budgets of 1.5 s and 350 MB.
+Measured with `npm run bench` (median of five launches): **645 ms cold start,
+328 MB idle**, both inside the Phase 0 budgets of 1.5 s and 350 MB.
 
-Those numbers are higher than the 607 ms / 326 MB recorded after the hardening
-pass, and the difference is the machine rather than the code: benchmarked on
-the same day, that same commit gives 970 ms / 340 MB. Cold start on this
-machine swings far enough that only same-session comparisons mean anything,
-which is why the two were measured together rather than compared from memory.
+Cold start on this machine swings with its load — the same build has measured
+anywhere from about 600 ms to over 1 s on different days — so only
+comparisons taken in the same session mean anything. The figures above were
+taken alongside a baseline from before the second hardening round (694 ms,
+327 MB), which is how that round is known to have cost nothing.
 
-476 tests pass (359 unit, 117 end-to-end). `npm run verify` runs typecheck, lint
+524 tests pass (392 unit, 132 end-to-end), and the end-to-end suite has run
+three times in a row without a failure. `npm run verify` runs typecheck, lint
 and both suites in one command.
+
+### Second hardening round
+
+An audit before any new features found problems that could lose or misplace
+work without a word, and testing the fixes against what the user would see
+turned up worse ones. All are fixed, each with a test checked by putting the
+bug back:
+
+- **Opening a file edited it**, if the file ended in a list, code block, table
+  or quote: the editor's trailing empty paragraph serialized as an extra
+  newline, so the file prompted to save on close and a save rewrote it.
+- **Saving or closing straight after typing** acted on text without the last
+  keystrokes, because the editor reports changes on a debounce.
+- **The tab's close button discarded unsaved work** without asking.
+- **A save failed silently** on a read-only or locked file, and failed outright
+  whenever another program was reading the file; saves now retry briefly and
+  every failure is reported in plain words.
+- **A file merely touched by another program** raised a "reload and lose your
+  edits?" prompt whose default button did exactly that.
+- **A renderer crash left a blank window**; it now reloads and offers the
+  unsaved work back.
+- A theme id could read files outside the themes folder, exports could carry
+  local paths, and `npm audit` reported five highs; all closed.
 
 The packaged build is verified by hand rather than by the suite: Windows
 Application Control blocks programmatic launch of the unsigned executable, so
