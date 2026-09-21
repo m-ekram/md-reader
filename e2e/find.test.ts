@@ -55,7 +55,11 @@ describe('find', () => {
 
   it('closes on Escape and clears the highlights', async () => {
     await ctx.page.locator('.find__input').first().fill('needle')
-    await ctx.page.waitForTimeout(400)
+    // Highlights must exist before their clearing means anything: without
+    // this the test passed whether or not Escape cleared a thing.
+    await expect
+      .poll(() => ctx.page.locator('.ProseMirror .ProseMirror-search-match').count())
+      .toBeGreaterThan(0)
     await ctx.page.keyboard.press('Escape')
 
     await ctx.page.waitForFunction(() => !document.querySelector('.find__input'), {
@@ -69,14 +73,18 @@ describe('replace', () => {
   it('replaces every occurrence and leaves the rest of the document alone', async () => {
     await newDocument(ctx)
     await ctx.page.keyboard.type('alpha beta alpha gamma alpha')
-    await ctx.page.waitForTimeout(400)
+    await waitForText(ctx, 'gamma alpha')
 
     await ctx.page.keyboard.press('Control+h')
     await ctx.page.waitForSelector('.find__input', { state: 'visible', timeout: 10_000 })
 
     const inputs = ctx.page.locator('.find__input')
     await inputs.nth(0).fill('alpha')
-    await ctx.page.waitForTimeout(400)
+    await ctx.page.waitForFunction(
+      (n) => (document.querySelector('.find__count')?.textContent ?? '').includes(n),
+      '3',
+      { timeout: 10_000 }
+    )
     await inputs.nth(1).fill('OMEGA')
 
     await ctx.page.locator('.find__wide', { hasText: 'All' }).click()
@@ -96,14 +104,18 @@ describe('replace', () => {
   it('replaces one occurrence at a time', async () => {
     await newDocument(ctx)
     await ctx.page.keyboard.type('keep one keep two keep three')
-    await ctx.page.waitForTimeout(400)
+    await waitForText(ctx, 'keep three')
 
     await ctx.page.keyboard.press('Control+h')
     await ctx.page.waitForSelector('.find__input', { state: 'visible', timeout: 10_000 })
 
     const inputs = ctx.page.locator('.find__input')
     await inputs.nth(0).fill('keep')
-    await ctx.page.waitForTimeout(400)
+    await ctx.page.waitForFunction(
+      (n) => (document.querySelector('.find__count')?.textContent ?? '').includes(n),
+      '3',
+      { timeout: 10_000 }
+    )
     await inputs.nth(1).fill('DONE')
 
     await ctx.page.locator('.find__wide', { hasText: 'Replace' }).first().click()
@@ -123,7 +135,7 @@ describe('match case', () => {
   it('distinguishes case when asked to', async () => {
     await newDocument(ctx)
     await ctx.page.keyboard.type('Apple apple APPLE')
-    await ctx.page.waitForTimeout(400)
+    await waitForText(ctx, 'APPLE')
 
     await ctx.page.keyboard.press('Control+f')
     await ctx.page.waitForSelector('.find__input', { state: 'visible', timeout: 10_000 })

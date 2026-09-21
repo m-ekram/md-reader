@@ -112,11 +112,9 @@ describe('themes', () => {
     await ctx.page.reload()
     await ctx.page.waitForSelector('.app', { timeout: 30_000 })
     await expect
-      .poll(
-        () =>
-          ctx.page.evaluate(() => document.documentElement.getAttribute('data-theme')),
-        { timeout: 15_000 }
-      )
+      .poll(() => ctx.page.evaluate(() => document.documentElement.getAttribute('data-theme')), {
+        timeout: 15_000,
+      })
       .toBe('newsprint')
   })
 })

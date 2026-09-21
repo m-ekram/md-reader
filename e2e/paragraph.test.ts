@@ -1,8 +1,8 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest'
-import { readFile, writeFile } from 'node:fs/promises'
+import { readFile, stat, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { openFile, useApp, waitForText } from './helpers'
+import { chooseMenu, menuItem, newDocument, openFile, useApp, waitForText } from './helpers'
 
 /**
  * Task lists, footnotes, front matter, code tools and hyperlink actions.
@@ -15,28 +15,22 @@ import { openFile, useApp, waitForText } from './helpers'
  */
 const ctx = useApp()
 
-async function chooseItem(menu: string, label: string): Promise<void> {
-  await ctx.page.keyboard.press('Escape')
-  await ctx.page.locator('.menubar__top', { hasText: new RegExp(`^${menu}$`) }).click()
-  await ctx.page.waitForSelector('.menu[role="menu"]', { state: 'visible' })
-  await ctx.page.locator('.menu[role="menu"] .menu__item', { hasText: label }).first().click()
-  await ctx.page.waitForTimeout(500)
-}
+const chooseItem = (menu: string, label: string) => chooseMenu(ctx, menu, label)
+const chooseNested = (menu: string, submenu: string, label: string) =>
+  chooseMenu(ctx, menu, submenu, label)
 
-async function chooseNested(menu: string, submenu: string, label: string): Promise<void> {
-  await ctx.page.keyboard.press('Escape')
-  await ctx.page.locator('.menubar__top', { hasText: new RegExp(`^${menu}$`) }).click()
-  await ctx.page.waitForSelector('.menu[role="menu"]', { state: 'visible' })
-  await ctx.page.locator('.menu__item', { hasText: submenu }).first().click()
-  await ctx.page.waitForSelector('.menu--nested .menu__item', { state: 'visible' })
-  await ctx.page.locator('.menu--nested .menu__item', { hasText: label }).first().click()
-  await ctx.page.waitForTimeout(500)
-}
-
-/** Opens a file, edits it, saves, and hands back what reached disk. */
+/**
+ * Saves, and hands back what reached disk.
+ *
+ * Waits for the file's modification time to change, which is the write itself.
+ * Not the title's unsaved marker: straight after typing, the marker may not
+ * have appeared yet — the document store lags the editor by a debounce — so
+ * "the marker is clear" could be true before the save had happened at all.
+ */
 async function savedText(path: string): Promise<string> {
+  const before = (await stat(path)).mtimeMs
   await ctx.page.keyboard.press('Control+s')
-  await ctx.page.waitForTimeout(800)
+  await expect.poll(async () => (await stat(path)).mtimeMs, { timeout: 10_000 }).not.toBe(before)
   return readFile(path, 'utf8')
 }
 
@@ -81,15 +75,8 @@ describe('task lists', () => {
     // The second item was never made a task, so the submenu must not offer to
     // change a status it does not have.
     await ctx.page.locator('.ProseMirror li').nth(1).click()
-    await ctx.page.waitForTimeout(300)
-    await ctx.page.keyboard.press('Escape')
-    await ctx.page.locator('.menubar__top', { hasText: /^Paragraph$/ }).click()
-    await ctx.page.waitForSelector('.menu[role="menu"]', { state: 'visible' })
-    await ctx.page.locator('.menu__item', { hasText: 'Task Status' }).first().click()
-    await ctx.page.waitForSelector('.menu--nested .menu__item', { state: 'visible' })
-
-    const complete = ctx.page.locator('.menu--nested .menu__item', { hasText: 'Complete' }).first()
-    expect(await complete.getAttribute('aria-disabled')).toBe('true')
+    const complete = await menuItem(ctx, 'Paragraph', 'Task Status', 'Complete')
+    await expect.poll(() => complete.getAttribute('aria-disabled')).toBe('true')
     await ctx.page.keyboard.press('Escape')
   })
 })
@@ -105,7 +92,6 @@ describe('footnotes', () => {
     await ctx.page.keyboard.press('End')
     await chooseItem('Paragraph', 'Footnotes')
     await ctx.page.keyboard.type('the supporting detail')
-    await ctx.page.waitForTimeout(400)
 
     const text = await savedText(file)
     // Both halves, or the reference points at nothing.
@@ -147,8 +133,7 @@ describe('YAML front matter', () => {
     expect(await item.getAttribute('aria-checked')).toBe('true')
 
     await item.click()
-    await ctx.page.waitForTimeout(500)
-    expect(await ctx.page.locator('.ProseMirror .frontmatter').count()).toBe(0)
+    await expect.poll(() => ctx.page.locator('.ProseMirror .frontmatter').count()).toBe(0)
   })
 })
 
@@ -163,12 +148,9 @@ describe('hyperlink actions', () => {
 
     // Caret inside the link, which is what enables the submenu.
     await ctx.page.locator('.ProseMirror a').first().click()
-    await ctx.page.waitForTimeout(300)
     await chooseNested('Format', 'Hyperlink Actions', 'Remove Link')
 
-    await expect
-      .poll(() => ctx.page.locator('.ProseMirror a').count(), { timeout: 10_000 })
-      .toBe(0)
+    await expect.poll(() => ctx.page.locator('.ProseMirror a').count(), { timeout: 10_000 }).toBe(0)
     expect(await ctx.page.locator('.ProseMirror').innerText()).toContain('the docs')
 
     const text = await savedText(file)
@@ -178,15 +160,8 @@ describe('hyperlink actions', () => {
 
   it('greys the actions out when the caret is not on a link', async () => {
     await ctx.page.locator('.ProseMirror p').first().click()
-    await ctx.page.waitForTimeout(300)
-    await ctx.page.keyboard.press('Escape')
-    await ctx.page.locator('.menubar__top', { hasText: /^Format$/ }).click()
-    await ctx.page.waitForSelector('.menu[role="menu"]', { state: 'visible' })
-    await ctx.page.locator('.menu__item', { hasText: 'Hyperlink Actions' }).first().click()
-    await ctx.page.waitForSelector('.menu--nested .menu__item', { state: 'visible' })
-
-    const open = ctx.page.locator('.menu--nested .menu__item', { hasText: 'Open Link' }).first()
-    expect(await open.getAttribute('aria-disabled')).toBe('true')
+    const open = await menuItem(ctx, 'Format', 'Hyperlink Actions', 'Open Link')
+    await expect.poll(() => open.getAttribute('aria-disabled')).toBe('true')
     await ctx.page.keyboard.press('Escape')
   })
 })
@@ -199,15 +174,12 @@ describe('code tools', () => {
     await ctx.page.waitForSelector('.milkdown-code-block', { timeout: 15_000 })
 
     await ctx.page.locator('.ProseMirror .cm-content').first().click()
-    await ctx.page.waitForTimeout(300)
-    await chooseNested('Paragraph', 'Code Tools', 'Copy Code')
+    await chooseNested('Paragraph', 'Code Tools', 'Copy Code Block')
 
     // Read back through a paste, which is the only way to see the clipboard.
-    await ctx.page.keyboard.press('Control+n')
-    await ctx.page.waitForTimeout(500)
-    await ctx.page.locator('.ProseMirror').click()
+    await newDocument(ctx)
     await ctx.page.keyboard.press('Control+v')
-    await ctx.page.waitForTimeout(600)
+    await waitForText(ctx, 'const b = 2')
 
     const pasted = await ctx.page.locator('.ProseMirror').innerText()
     expect(pasted).toContain('const a = 1')

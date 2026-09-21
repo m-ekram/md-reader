@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest'
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { openFile, useApp, waitForText } from './helpers'
+import { newDocument, openFile, useApp, waitForText } from './helpers'
 
 /**
  * Preferences, asserted on what the setting does rather than on it being
@@ -67,14 +67,14 @@ describe('preferences dialog', () => {
   it('changes the theme from the dialog as well as the menu', async () => {
     await openPreferences()
     await ctx.page.locator('.prefs__panel select').selectOption('night')
-    await ctx.page.waitForTimeout(400)
-
-    expect(
-      await ctx.page.evaluate(() => document.documentElement.getAttribute('data-theme'))
-    ).toBe('night')
+    await expect
+      .poll(() => ctx.page.evaluate(() => document.documentElement.getAttribute('data-theme')))
+      .toBe('night')
 
     await ctx.page.locator('.prefs__panel select').selectOption('github')
-    await ctx.page.waitForTimeout(400)
+    await expect
+      .poll(() => ctx.page.evaluate(() => document.documentElement.getAttribute('data-theme')))
+      .toBe('github')
     await ctx.page.keyboard.press('Escape')
   })
 
@@ -102,11 +102,9 @@ describe('preferences dialog', () => {
     await toggle('Curly quotes').uncheck()
     await ctx.page.keyboard.press('Escape')
 
-    await ctx.page.keyboard.press('Control+n')
-    await ctx.page.waitForTimeout(500)
-    await ctx.page.locator('.ProseMirror').click()
+    await newDocument(ctx)
     await ctx.page.keyboard.type('"straight"')
-    await ctx.page.waitForTimeout(400)
+    await waitForText(ctx, 'straight')
 
     const typed = await ctx.page.locator('.ProseMirror').innerText()
     expect(typed).toContain('"straight"')
@@ -120,7 +118,9 @@ describe('preferences dialog', () => {
 
     await field.fill('../elsewhere')
     await field.blur()
-    await ctx.page.waitForTimeout(400)
+    // The rejection shows at once, in the field itself: typed text left in
+    // place would display a setting that is in force nowhere.
+    await expect.poll(() => field.inputValue()).toBe(before)
 
     // Rejected rather than stored: pasted images must land beside the
     // document, and an escaping path is the one thing this setting must not do.
@@ -140,11 +140,11 @@ describe('preferences dialog', () => {
     // never offering it at all.
     await numbers.nth(0).fill('20000')
     await numbers.nth(0).blur()
-    await ctx.page.waitForTimeout(400)
 
-    const offer = Number(await numbers.nth(0).inputValue())
-    const force = Number(await numbers.nth(1).inputValue())
-    expect(force).toBeGreaterThanOrEqual(offer)
+    // The force threshold is pulled up to meet the new offer threshold.
+    await expect
+      .poll(async () => Number(await numbers.nth(1).inputValue()))
+      .toBeGreaterThanOrEqual(20000)
     await ctx.page.keyboard.press('Escape')
   })
 })

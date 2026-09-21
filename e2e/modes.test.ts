@@ -133,10 +133,7 @@ describe('whitespace and line breaks', () => {
     await ctx.page.keyboard.press('Escape')
     await ctx.page.locator('.menubar__top', { hasText: /^Edit$/ }).click()
     await ctx.page.waitForSelector('.menu[role="menu"]', { state: 'visible' })
-    await ctx.page
-      .locator('.menu__item', { hasText: 'Whitespace and Line Breaks' })
-      .first()
-      .click()
+    await ctx.page.locator('.menu__item', { hasText: 'Whitespace and Line Breaks' }).first().click()
     await ctx.page.waitForSelector('.menu--nested .menu__item', { state: 'visible' })
     await ctx.page.locator('.menu--nested .menu__item', { hasText: label }).first().click()
     await ctx.page.waitForTimeout(500)

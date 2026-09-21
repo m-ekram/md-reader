@@ -9,8 +9,13 @@
  * Isolation costs a few seconds of launch time per file and removes that whole
  * category of problem.
  */
-import { beforeAll, afterAll } from 'vitest'
-import { _electron as electron, type ElectronApplication, type Page } from 'playwright'
+import { beforeAll, beforeEach, afterAll } from 'vitest'
+import {
+  _electron as electron,
+  type ElectronApplication,
+  type Locator,
+  type Page,
+} from 'playwright'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -59,6 +64,18 @@ export function useApp(): AppContext {
     ctx.page.on('pageerror', (e) => ctx.consoleErrors.push(String(e)))
     await ctx.page.waitForSelector('.app', { timeout: 30_000 })
   }, 90_000)
+
+  /**
+   * Parks the pointer in a corner before every test.
+   *
+   * A test that clicked something leaves the pointer there, and the next test
+   * inherits it: an overlay opening under a resting pointer once changed which
+   * command the palette ran, and the failure depended on which test had run
+   * first. Each test now starts from the same place.
+   */
+  beforeEach(async () => {
+    if (ctx.page && !ctx.page.isClosed()) await ctx.page.mouse.move(0, 0).catch(() => {})
+  })
 
   afterAll(async () => {
     await ctx.app?.close()
@@ -114,7 +131,11 @@ export async function openMenu(ctx: AppContext, label: string): Promise<void> {
   await ctx.page.waitForSelector('.menu[role="menu"]', { state: 'visible' })
 }
 
-/** Clicks an item in the open menu, then waits for the menu to close. */
+/**
+ * Clicks an item in the open menu, matched by substring. It does not wait for
+ * anything; prefer `chooseMenu`, which matches exactly and waits for the menu
+ * to close.
+ */
 export async function clickMenuItem(ctx: AppContext, label: string): Promise<void> {
   await ctx.page.locator('.menu[role="menu"] .menu__item', { hasText: label }).first().click()
 }
@@ -125,16 +146,90 @@ export async function openSubmenu(ctx: AppContext, label: string): Promise<void>
   await ctx.page.waitForSelector('.menu--nested .menu__item', { state: 'visible', timeout: 5000 })
 }
 
-/** Starts a new empty document and puts the caret in it. */
+/**
+ * Creates a new document and puts the caret in it.
+ *
+ * Waits for the editor on screen to be a different element. This used to wait
+ * until the number of editors was at least what it had been — true before
+ * Ctrl+N had done anything — and swallowed its own timeout, so it waited for
+ * nothing while its comment claimed otherwise.
+ */
 export async function newDocument(ctx: AppContext): Promise<void> {
   await ctx.page.keyboard.press('Escape')
-  const before = await ctx.page.locator('.ProseMirror').count()
+  // A fresh token per call: pooled editors keep their element, so a marker
+  // left by an earlier call could be back on screen.
+  const token = Math.random().toString(36).slice(2)
+  await ctx.page.evaluate((t) => {
+    document.querySelector('.ProseMirror')?.setAttribute('data-before-new', t)
+  }, token)
   await ctx.page.keyboard.press('Control+n')
-  // Wait for the editor to be replaced rather than guessing at a delay.
-  await ctx.page
-    .waitForFunction((n) => document.querySelectorAll('.ProseMirror').length >= n, before, {
-      timeout: 10_000,
-    })
-    .catch(() => undefined)
+  await ctx.page.waitForSelector(`.ProseMirror:not([data-before-new="${token}"])`, {
+    timeout: 10_000,
+  })
   await ctx.page.locator('.ProseMirror').click()
+}
+
+/**
+ * Waits until the page has rendered twice.
+ *
+ * For asserting that something did *not* happen, where there is no condition
+ * to poll for. Vue applies DOM updates in a microtask, so two animation frames
+ * guarantee any update a click caused is already on screen — a precise bound,
+ * unlike a sleep chosen by feel.
+ */
+export async function nextFrames(ctx: AppContext): Promise<void> {
+  await ctx.page.evaluate(
+    () => new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))
+  )
+}
+
+/** Escapes text for use inside a regular expression. */
+function literal(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+/**
+ * The item at the end of a menu path, with the menu left open.
+ *
+ * Matched on the label element, exactly: an item's own text also carries its
+ * checkmark and accelerator, and a substring match on it picks "Smart Quotes"
+ * when asked for "Quote". A trailing ellipsis is allowed for, so callers name
+ * items as the menu spec does without one.
+ */
+export async function menuItem(ctx: AppContext, menu: string, ...path: string[]): Promise<Locator> {
+  await ctx.page.keyboard.press('Escape')
+  await ctx.page.locator('.menubar__top', { hasText: new RegExp(`^${literal(menu)}$`) }).click()
+  await ctx.page.waitForSelector('.menu[role="menu"]', { state: 'visible' })
+
+  const byLabel = (scope: string, label: string): Locator =>
+    ctx.page
+      .locator(`${scope} .menu__item`)
+      .filter({
+        has: ctx.page.locator('.menu__label', { hasText: new RegExp(`^${literal(label)}…?$`) }),
+      })
+      .first()
+
+  for (const [i, label] of path.entries()) {
+    const isLast = i === path.length - 1
+    // The first level lives in the top menu; each submenu opens a nested one.
+    const scope = i === 0 ? '.menu[role="menu"]' : '.menu--nested'
+    const item = byLabel(scope, label)
+    if (isLast) return item
+    await item.click()
+    await ctx.page.waitForSelector('.menu--nested .menu__item', { state: 'visible' })
+  }
+  throw new Error('menuItem needs at least one item after the menu name')
+}
+
+/**
+ * Chooses a menu item, and waits for the menu to close.
+ *
+ * Choosing an item closes the menu before its command runs, so the menu
+ * disappearing is a precise signal that the command has started. Its effect
+ * may land a moment later: assert on it with `expect.poll`, not a sleep.
+ */
+export async function chooseMenu(ctx: AppContext, menu: string, ...path: string[]): Promise<void> {
+  const item = await menuItem(ctx, menu, ...path)
+  await item.click()
+  await ctx.page.waitForSelector('.menu[role="menu"]', { state: 'detached', timeout: 5000 })
 }

@@ -126,9 +126,16 @@ describe('HTML export', () => {
 
   it('reports where it went', async () => {
     await expect
-      .poll(() => ctx.page.locator('.status .notice').innerText().catch(() => ''), {
-        timeout: 10_000,
-      })
+      .poll(
+        () =>
+          ctx.page
+            .locator('.status .notice')
+            .innerText()
+            .catch(() => ''),
+        {
+          timeout: 10_000,
+        }
+      )
       .toContain('out.html')
   })
 

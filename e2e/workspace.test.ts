@@ -1,8 +1,8 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest'
-import { writeFile } from 'node:fs/promises'
+import { mkdir, rename, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { openFile, useApp } from './helpers'
+import { openFile, useApp, waitForText } from './helpers'
 
 /**
  * The opened folder: sidebar panels, search, watching and renames.
@@ -10,11 +10,27 @@ import { openFile, useApp } from './helpers'
  * Own application instance and temp directory, per helpers.ts.
  */
 const ctx = useApp()
+
+/**
+ * The file watcher starts asynchronously after a folder is opened and exposes
+ * no signal that it is ready, so a test that changes files on disk has to give
+ * it a moment first. Everything else here waits on a condition.
+ */
+const WATCHER_START_MS = 800
+
+async function showPanel(panel: 'files' | 'articles' | 'outline' | 'search'): Promise<void> {
+  await ctx.page.evaluate(
+    (p) => window.api.settings.patch({ sidebar: { visible: true, width: 280, panel: p } }),
+    panel
+  )
+}
+
+const allText = (selector: string) => () => ctx.page.locator(selector).allTextContents()
+
 describe('workspace, sidebar and watching', () => {
   const notes = () => join(ctx.workdir, 'notes')
 
   async function openWorkspace(): Promise<void> {
-    const { mkdir } = await import('node:fs/promises')
     await mkdir(join(notes(), 'sub'), { recursive: true })
     await writeFile(join(notes(), 'first.md'), '# First note\n\nsearchable haystack here\n', 'utf8')
     await writeFile(join(notes(), 'second.md'), '# Second note\n\n## Nested heading\n', 'utf8')
@@ -23,109 +39,80 @@ describe('workspace, sidebar and watching', () => {
 
     // Set through main, exactly as Open Folder would; settings broadcast back.
     await ctx.page.evaluate((root) => window.api.workspace.set(root), notes())
-    await ctx.page.waitForTimeout(1200)
+    await expect.poll(() => ctx.page.evaluate(() => window.api.workspace.current())).toBe(notes())
   }
 
   it('lists the folder in the file tree, markdown only', async () => {
     await openWorkspace()
-    await ctx.page.evaluate(() =>
-      window.api.settings.patch({
-        sidebar: { visible: true, width: 260, panel: 'files' },
-      })
-    )
-    await ctx.page.waitForSelector('.sidebar', { state: 'visible' })
-    await ctx.page.waitForTimeout(400)
+    await showPanel('files')
 
-    const names = await ctx.page.locator('.tree__name').allTextContents()
-    expect(names).toContain('first.md')
-    expect(names).toContain('second.md')
-    expect(names).toContain('sub')
+    await expect
+      .poll(allText('.tree__name'))
+      .toEqual(expect.arrayContaining(['first.md', 'second.md', 'sub']))
     // A .txt file is not a markdown file and must not be listed.
-    expect(names).not.toContain('ignored.txt')
+    expect(await allText('.tree__name')()).not.toContain('ignored.txt')
   })
 
   it('expands a folder lazily and opens a nested file', async () => {
     await ctx.page.locator('.tree__item', { hasText: 'sub' }).first().click()
-    await ctx.page.waitForTimeout(500)
-    expect(await ctx.page.locator('.tree__name').allTextContents()).toContain('third.md')
+    await expect.poll(allText('.tree__name')).toContain('third.md')
 
     await ctx.page.locator('.tree__item', { hasText: 'third.md' }).first().click()
-    await ctx.page.waitForTimeout(900)
-    expect(await ctx.page.locator('.ProseMirror').innerText()).toContain('Third note')
+    await waitForText(ctx, 'Third note')
   })
 
   it('lists every markdown file in Articles, flat', async () => {
-    await ctx.page.evaluate(() =>
-      window.api.settings.patch({
-        sidebar: { visible: true, width: 260, panel: 'articles' },
-      })
-    )
-    await ctx.page.waitForTimeout(600)
-    const names = await ctx.page.locator('.articles__name').allTextContents()
+    await showPanel('articles')
     // Flat: the nested file appears alongside the top-level ones.
-    expect(names).toEqual(expect.arrayContaining(['first.md', 'second.md', 'third.md']))
+    await expect
+      .poll(allText('.articles__name'))
+      .toEqual(expect.arrayContaining(['first.md', 'second.md', 'third.md']))
   })
 
   it('shows headings of the active document in the Outline', async () => {
     await ctx.page.locator('.articles__item', { hasText: 'second.md' }).first().click()
-    await ctx.page.waitForTimeout(900)
-    await ctx.page.evaluate(() =>
-      window.api.settings.patch({
-        sidebar: { visible: true, width: 260, panel: 'outline' },
-      })
-    )
-    await ctx.page.waitForTimeout(500)
+    await waitForText(ctx, 'Second note')
+    await showPanel('outline')
 
-    const headings = await ctx.page.locator('.outline__item').allTextContents()
-    expect(headings.map((h) => h.trim())).toEqual(['Second note', 'Nested heading'])
+    await expect
+      .poll(async () => (await allText('.outline__item')()).map((h) => h.trim()))
+      .toEqual(['Second note', 'Nested heading'])
   })
 
   it('searches the folder and streams results', async () => {
-    await ctx.page.evaluate(() =>
-      window.api.settings.patch({
-        sidebar: { visible: true, width: 300, panel: 'search' },
-      })
-    )
+    await showPanel('search')
     await ctx.page.waitForSelector('.search__input', { state: 'visible' })
     await ctx.page.locator('.search__input').fill('searchable haystack')
     await ctx.page.waitForSelector('.results__hit', { timeout: 15_000 })
 
-    const previews = await ctx.page.locator('.results__preview').allTextContents()
+    const previews = await allText('.results__preview')()
     expect(previews.join(' ')).toContain('searchable haystack')
     expect(await ctx.page.locator('.results__name').first().innerText()).toContain('first.md')
   })
 
   it('reloads a clean document when the file changes on disk', async () => {
-    await ctx.page.evaluate(() =>
-      window.api.settings.patch({
-        sidebar: { visible: true, width: 260, panel: 'articles' },
-      })
-    )
-    await ctx.page.waitForTimeout(400)
+    await showPanel('articles')
     await ctx.page.locator('.articles__item', { hasText: 'first.md' }).first().click()
-    await ctx.page.waitForTimeout(900)
-    expect(await ctx.page.locator('.ProseMirror').innerText()).toContain('First note')
+    await waitForText(ctx, 'First note')
 
     await writeFile(join(notes(), 'first.md'), '# Rewritten externally\n\nnew body\n', 'utf8')
     // Clean document: no prompt, it should just follow the file.
-    await ctx.page.waitForFunction(
-      () =>
-        document.querySelector('.ProseMirror')?.textContent?.includes('Rewritten externally') ??
-        false,
-      { timeout: 15_000 }
-    )
+    await waitForText(ctx, 'Rewritten externally')
   })
 
-  it('keeps the tab and its content when the file is deleted', async () => {
-    const { rm } = await import('node:fs/promises')
+  it('keeps the tab and its content when the file is deleted, and says so', async () => {
     const before = await ctx.page.locator('.ProseMirror').innerText()
     await rm(join(notes(), 'first.md'), { force: true })
-    await ctx.page.waitForTimeout(2500)
+
+    // A positive signal that the deletion was seen, rather than a pause long
+    // enough to hope it was: the status bar tells the user the file is gone.
+    await ctx.page.waitForSelector('.status .detached', { timeout: 15_000 })
 
     // The tab must survive: a sync client removing a file must not discard work.
     expect(await ctx.page.locator('.ProseMirror').innerText()).toBe(before)
   })
 })
+
 describe('Open Quickly', () => {
   it('ranks an exact filename match first and opens it', async () => {
     // The workspace from the previous block is still open.
@@ -134,15 +121,10 @@ describe('Open Quickly', () => {
     await ctx.page.waitForSelector('.quick__panel', { state: 'visible', timeout: 10_000 })
 
     await ctx.page.locator('.quick__input').fill('second')
-    await ctx.page.waitForTimeout(400)
-
-    const names = await ctx.page.locator('.quick__name').allTextContents()
-    expect(names.length).toBeGreaterThan(0)
-    expect(names[0]).toBe('second.md')
+    await expect.poll(async () => (await allText('.quick__name')())[0]).toBe('second.md')
 
     await ctx.page.keyboard.press('Enter')
-    await ctx.page.waitForTimeout(900)
-    expect(await ctx.page.locator('.ProseMirror').innerText()).toContain('Second note')
+    await waitForText(ctx, 'Second note')
   })
 
   it('matches a subsequence, not just a prefix', async () => {
@@ -150,16 +132,15 @@ describe('Open Quickly', () => {
     await ctx.page.waitForSelector('.quick__panel', { state: 'visible' })
     // "trd" is a subsequence of "third.md" but not a prefix of anything.
     await ctx.page.locator('.quick__input').fill('trd')
-    await ctx.page.waitForTimeout(400)
-    expect(await ctx.page.locator('.quick__name').allTextContents()).toContain('third.md')
+    await expect.poll(allText('.quick__name')).toContain('third.md')
+
     await ctx.page.keyboard.press('Escape')
-    await ctx.page.waitForTimeout(200)
-    expect(await ctx.page.locator('.quick__panel').count()).toBe(0)
+    await expect.poll(() => ctx.page.locator('.quick__panel').count()).toBe(0)
   })
 })
+
 describe('a renamed file keeps its tab', () => {
   it('follows the rename and relabels the tab', async () => {
-    const { mkdir, rename } = await import('node:fs/promises')
     const dir = join(ctx.workdir, 'renames')
     await mkdir(dir, { recursive: true })
     const before = join(dir, 'before.md')
@@ -167,25 +148,18 @@ describe('a renamed file keeps its tab', () => {
     await writeFile(before, '# Renamed document\n\nbody text\n', 'utf8')
 
     await ctx.page.evaluate((root) => window.api.workspace.set(root), dir)
-    await ctx.page.waitForTimeout(800)
-
     await openFile(ctx, before)
-    await ctx.page.waitForFunction(
-      () =>
-        document.querySelector('.ProseMirror')?.textContent?.includes('Renamed document') ?? false,
-      { timeout: 15_000 }
-    )
-    expect(await ctx.page.evaluate(() => document.title)).toContain('before.md')
+    await waitForText(ctx, 'Renamed document')
+    expect(await ctx.page.title()).toContain('before.md')
 
-    // Rename it the way Explorer would, while the tab is open.
+    // Rename it the way Explorer would, while the tab is open — once the
+    // watcher is running, or the rename is never seen at all.
+    await ctx.page.waitForTimeout(WATCHER_START_MS)
     await rename(before, after)
 
     // The tab should move to the new name rather than detaching.
     await ctx.page.waitForFunction(() => document.title.includes('after.md'), { timeout: 20_000 })
-
-    const title = await ctx.page.evaluate(() => document.title)
-    expect(title).toContain('after.md')
-    expect(title).not.toContain('before.md')
+    expect(await ctx.page.title()).not.toContain('before.md')
 
     // And the content is still there, unsaved-work intact.
     expect(await ctx.page.locator('.ProseMirror').innerText()).toContain('body text')

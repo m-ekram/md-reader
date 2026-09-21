@@ -380,7 +380,8 @@ describe('a renderer that crashes', () => {
       .poll(
         async () =>
           (await dialogCalls()).some(
-            (c) => c.message.includes('Unsaved changes were recovered') && c.detail?.includes('crash.md')
+            (c) =>
+              c.message.includes('Unsaved changes were recovered') && c.detail?.includes('crash.md')
           ),
         { timeout: 20_000 }
       )
@@ -394,10 +395,9 @@ describe('a renderer that crashes', () => {
     })()`
     await expect.poll(() => inWindow<boolean>(selectCrashTab), { timeout: 15_000 }).toBe(true)
     await expect
-      .poll(
-        () => inWindow<string>('document.querySelector(".ProseMirror")?.innerText ?? ""'),
-        { timeout: 15_000 }
-      )
+      .poll(() => inWindow<string>('document.querySelector(".ProseMirror")?.innerText ?? ""'), {
+        timeout: 15_000,
+      })
       .toContain('Typed but never saved')
   }, 90_000)
 })
