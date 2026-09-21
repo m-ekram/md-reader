@@ -57,6 +57,18 @@ export function activeEditor(): EditorHandle | null {
   return best?.handle ?? null
 }
 
+/**
+ * Hands every live editor's unreported edits to the document store.
+ *
+ * Call before anything that decides from the store — saving, closing,
+ * quitting, switching to source mode, reacting to a change on disk. Each
+ * editor reports on a debounce, so without this those decisions are made
+ * against text that is missing the last keystrokes.
+ */
+export function flushAll(): void {
+  for (const e of entries.values()) e.handle.flush()
+}
+
 /** Ids currently held, most recently used first. Exposed for tests. */
 export function liveIds(): string[] {
   return [...entries.values()].sort((a, b) => b.usedAt - a.usedAt).map((e) => e.id)

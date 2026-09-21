@@ -7,9 +7,14 @@
  * pushed to every window. Building the registry now costs little; retrofitting it
  * later would mean touching every store.
  */
-import { BrowserWindow, shell } from 'electron'
+import { BrowserWindow, dialog, shell } from 'electron'
 import { join } from 'node:path'
 import { getSettings, patchSettings } from './settings'
+import { flushJournals } from './recovery'
+import { log } from './log'
+
+/** A second crash inside this window is treated as a crash loop, not bad luck. */
+const CRASH_LOOP_MS = 30_000
 
 const windows = new Set<BrowserWindow>()
 
@@ -64,6 +69,44 @@ export function createWindow(openPath?: string): BrowserWindow {
       e.preventDefault()
       if (/^https?:/.test(url)) void shell.openExternal(url)
     }
+  })
+
+  /**
+   * The renderer crashed.
+   *
+   * Without this the window simply goes blank and stays that way. Unsaved work
+   * is safe — it is journalled as the user types — but only if the journal is
+   * flushed before anything else happens, and only if the user is brought back
+   * to a working window where recovery can be offered. Reloading does both:
+   * the boot path already offers journalled work back.
+   *
+   * A second crash soon after is reported instead of reloaded, so a document
+   * that crashes the renderer on load cannot trap the user in a reload loop.
+   */
+  let lastCrash = 0
+  win.webContents.on('render-process-gone', (_e, details) => {
+    // A normal shutdown also ends the process; only a real crash is handled.
+    if (details.reason === 'clean-exit') return
+
+    log.error('renderer gone', { reason: details.reason, exitCode: details.exitCode })
+    flushJournals()
+    if (win.isDestroyed()) return
+
+    const now = Date.now()
+    const looping = now - lastCrash < CRASH_LOOP_MS
+    lastCrash = now
+
+    if (looping) {
+      void dialog.showMessageBox(win, {
+        type: 'error',
+        buttons: ['OK'],
+        message: 'ekram.md stopped working again.',
+        detail:
+          'Your unsaved changes were kept and will be offered back the next time the app starts. Close this window and open the app again.',
+      })
+      return
+    }
+    win.reload()
   })
 
   win.on('ready-to-show', () => {

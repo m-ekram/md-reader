@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { mkdtemp, rm, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { detectEncoding, detectEol, readTextFile, writeTextFile } from './textfile'
+import { detectEncoding, detectEol, readTextFile, renameWithRetry, writeTextFile } from './textfile'
 
 let dir: string
 beforeEach(async () => {
@@ -119,5 +119,43 @@ describe('writeTextFile', () => {
     await expect(
       writeTextFile(p, 'x', { encoding: 'utf8', hasBom: false, eol: '\n' })
     ).rejects.toThrow()
+  })
+})
+
+describe('renameWithRetry', () => {
+  /** A rename that fails with the given codes in turn, then succeeds. */
+  function flaky(codes: string[]) {
+    const calls: string[] = []
+    const doRename = async (): Promise<void> => {
+      const code = codes[calls.length]
+      calls.push(code ?? 'ok')
+      if (code) throw Object.assign(new Error(code), { code })
+    }
+    return { doRename, calls }
+  }
+  const noWait = async (): Promise<void> => {}
+
+  it('succeeds once another program lets go of the file', async () => {
+    // What a sync client or antivirus scan looks like: held briefly, then free.
+    const { doRename, calls } = flaky(['EBUSY', 'EPERM'])
+    await renameWithRetry('a', 'b', doRename, [1, 1, 1], noWait)
+    expect(calls).toEqual(['EBUSY', 'EPERM', 'ok'])
+  })
+
+  it('gives up after its budget, reporting the real error', async () => {
+    const { doRename, calls } = flaky(['EPERM', 'EPERM', 'EPERM', 'EPERM'])
+    await expect(renameWithRetry('a', 'b', doRename, [1, 1, 1], noWait)).rejects.toMatchObject({
+      code: 'EPERM',
+    })
+    // One attempt plus one per delay.
+    expect(calls).toHaveLength(4)
+  })
+
+  it('does not wait on an error that waiting cannot fix', async () => {
+    const { doRename, calls } = flaky(['ENOENT'])
+    await expect(renameWithRetry('a', 'b', doRename, [1, 1, 1], noWait)).rejects.toMatchObject({
+      code: 'ENOENT',
+    })
+    expect(calls).toEqual(['ENOENT'])
   })
 })

@@ -1,6 +1,9 @@
 <script setup lang="ts">
 /** Open documents for this window. Hidden entirely when only one is open. */
-import { closeDoc, isDirty, setActive, useDocuments } from '../stores/documents'
+import { isDirty, setActive, useDocuments } from '../stores/documents'
+// Not the store's closeDoc, which removes a document without asking: this is
+// the prompting path, the same one Ctrl+W takes.
+import { requestClose } from '../commands/app-commands'
 
 const docs = useDocuments()
 </script>
@@ -18,12 +21,12 @@ const docs = useDocuments()
         role="tab"
         :aria-selected="i === docs.activeIndex"
         @click="setActive(i)"
-        @auxclick.middle="closeDoc(i)"
+        @auxclick.middle="requestClose(i)"
       >
         <span class="tab__name">{{ d.name }}</span>
         <span v-if="isDirty(d)" class="tab__dot" aria-label="Unsaved changes">•</span>
       </button>
-      <button class="tab__close" :aria-label="`Close ${d.name}`" @click.stop="closeDoc(i)">
+      <button class="tab__close" :aria-label="`Close ${d.name}`" @click.stop="requestClose(i)">
         ×
       </button>
     </div>

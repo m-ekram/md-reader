@@ -11,6 +11,7 @@ import type { WatchEvent } from '../../../main/watcher'
 import { isDirty, journalKey, useDocuments, type Doc } from './documents'
 import { refreshArticles, useWorkspace } from './workspace'
 import { invalidateCommands } from '../commands/registry'
+import { flushAll } from '../editor/pool'
 
 const docs = useDocuments()
 
@@ -37,6 +38,10 @@ function adoptFromDisk(doc: Doc, file: { content: string; mtimeMs: number }): vo
 async function handleChanged(path: string): Promise<void> {
   const doc = docFor(path)
   if (!doc) return
+  // Compared against the buffer below, which lags the editor by a debounce: an
+  // edit typed just before the change would read as "no unsaved changes" and
+  // be silently replaced by the reload.
+  flushAll()
 
   let file
   try {
@@ -54,6 +59,17 @@ async function handleChanged(path: string): Promise<void> {
     return
   }
 
+  // The file was touched but not changed: its attributes or timestamp moved
+  // while its content is still exactly what we last loaded or saved. On
+  // Windows this is routine — a sync client, an antivirus scan, a backup tool
+  // setting the archive bit, a git checkout. Treating it as a change put a
+  // "reload and lose your edits?" prompt in front of a user whose file had not
+  // changed at all.
+  if (file.content === doc.savedContent) {
+    doc.mtimeMs = file.mtimeMs
+    return
+  }
+
   if (!isDirty(doc)) {
     // Nothing to lose, so take the newer version without interrupting.
     doc.encoding = file.encoding
@@ -63,10 +79,9 @@ async function handleChanged(path: string): Promise<void> {
     return
   }
 
-  const takeTheirs = await window.api.app.confirm(
-    `${doc.name} changed on disk`,
-    'This document has unsaved changes.\n\nReload from disk and lose them, or keep your version?'
-  )
+  // Its own dialog: this used the recovery prompt, whose buttons read Restore
+  // and Discard, with Restore — reload, losing the edits — as the default.
+  const takeTheirs = await window.api.file.confirmReload(doc.name)
   if (!takeTheirs) {
     // Keeping ours: adopt the new mtime so the next save is not blocked by a
     // conflict the user has already decided about.

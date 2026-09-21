@@ -116,9 +116,55 @@ export async function writeTextFile(
 
   try {
     await writeFile(tmp, buf)
-    await rename(tmp, path)
+    await renameWithRetry(tmp, path)
   } catch (err) {
     await unlink(tmp).catch(() => {})
     throw err
+  }
+}
+
+/** The codes Windows gives a rename over a file that something else has open. */
+const TRANSIENT = new Set(['EPERM', 'EBUSY', 'EACCES'])
+
+/**
+ * Backoff between attempts: about 2.5 s in all.
+ *
+ * Long enough to outlast the holds that are routine on Windows — an antivirus
+ * scan or the search indexer take milliseconds, a sync client uploading the
+ * file can take over a second — and short enough that a lock which will not
+ * clear, such as a read-only file, reaches the user's error dialog without a
+ * long, silent wait. 1.3 s was tried first and measured too short.
+ */
+const RETRY_DELAYS_MS = [10, 20, 40, 80, 160, 320, 640, 1280]
+
+/**
+ * Renames, retrying while the target is held open by another process.
+ *
+ * On Windows a rename over a file that any other process has open fails
+ * outright. Measured, not assumed: the resilience suite made a save fail by
+ * doing nothing more than reading the file at the moment it was written. A
+ * single attempt meant any of those routine holds turned a save into an error.
+ *
+ * Parameters beyond the paths exist so the retry can be tested without a real
+ * lock.
+ */
+export async function renameWithRetry(
+  from: string,
+  to: string,
+  doRename: (a: string, b: string) => Promise<void> = rename,
+  delays: readonly number[] = RETRY_DELAYS_MS,
+  sleep: (ms: number) => Promise<void> = (ms) => new Promise((r) => setTimeout(r, ms))
+): Promise<void> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await doRename(from, to)
+      return
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code
+      // Anything else — a missing folder, a full disk — will not clear by
+      // waiting, and the last attempt reports whatever it hit.
+      if (!code || !TRANSIENT.has(code) || attempt >= delays.length) throw err
+      await sleep(delays[attempt])
+    }
   }
 }

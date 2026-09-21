@@ -25,6 +25,12 @@ const api = {
     showInFolder: (path: string): Promise<void> => ipcRenderer.invoke('file:show-in-folder', path),
     confirmClose: (names: string[]): Promise<'save' | 'discard' | 'cancel'> =>
       ipcRenderer.invoke('file:confirm-close', names),
+    confirmReload: (name: string): Promise<boolean> =>
+      ipcRenderer.invoke('file:confirm-reload', name),
+    confirmOverwrite: (name: string): Promise<boolean> =>
+      ipcRenderer.invoke('file:confirm-overwrite', name),
+    reportSaveError: (name: string, code: string | undefined, message: string): Promise<void> =>
+      ipcRenderer.invoke('file:report-save-error', name, code, message),
     /** Fire-and-forget: journalling must never block a keystroke. */
     journal: (path: string, content: string): void =>
       ipcRenderer.send('file:journal', path, content),

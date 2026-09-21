@@ -14,6 +14,7 @@ import { commandPalette, preferences, quickOpen } from './stores/ui'
 import { commandForAccel, isEnabled, isRegistered, run } from './commands/registry'
 import { adoptFile, anyDirty, useDocuments, isDirty } from './stores/documents'
 import { saveActive } from './commands/app-commands'
+import { flushAll } from './editor/pool'
 
 const docs = useDocuments()
 const unsubscribers: Array<() => void> = []
@@ -48,6 +49,9 @@ onMounted(() => {
   // Main asks before closing so unsaved work can be rescued first.
   unsubscribers.push(
     window.api.window.onCloseRequest(async () => {
+      // The dirty check reads the store, which lags the editor by a debounce:
+      // quitting straight after typing closed without asking.
+      flushAll()
       if (!anyDirty()) {
         window.api.window.replyClose(true)
         return

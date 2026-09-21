@@ -20,6 +20,8 @@ import {
   serializerCtx,
 } from '@milkdown/kit/core'
 import type { EditorView } from '@milkdown/kit/prose/view'
+import { Plugin } from '@milkdown/kit/prose/state'
+import { $prose } from '@milkdown/kit/utils'
 import { listener, listenerCtx } from '@milkdown/kit/plugin/listener'
 import { frontmatterPlugin } from './frontmatter'
 import { applyImageAltFix, applyImageSrcResolution } from './image'
@@ -52,6 +54,8 @@ export const SERIALIZER_OPTIONS = {
 export interface EditorHandle {
   crepe: Crepe
   getMarkdown(): string
+  /** Reports any edits the debounced listener has not reported yet. Synchronous. */
+  flush(): void
   /** Parses then re-serializes without touching the document, for the guard. */
   reserialize(markdown: string): string
   setReadonly(v: boolean): void
@@ -67,6 +71,19 @@ export async function createEditor(opts: {
   onChange(markdown: string): void
 }): Promise<EditorHandle> {
   const documentDir = directoryOf(opts.documentPath ?? null)
+
+  /**
+   * True while the document holds edits the listener has not yet reported.
+   *
+   * The listener is debounced — serializing a large document on every
+   * keystroke would be the most expensive thing on the typing path — so the
+   * document store lags the screen by that window. Anything that *decides*
+   * from the store (save, close, quit, switching to source mode) has to flush
+   * first, or it acts on text without the last keystrokes. Measured: Ctrl+S
+   * straight after typing wrote the file without them.
+   */
+  let pending = false
+
   const crepe = new Crepe({
     root: opts.root,
     defaultValue: opts.value,
@@ -93,8 +110,22 @@ export async function createEditor(opts: {
     .use(typewriterPlugin)
     .use(punctuationPlugin)
     .use(whitespacePlugin)
+    .use(
+      // Marks edits the debounced listener has not reported yet. See `flush`.
+      $prose(
+        () =>
+          new Plugin({
+            view: () => ({
+              update: (view, prev) => {
+                if (!prev.doc.eq(view.state.doc)) pending = true
+              },
+            }),
+          })
+      )
+    )
     .config((ctx) => {
       ctx.get(listenerCtx).markdownUpdated((_c, markdown, prevMarkdown) => {
+        pending = false
         if (markdown !== prevMarkdown) opts.onChange(markdown)
       })
     })
@@ -115,9 +146,19 @@ export async function createEditor(opts: {
     return view
   })
 
+  const flush = (): void => {
+    // Only when there is something unreported. Serializing unconditionally
+    // would mark a clean document dirty whenever its file does not round-trip
+    // byte for byte, which the guard already warns about.
+    if (!pending) return
+    pending = false
+    opts.onChange(crepe.getMarkdown())
+  }
+
   return {
     crepe,
     getMarkdown: () => crepe.getMarkdown(),
+    flush,
     reserialize(markdown: string) {
       let out = ''
       crepe.editor.action((ctx) => {
@@ -129,6 +170,10 @@ export async function createEditor(opts: {
     },
     setReadonly: (v: boolean) => void crepe.setReadonly(v),
     destroy: async () => {
+      // Every way an editor goes away — eviction, a reload, leaving source
+      // mode — passes through here, so this is the one place its unreported
+      // edits are guaranteed to be handed over first.
+      flush()
       detachImages()
       await crepe.destroy()
     },

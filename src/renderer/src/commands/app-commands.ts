@@ -24,6 +24,7 @@ import { patchSettings, useSettingsStore } from '../stores/settings'
 import { applyTheme, useThemeStore } from '../stores/theme'
 import { refreshArticles, revealPath, setRoot, useWorkspace } from '../stores/workspace'
 import { commandPalette, preferences, quickOpen } from '../stores/ui'
+import { flushAll } from '../editor/pool'
 
 const docs = useDocuments()
 const settings = useSettingsStore()
@@ -44,6 +45,9 @@ const hasDoc = () => activeDoc.value !== null
 const hasPath = () => !!activeDoc.value?.path
 
 export async function saveActive(saveAs = false): Promise<boolean> {
+  // The store lags the editor by a debounce; without this, Ctrl+S straight
+  // after typing wrote the file without the last keystrokes.
+  flushAll()
   const d = activeDoc.value
   if (!d) return false
 
@@ -57,44 +61,39 @@ export async function saveActive(saveAs = false): Promise<boolean> {
     if (!path) return false
   }
 
-  const res = await window.api.file.save({
+  // Captured once: `savedContent` must be what was actually written, not
+  // whatever the buffer holds after the awaits below.
+  const request = {
     path,
     content: d.content,
     encoding: d.encoding,
     hasBom: d.hasBom,
     eol: d.eol,
+  }
+
+  let res = await window.api.file.save({
+    ...request,
     // A brand-new path has nothing to conflict with.
     expectedMtimeMs: d.path === path ? d.mtimeMs : undefined,
   })
 
+  if (!res.ok && res.reason === 'conflict') {
+    if (!(await window.api.file.confirmOverwrite(d.name))) return false
+    // Unconditional this time: the user has just chosen to replace the disk copy.
+    res = await window.api.file.save(request)
+  }
+
+  // Every failure is reported. This used to return false silently for anything
+  // but a conflict, so a read-only or locked file looked saved when it was not.
   if (!res.ok) {
-    if (res.reason === 'conflict') {
-      const choice = await window.api.file.confirmClose([`${d.name} (changed on disk)`])
-      if (choice !== 'save') return false
-      const forced = await window.api.file.save({
-        path,
-        content: d.content,
-        encoding: d.encoding,
-        hasBom: d.hasBom,
-        eol: d.eol,
-      })
-      if (!forced.ok) return false
-      Object.assign(d, {
-        path,
-        name: path.split(/[\\/]/).pop(),
-        savedContent: d.content,
-        mtimeMs: forced.mtimeMs,
-      })
-      invalidateCommands()
-      return true
-    }
+    await window.api.file.reportSaveError(d.name, res.code, res.message)
     return false
   }
 
   Object.assign(d, {
     path,
     name: path.split(/[\\/]/).pop() ?? path,
-    savedContent: d.content,
+    savedContent: request.content,
     mtimeMs: res.mtimeMs,
   })
   if (previousJournalKey !== path) await window.api.file.discardRecovery(previousJournalKey)
@@ -108,19 +107,46 @@ async function openFiles(): Promise<void> {
   for (const f of files) adoptFile(f)
 }
 
-/** Closes a document, prompting when it would discard unsaved work. */
+/**
+ * Closes a document, prompting when it would discard unsaved work.
+ *
+ * The one way to close a tab. The tab's × button and middle-click used to call
+ * the store's `closeDoc` directly, which removes the document without asking,
+ * so a click on × threw away unsaved work while Ctrl+W prompted for it.
+ *
+ * Returns false when the user cancelled or the save they chose failed.
+ */
+export async function requestClose(index: number): Promise<boolean> {
+  // The dirty check below reads the store, which lags the editor by a debounce.
+  flushAll()
+  const d = docs.docs[index]
+  if (!d) return false
+
+  if (isDirty(d)) {
+    // Brought forward so the user can see which document they are asked
+    // about, and because saving acts on the active document.
+    setActive(index)
+    const choice = await window.api.file.confirmClose([d.name])
+    if (choice === 'cancel') return false
+    if (choice === 'save' && !(await saveActive())) return false
+    // Discarded on purpose, so it must not come back as a "recovery" on the
+    // next launch.
+    if (choice === 'discard') await window.api.file.discardRecovery(journalKey(d))
+  }
+
+  // Found again by identity: another tab may have closed during the awaits,
+  // shifting every index after it.
+  const at = docs.docs.indexOf(d)
+  if (at >= 0) closeDoc(at)
+  return true
+}
+
 async function closeActive(): Promise<void> {
-  const d = activeDoc.value
-  if (!d) {
+  if (!activeDoc.value) {
     window.api.window.close()
     return
   }
-  if (isDirty(d)) {
-    const choice = await window.api.file.confirmClose([d.name])
-    if (choice === 'cancel') return
-    if (choice === 'save' && !(await saveActive())) return
-  }
-  closeDoc(docs.activeIndex)
+  await requestClose(docs.activeIndex)
 }
 
 const commands: Command[] = [
@@ -133,6 +159,7 @@ const commands: Command[] = [
     id: 'file.saveAll',
     enabled: () => anyDirty(),
     run: async () => {
+      flushAll()
       const start = docs.activeIndex
       for (let i = 0; i < docs.docs.length; i++) {
         if (isDirty(docs.docs[i])) {
@@ -147,6 +174,7 @@ const commands: Command[] = [
     id: 'file.reload',
     enabled: hasPath,
     run: async () => {
+      flushAll()
       const d = activeDoc.value
       if (!d?.path) return
       if (isDirty(d)) {

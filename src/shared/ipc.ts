@@ -23,7 +23,13 @@ export interface SaveRequest {
 
 export type SaveResult =
   | { ok: true; mtimeMs: number }
-  | { ok: false; reason: 'conflict' | 'error'; message: string }
+  | {
+      ok: false
+      reason: 'conflict' | 'error'
+      message: string
+      /** The system error code (EPERM, EBUSY, …), when the failure had one. */
+      code?: string
+    }
 
 export interface WindowState {
   maximized: boolean

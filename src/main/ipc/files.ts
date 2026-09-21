@@ -9,6 +9,7 @@ import { backup, backupInfo, clearJournal, journal, pendingRecoveries } from '..
 import { addRecentFile } from '../settings'
 import { log } from '../log'
 import type { DocumentFile, SaveRequest, SaveResult } from '../../shared/ipc'
+import { explainSaveError } from '../../shared/save-errors'
 
 const MD_FILTERS = [
   { name: 'Markdown', extensions: ['md', 'markdown', 'mdown', 'mkd', 'txt'] },
@@ -64,8 +65,9 @@ export function registerFileIpc(): void {
       addRecentFile(req.path)
       return { ok: true, mtimeMs: s.mtimeMs }
     } catch (err) {
-      log.error('save failed', { path: req.path, err: String(err) })
-      return { ok: false, reason: 'error', message: String(err) }
+      const code = (err as NodeJS.ErrnoException).code
+      log.error('save failed', { path: req.path, code, err: String(err) })
+      return { ok: false, reason: 'error', message: String(err), code }
     }
   })
 
@@ -103,4 +105,67 @@ export function registerFileIpc(): void {
       return (['save', 'discard', 'cancel'] as const)[r.response]
     }
   )
+
+  /**
+   * A save that failed.
+   *
+   * Modal, and an error rather than a status-bar notice: this is the one
+   * message that must not be missed, because the user pressed Save and will
+   * otherwise believe it worked. The detail says plainly that nothing was lost,
+   * since the first fear after a failed save is that the work went with it.
+   */
+  ipcMain.handle(
+    'file:report-save-error',
+    async (e, name: string, code: string | undefined, message: string): Promise<void> => {
+      const win = BrowserWindow.fromWebContents(e.sender)
+      const { summary, advice } = explainSaveError(code, message)
+      await dialog.showMessageBox(win!, {
+        type: 'error',
+        buttons: ['OK'],
+        message: `"${name}" was not saved. ${summary}`,
+        detail: `${advice}\n\nYour changes are still open in the editor and have not been lost.`,
+      })
+    }
+  )
+
+  /**
+   * The file changed on disk while the user has unsaved edits to it.
+   *
+   * Keeping their version is the default and the cancel action: pressing Enter
+   * or Escape on this dialog must never be the way someone loses their work.
+   */
+  ipcMain.handle('file:confirm-reload', async (e, name: string): Promise<boolean> => {
+    const win = BrowserWindow.fromWebContents(e.sender)
+    const r = await dialog.showMessageBox(win!, {
+      type: 'warning',
+      buttons: ['Keep My Version', 'Reload from Disk'],
+      defaultId: 0,
+      cancelId: 0,
+      message: `"${name}" was changed by another program.`,
+      detail:
+        'You have unsaved changes to it. Keep My Version leaves your edits open, and saving will replace the file. Reload from Disk discards your edits and shows the other version.',
+    })
+    return r.response === 1
+  })
+
+  /**
+   * The file changed on disk since it was opened, found at save time.
+   *
+   * Its own dialog rather than the close prompt, whose wording — "your changes
+   * will be lost if you don't save them" — is wrong here: declining an
+   * overwrite loses nothing, it leaves both versions as they are.
+   */
+  ipcMain.handle('file:confirm-overwrite', async (e, name: string): Promise<boolean> => {
+    const win = BrowserWindow.fromWebContents(e.sender)
+    const r = await dialog.showMessageBox(win!, {
+      type: 'warning',
+      buttons: ['Overwrite', 'Cancel'],
+      defaultId: 1,
+      cancelId: 1,
+      message: `"${name}" has changed on disk since you opened it.`,
+      detail:
+        'Overwrite replaces the version on disk with yours. Cancel keeps both as they are; your changes stay open in the editor.',
+    })
+    return r.response === 0
+  })
 }
