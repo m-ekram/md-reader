@@ -52,6 +52,15 @@ const eolLabel = computed(() => (activeDoc.value?.eol === '\r\n' ? 'CRLF' : 'LF'
       <span v-if="notice.text" class="notice" :class="{ warn: notice.kind === 'error' }">
         {{ notice.text }}
       </span>
+      <!--
+        The file was deleted, or moved outside anything we could follow, while
+        its tab was open. The tab keeps its content — closing it would destroy
+        work every time a sync client briefly removed a file — so this line is
+        the only way the user learns the file on disk is gone.
+      -->
+      <span v-else-if="activeDoc?.detached" class="warn detached">
+        ⚠ This file was deleted from disk. Saving will create it again.
+      </span>
       <span v-else-if="activeDoc?.lossy?.lossy" class="warn" :title="activeDoc.lossy.note">
         ⚠ {{ activeDoc.lossy.note }}
       </span>

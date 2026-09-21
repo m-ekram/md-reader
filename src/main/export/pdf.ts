@@ -10,7 +10,7 @@
  * are editing.
  */
 import { BrowserWindow } from 'electron'
-import { writeFile } from 'node:fs/promises'
+import { writeFileAtomic } from '../fs/textfile'
 import { log } from './../log'
 
 export interface PdfOptions {
@@ -67,6 +67,6 @@ export async function renderPdf(html: string, opts: PdfOptions = {}): Promise<Bu
 
 export async function exportPdf(html: string, targetPath: string, opts?: PdfOptions): Promise<void> {
   const bytes = await renderPdf(html, opts)
-  await writeFile(targetPath, bytes)
+  await writeFileAtomic(targetPath, bytes)
   log.info('exported pdf', { targetPath, bytes: bytes.byteLength })
 }

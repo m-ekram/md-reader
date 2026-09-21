@@ -111,11 +111,22 @@ export async function writeTextFile(
 ): Promise<void> {
   const withEol =
     format.eol === '\r\n' ? content.replace(/\r?\n/g, '\r\n') : content.replace(/\r\n/g, '\n')
-  const buf = encode(withEol, format.encoding, format.hasBom)
-  const tmp = join(dirname(path), `.${randomBytes(6).toString('hex')}.tmp`)
+  await writeFileAtomic(path, encode(withEol, format.encoding, format.hasBom))
+}
 
+/**
+ * Writes a file so that it only ever appears complete.
+ *
+ * The bytes go to a temporary file beside the target, which is then renamed
+ * over it. A plain write creates the file first and fills it after, so for a
+ * moment anything looking — a sync client, a viewer that auto-refreshes, a
+ * test polling for the file — sees it empty or half written. Exports used to
+ * be written that way while saves were not; both use this now.
+ */
+export async function writeFileAtomic(path: string, data: Buffer | string): Promise<void> {
+  const tmp = join(dirname(path), `.${randomBytes(6).toString('hex')}.tmp`)
   try {
-    await writeFile(tmp, buf)
+    await writeFile(tmp, data)
     await renameWithRetry(tmp, path)
   } catch (err) {
     await unlink(tmp).catch(() => {})

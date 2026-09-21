@@ -8,7 +8,7 @@
  * unhandled rejection.
  */
 import { BrowserWindow, dialog, ipcMain, shell } from 'electron'
-import { writeFile } from 'node:fs/promises'
+import { writeFileAtomic } from '../fs/textfile'
 import { basename, dirname, join } from 'node:path'
 import { buildHtml, type ExportPayload } from '../export/html'
 import { exportPdf, renderPdf } from '../export/pdf'
@@ -41,7 +41,7 @@ export function registerExportIpc(): void {
         })
         if (r.canceled || !r.filePath) return { ok: false, cancelled: true }
 
-        await writeFile(r.filePath, await buildHtml(payload), 'utf8')
+        await writeFileAtomic(r.filePath, await buildHtml(payload))
         log.info('exported html', { path: r.filePath })
         return { ok: true, path: r.filePath }
       } catch (err) {
@@ -82,7 +82,7 @@ export function registerExportIpc(): void {
       const bytes = await renderPdf(await buildHtml(payload), { printBackground: true })
       const { app } = await import('electron')
       const target = join(app.getPath('temp'), `${basename(payload.title || 'document')}.pdf`)
-      await writeFile(target, bytes)
+      await writeFileAtomic(target, bytes)
       await shell.openPath(target)
       log.info('opened print preview', { target })
       return { ok: true, path: target }
