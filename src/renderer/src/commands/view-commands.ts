@@ -5,15 +5,14 @@
  * Small enough individually that grouping them keeps `editor-commands.ts` from
  * becoming the file where everything ends up.
  */
-import { editorViewCtx } from '@milkdown/kit/core'
 import { activeDoc } from '../stores/documents'
 import { patchSettings, useSettingsStore } from '../stores/settings'
 import { registerAll, invalidateCommands, type Command } from './registry'
-import { activeEditor } from '../editor/pool'
+import { activeEditor, flushAll } from '../editor/pool'
 import { uiState } from '../stores/ui'
 import { setPunctuation } from '../editor/punctuation'
 import { setShowWhitespace, stripTrailingWhitespace } from '../editor/whitespace'
-import { refreshDecorations } from '../editor/refresh'
+import { fromView, refreshDecorations, withView } from '../editor/view'
 
 const settings = useSettingsStore()
 
@@ -22,39 +21,26 @@ const hasSelectionOrDocument = hasDocument
 
 /** The document's markdown as it would be written to disk. */
 function currentMarkdown(): string {
+  // Read from the store, which lags the editor by a debounce: without the
+  // flush, copying straight after typing left out the last keystrokes.
+  flushAll()
   return activeDoc.value?.content ?? ''
 }
 
 /** The rendered HTML, taken from the editor's own DOM. */
 function currentHtml(): string {
-  const handle = activeEditor()
-  if (!handle) return ''
-  let html = ''
-  handle.crepe.editor.action((ctx) => {
-    try {
-      html = ctx.get(editorViewCtx).dom.innerHTML
-    } catch {
-      html = ''
-    }
-  })
-  return html
+  return fromView((view) => view.dom.innerHTML, '')
 }
 
 /** Markdown with the markup characters removed, for pasting into plain fields. */
 function currentPlainText(): string {
-  const handle = activeEditor()
-  if (!handle) return currentMarkdown()
-  let text = ''
-  handle.crepe.editor.action((ctx) => {
-    try {
-      // The document's own text content: exactly what is rendered, without any
-      // of the syntax that produced it.
-      text = ctx.get(editorViewCtx).state.doc.textBetween(0, ctx.get(editorViewCtx).state.doc.content.size, '\n\n')
-    } catch {
-      text = currentMarkdown()
-    }
-  })
-  return text
+  // The document's own text: exactly what is rendered, without any of the
+  // syntax that produced it. Source mode has no view, so it falls back to the
+  // markdown itself.
+  return fromView(
+    (view) => view.state.doc.textBetween(0, view.state.doc.content.size, '\n\n'),
+    currentMarkdown()
+  )
 }
 
 async function copy(text: string): Promise<void> {
@@ -160,20 +146,13 @@ const viewCommands: Command[] = [
   {
     id: 'edit.stripTrailing',
     enabled: hasDocument,
-    run: () => {
-      const handle = activeEditor()
-      handle?.crepe.editor.action((ctx) => {
-        try {
-          const view = ctx.get(editorViewCtx)
-          const tr = stripTrailingWhitespace(view.state)
-          // Null when there was nothing to strip: dispatching anyway would put
-          // a no-op on the undo stack for a menu item that did nothing.
-          if (tr) view.dispatch(tr)
-        } catch {
-          // Mid-teardown during a document switch.
-        }
-      })
-    },
+    run: () =>
+      withView((view) => {
+        const tr = stripTrailingWhitespace(view.state)
+        // Null when there was nothing to strip: dispatching anyway would put a
+        // no-op on the undo stack for a menu item that did nothing.
+        if (tr) view.dispatch(tr)
+      }),
   },
 
   // Smart punctuation, one switch per kind.

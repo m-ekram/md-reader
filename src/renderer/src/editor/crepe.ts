@@ -20,6 +20,7 @@ import {
   serializerCtx,
 } from '@milkdown/kit/core'
 import type { EditorView } from '@milkdown/kit/prose/view'
+import type { Node as ProseNode } from '@milkdown/kit/prose/model'
 import { Plugin } from '@milkdown/kit/prose/state'
 import { $prose } from '@milkdown/kit/utils'
 import { listener, listenerCtx } from '@milkdown/kit/plugin/listener'
@@ -34,6 +35,28 @@ import { searchPlugin } from './find'
 import { typewriterPlugin } from './typewriter'
 import { punctuationPlugin } from './punctuation'
 import { whitespacePlugin } from './whitespace'
+
+/**
+ * Drops the newline the trailing plugin's empty paragraph adds.
+ *
+ * Crepe appends an empty paragraph to any document that ends in something
+ * other than a heading or paragraph — a list, a code block, a table, a quote —
+ * so the caret has somewhere to go after it. It does so on the first
+ * transaction of any kind, a click included, and that paragraph serializes as
+ * one extra newline. So a file ending in a list was modified merely by being
+ * opened: it prompted to save on close, and saving rewrote it.
+ *
+ * The paragraph stays, because it is how the user types after a final table.
+ * It just is not content: markdown cannot express an empty paragraph, so it
+ * contributes nothing to the file. Measured: exactly one newline, for every
+ * block type that triggers it.
+ */
+export function withoutTrailingParagraph(markdown: string, doc: ProseNode): string {
+  const last = doc.lastChild
+  const appended =
+    doc.childCount > 1 && last?.type.name === 'paragraph' && last.content.size === 0
+  return appended && markdown.endsWith('\n\n') ? markdown.slice(0, -1) : markdown
+}
 
 /**
  * Emit conventional markdown, so re-serializing an ordinary file is close to a
@@ -124,9 +147,10 @@ export async function createEditor(opts: {
       )
     )
     .config((ctx) => {
-      ctx.get(listenerCtx).markdownUpdated((_c, markdown, prevMarkdown) => {
+      ctx.get(listenerCtx).markdownUpdated((c, markdown, prevMarkdown) => {
         pending = false
-        if (markdown !== prevMarkdown) opts.onChange(markdown)
+        if (markdown === prevMarkdown) return
+        opts.onChange(withoutTrailingParagraph(markdown, c.get(editorViewCtx).state.doc))
       })
     })
 
@@ -146,18 +170,28 @@ export async function createEditor(opts: {
     return view
   })
 
+  /** The document as markdown, without the trailing plugin's empty paragraph. */
+  const currentMarkdown = (): string => {
+    let doc: ProseNode | null = null
+    crepe.editor.action((ctx) => {
+      doc = ctx.get(editorViewCtx).state.doc
+    })
+    const raw = crepe.getMarkdown()
+    return doc ? withoutTrailingParagraph(raw, doc) : raw
+  }
+
   const flush = (): void => {
     // Only when there is something unreported. Serializing unconditionally
     // would mark a clean document dirty whenever its file does not round-trip
     // byte for byte, which the guard already warns about.
     if (!pending) return
     pending = false
-    opts.onChange(crepe.getMarkdown())
+    opts.onChange(currentMarkdown())
   }
 
   return {
     crepe,
-    getMarkdown: () => crepe.getMarkdown(),
+    getMarkdown: currentMarkdown,
     flush,
     reserialize(markdown: string) {
       let out = ''

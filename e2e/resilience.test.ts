@@ -90,6 +90,49 @@ describe('saving straight after typing', () => {
   })
 })
 
+describe('opening a file that ends in a list', () => {
+  /**
+   * The editor appends an empty paragraph after a final list, code block,
+   * table or quote. It serialized as an extra newline, so such a file became
+   * "edited" by being opened: a prompt to save on close, and a rewrite on
+   * save. Found when a source-mode test failed only under load, which is when
+   * the editor's report won the race against the switch to source mode.
+   */
+  const ORIGINAL = '# Notes\n\nA paragraph.\n\n- first\n- second\n'
+  const file = () => join(ctx.workdir, 'ends-in-list.md')
+
+  it('leaves it unedited, even after clicking into it', async () => {
+    await writeFile(file(), ORIGINAL, 'utf8')
+    await openFile(ctx, file())
+    await waitForText(ctx, 'A paragraph')
+    await ctx.page.locator('.ProseMirror').click()
+
+    // Past the editor's reporting debounce, so a spurious edit would show.
+    await ctx.page.waitForTimeout(1200)
+    expect(await ctx.page.title()).not.toMatch(/^•/)
+  })
+
+  it('saves it byte for byte', async () => {
+    await ctx.page.keyboard.press('Control+s')
+    await ctx.page.waitForTimeout(800)
+    expect(await readFile(file(), 'utf8')).toBe(ORIGINAL)
+  })
+})
+
+describe('copying as markdown straight after typing', () => {
+  it('includes the last keystrokes', async () => {
+    // By accelerator, which can fire inside the editor's reporting debounce; a
+    // menu click is too slow to reach it.
+    await openAndEdit(join(ctx.workdir, 'copy.md'), 'Copied text.\n', ' TAILWORDS')
+    await ctx.page.keyboard.press('Control+Shift+C')
+
+    // Read from main: the renderer's clipboard API needs a permission prompt.
+    await expect
+      .poll(() => ctx.app.evaluate(({ clipboard }) => clipboard.readText()), { timeout: 5000 })
+      .toContain('TAILWORDS')
+  })
+})
+
 describe('a save that fails', () => {
   const file = () => join(ctx.workdir, 'readonly.md')
 

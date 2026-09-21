@@ -6,30 +6,11 @@
  * ProseMirror thinks in document positions, not words, so the boundaries come
  * from the text of the block the caret is in.
  */
-import { callCommand } from '@milkdown/kit/utils'
-import { editorViewCtx } from '@milkdown/kit/core'
 import { TextSelection, NodeSelection } from '@milkdown/kit/prose/state'
 import type { EditorView } from '@milkdown/kit/prose/view'
 import { moveRowCommand } from '@milkdown/kit/preset/gfm'
-import { activeDoc } from '../stores/documents'
-import { activeEditor } from '../editor/pool'
+import { hasEditor, runCommand, withView } from '../editor/view'
 import { registerAll, type Command } from './registry'
-
-const hasEditor = () => activeDoc.value !== null && activeEditor() !== null
-
-function withView(fn: (view: EditorView) => void): void {
-  const handle = activeEditor()
-  if (!handle) return
-  handle.crepe.editor.action((ctx) => {
-    try {
-      const view = ctx.get(editorViewCtx)
-      fn(view)
-      view.focus()
-    } catch {
-      // The view can be mid-teardown during a document switch.
-    }
-  })
-}
 
 /** Word characters for selection purposes: letters, digits, and the joiners. */
 const WORD = /[\p{L}\p{N}_'-]/u
@@ -129,22 +110,8 @@ const selectionCommands: Command[] = [
   { id: 'edit.deleteBlock', enabled: hasEditor, run: deleteWith(selectBlock) },
 
   // Table rows. The accelerators are Alt+Up/Down, which nothing else claims.
-  {
-    id: 'edit.moveRowUp',
-    enabled: hasEditor,
-    run: () => {
-      const handle = activeEditor()
-      handle?.crepe.editor.action(callCommand(moveRowCommand.key, { pos: -1 }))
-    },
-  },
-  {
-    id: 'edit.moveRowDown',
-    enabled: hasEditor,
-    run: () => {
-      const handle = activeEditor()
-      handle?.crepe.editor.action(callCommand(moveRowCommand.key, { pos: 1 }))
-    },
-  },
+  { id: 'edit.moveRowUp', enabled: hasEditor, run: () => runCommand(moveRowCommand.key, { pos: -1 }) },
+  { id: 'edit.moveRowDown', enabled: hasEditor, run: () => runCommand(moveRowCommand.key, { pos: 1 }) },
 
   { id: 'para.insertBefore', enabled: hasEditor, run: insertParagraph('before') },
   { id: 'para.insertAfter', enabled: hasEditor, run: insertParagraph('after') },

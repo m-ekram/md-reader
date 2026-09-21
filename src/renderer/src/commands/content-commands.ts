@@ -14,58 +14,12 @@
  *
  * Faking either would trade a greyed menu item for silent data loss.
  */
-import { editorViewCtx } from '@milkdown/kit/core'
 import { TextSelection, NodeSelection } from '@milkdown/kit/prose/state'
 import type { EditorView } from '@milkdown/kit/prose/view'
 import type { Node as ProseNode } from '@milkdown/kit/prose/model'
-import { activeDoc } from '../stores/documents'
-import { activeEditor } from '../editor/pool'
+import { ancestor, caretIn, fromView, hasEditor, withView } from '../editor/view'
 import { showNotice } from '../stores/ui'
 import { registerAll, invalidateCommands, type Command } from './registry'
-
-const hasEditor = (): boolean => activeDoc.value !== null && activeEditor() !== null
-
-function withView(fn: (view: EditorView) => void): void {
-  const handle = activeEditor()
-  if (!handle) return
-  handle.crepe.editor.action((ctx) => {
-    try {
-      const view = ctx.get(editorViewCtx)
-      fn(view)
-      view.focus()
-    } catch {
-      // The view can be mid-teardown during a document switch.
-    }
-  })
-}
-
-/** Reads something out of the active view without changing it. */
-function fromView<T>(fn: (view: EditorView) => T, fallback: T): T {
-  const handle = activeEditor()
-  if (!handle) return fallback
-  let out = fallback
-  handle.crepe.editor.action((ctx) => {
-    try {
-      out = fn(ctx.get(editorViewCtx))
-    } catch {
-      out = fallback
-    }
-  })
-  return out
-}
-
-/** The nearest ancestor of the given type, with its position. */
-function ancestor(
-  view: EditorView,
-  name: string
-): { node: ProseNode; pos: number; depth: number } | null {
-  const { $from } = view.state.selection
-  for (let d = $from.depth; d > 0; d--) {
-    const node = $from.node(d)
-    if (node.type.name === name) return { node, pos: $from.before(d), depth: d }
-  }
-  return null
-}
 
 // --- Task lists -----------------------------------------------------------
 //
@@ -86,7 +40,7 @@ function setChecked(value: boolean | null): void {
   })
 }
 
-const inListItem = (): boolean => fromView((v) => ancestor(v, 'list_item') !== null, false)
+const inListItem = (): boolean => caretIn('list_item')
 
 /** null when the caret is not in a list item at all. */
 const checkedState = (): boolean | null | undefined =>
@@ -169,7 +123,7 @@ function toggleFrontMatter(): void {
 
 // --- Code tools -----------------------------------------------------------
 
-const inCodeBlock = (): boolean => fromView((v) => ancestor(v, 'code_block') !== null, false)
+const inCodeBlock = (): boolean => caretIn('code_block')
 
 /**
  * Copies the code block's text.

@@ -9,9 +9,6 @@
  * absent: they are listed in EDITOR_DELEGATED and must never be bound at the
  * application level, or they stop reaching the editor. See registry.ts.
  */
-import { callCommand } from '@milkdown/kit/utils'
-import { editorViewCtx } from '@milkdown/kit/core'
-import type { CmdKey } from '@milkdown/kit/core'
 import {
   createCodeBlockCommand,
   downgradeHeadingCommand,
@@ -39,88 +36,29 @@ import {
   toggleStrikethroughCommand,
 } from '@milkdown/kit/preset/gfm'
 import { activeDoc } from '../stores/documents'
-import { refreshDecorations } from '../editor/refresh'
+import {
+  caretIn,
+  hasEditor,
+  refreshDecorations,
+  runCommand as run,
+  withView,
+} from '../editor/view'
 import { registerAll, type Command } from './registry'
-import { activeEditor } from '../editor/pool'
+import { flushAll } from '../editor/pool'
 import { ALERT_KINDS } from '../editor/alerts'
 import { find, findState, openFind } from '../editor/find'
 import { setEditorModes } from '../editor/typewriter'
 import { patchSettings, useSettingsStore } from '../stores/settings'
 
-/** Runs a Milkdown command against whichever editor is on screen. */
-function run<T>(key: CmdKey<T>, payload?: T): void {
-  const handle = activeEditor()
-  if (!handle) return
-  handle.crepe.editor.action(callCommand(key, payload))
-  focusEditor()
-}
-
-/** Commands leave focus in the menu otherwise, which feels broken. */
-function focusEditor(): void {
-  const handle = activeEditor()
-  if (!handle) return
-  handle.crepe.editor.action((ctx) => {
-    try {
-      ctx.get(editorViewCtx).focus()
-    } catch {
-      // The view can be mid-teardown during a document switch.
-    }
-  })
-}
-
-const hasEditor = () => activeDoc.value !== null && activeEditor() !== null
 /** Source mode has no pooled editor, so commands that only need a document. */
 const hasDocument = () => activeDoc.value !== null
 const settings = useSettingsStore()
 
-/**
- * Forces the editor to recompute its decorations.
- *
- * Focus mode is read when decorations are built, and those are only rebuilt on
- * a transaction. Without this, toggling did nothing visible until the next
- * keystroke or caret move.
- */
-/** True when the cursor is inside a table, for the table-only commands. */
 /** True when the caret is inside a list item, at any nesting depth. */
-function inListItem(): boolean {
-  const handle = activeEditor()
-  if (!handle) return false
-  let found = false
-  handle.crepe.editor.action((ctx) => {
-    try {
-      const { state } = ctx.get(editorViewCtx)
-      for (let d = state.selection.$from.depth; d > 0; d--) {
-        if (state.selection.$from.node(d).type.name === 'list_item') {
-          found = true
-          return
-        }
-      }
-    } catch {
-      // Mid-teardown during a document switch.
-    }
-  })
-  return found
-}
+const inListItem = (): boolean => caretIn('list_item')
 
-function inTable(): boolean {
-  const handle = activeEditor()
-  if (!handle) return false
-  let found = false
-  handle.crepe.editor.action((ctx) => {
-    try {
-      const { state } = ctx.get(editorViewCtx)
-      for (let d = state.selection.$from.depth; d > 0; d--) {
-        if (state.selection.$from.node(d).type.name.startsWith('table')) {
-          found = true
-          return
-        }
-      }
-    } catch {
-      found = false
-    }
-  })
-  return found
-}
+/** True when the caret is inside a table, for the table-only commands. */
+const inTable = (): boolean => caretIn((name) => name.startsWith('table'))
 
 /**
  * Menu items for actions the editor owns.
@@ -146,7 +84,7 @@ const delegatedCommands: Command[] = (
   enabled: hasEditor,
   run: () => {
     window.api.edit.action(action)
-    focusEditor()
+    withView(() => {})
   },
 }))
 
@@ -193,9 +131,7 @@ const editorCommands: Command[] = [
     enabled: hasEditor,
     run: () => {
       run(wrapInBlockquoteCommand.key)
-      const handle = activeEditor()
-      handle?.crepe.editor.action((ctx) => {
-        const view = ctx.get(editorViewCtx)
+      withView((view) => {
         const { state, dispatch } = view
         const { from, to } = state.selection
 
@@ -211,7 +147,6 @@ const editorCommands: Command[] = [
         })
         if (touched) dispatch(tr)
       })
-      focusEditor()
     },
   })),
 
@@ -228,6 +163,9 @@ const editorCommands: Command[] = [
     enabled: hasDocument,
     checked: () => activeDoc.value?.sourceMode ?? false,
     run: () => {
+      // The source view opens on the store's text, which lags the editor by a
+      // debounce: without this, text typed just before switching was missing.
+      flushAll()
       const d = activeDoc.value
       if (!d) return
       d.sourceMode = !d.sourceMode
@@ -298,19 +236,12 @@ const editorCommands: Command[] = [
 
 /** Wraps the selection in literal text, for the HTML-only formats. */
 function wrapSelection(before: string, after: string): void {
-  const handle = activeEditor()
-  if (!handle) return
-
-  handle.crepe.editor.action((ctx) => {
-    const view = ctx.get(editorViewCtx)
+  withView((view) => {
     const { state, dispatch } = view
     const { from, to, empty } = state.selection
     const selected = empty ? '' : state.doc.textBetween(from, to, ' ')
-    const text = `${before}${selected}${after}`
-
-    dispatch(state.tr.insertText(text, from, to))
+    dispatch(state.tr.insertText(`${before}${selected}${after}`, from, to))
   })
-  focusEditor()
 }
 
 export function registerEditorCommands(): void {

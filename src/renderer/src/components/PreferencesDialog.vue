@@ -18,7 +18,7 @@ import { setPunctuation } from '../editor/punctuation'
 import { setShowWhitespace } from '../editor/whitespace'
 import { setEditorModes } from '../editor/typewriter'
 import { invalidateCommands } from '../commands/registry'
-import { refreshDecorations } from '../editor/refresh'
+import { refreshDecorations } from '../editor/view'
 
 const props = defineProps<{ open: boolean }>()
 const emit = defineEmits<{ close: [] }>()
