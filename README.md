@@ -49,12 +49,13 @@ which is why the two were measured together rather than compared from memory.
 476 tests pass (359 unit, 117 end-to-end). `npm run verify` runs typecheck, lint
 and both suites in one command.
 
-One gap worth stating rather than leaving implied: the packaged build could not
-be launched on the development machine, because Windows Application Control
-blocks the unsigned executable. The Help topics were confirmed to ship to
-`resources/docs`, which is where the packaged code looks for them, but that path
-has been checked by inspection rather than by running the installed app. Signing
-the build, or testing on a machine without that policy, would close it.
+The packaged build is verified by hand rather than by the suite: Windows
+Application Control blocks programmatic launch of the unsigned executable, so
+the end-to-end tests run against `out/` and the installed app is checked
+manually. Confirmed there: the app launches, and Help topics load from
+`resources/docs` — the one path that differs once packaged, since in
+development the same files are read from the repository folder. Signing the
+build would let the suite cover it too.
 
 Menu coverage is **135 of 140 items, with the other 5 deliberately unavailable**
 and no item left merely unimplemented. Run `node scripts/menu-coverage.cjs --list`
