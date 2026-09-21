@@ -130,7 +130,24 @@ ${body}
 `
 }
 
+/**
+ * Removes the local paths inlining could not replace.
+ *
+ * An image that could not be read keeps its `file:///C:/Users/<name>/…`
+ * source, and a link to a local file keeps its href — each one a path into the
+ * author's machine, inside a file whose purpose is to be sent to someone else.
+ * Neither would work for the recipient anyway. The image keeps its element and
+ * alt text; the link keeps its words.
+ *
+ * Runs on sanitized output, whose attributes are always double-quoted.
+ */
+export function stripLocalPaths(html: string): string {
+  return html
+    .replace(/\ssrc="file:[^"]*"/gi, '')
+    .replace(/<a\b[^>]*\shref="file:[^"]*"[^>]*>([\s\S]*?)<\/a>/gi, '$1')
+}
+
 /** The complete, self-contained document. */
 export async function buildHtml(payload: ExportPayload): Promise<string> {
-  return wrapDocument(payload, await inlineImages(payload.bodyHtml))
+  return wrapDocument(payload, stripLocalPaths(await inlineImages(payload.bodyHtml)))
 }

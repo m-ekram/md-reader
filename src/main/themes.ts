@@ -4,7 +4,7 @@
  */
 import { app, BrowserWindow } from 'electron'
 import { existsSync, mkdirSync, readdirSync, readFileSync, watch } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { log } from './log'
 
 export interface ThemeInfo {
@@ -49,8 +49,28 @@ export function listThemes(): ThemeInfo[] {
 }
 
 /** Returns the CSS for a user theme; built-ins are bundled in the renderer. */
+/** Filename-safe ids only: no separators, so nothing can name another folder. */
+const THEME_ID = /^[\w.-]+$/
+
+/**
+ * Reads a user theme's stylesheet by id.
+ *
+ * The id arrives from the renderer and becomes part of a path, so it is held
+ * to a filename-safe shape, and the resolved file must still sit directly in
+ * the themes folder. Joined as-is, `../secret` read a stylesheet from outside
+ * it. Anything that fails either check reads as no theme at all.
+ */
 export function readUserTheme(id: string): string {
-  const p = join(userThemeDir(), `${id}.css`)
+  const dir = userThemeDir()
+  if (!THEME_ID.test(id) || id.startsWith('.')) {
+    log.warn('refused theme id', { id })
+    return ''
+  }
+  const p = join(dir, `${id}.css`)
+  if (dirname(resolve(p)) !== resolve(dir)) {
+    log.warn('refused theme path outside the themes folder', { id })
+    return ''
+  }
   return existsSync(p) ? readFileSync(p, 'utf8') : ''
 }
 

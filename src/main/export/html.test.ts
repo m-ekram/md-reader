@@ -7,7 +7,7 @@ import { pathToFileURL } from 'node:url'
 // The logger writes to the app data folder, which needs an Electron app object.
 vi.mock('../log', () => ({ log: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } }))
 
-const { inlineImages, wrapDocument, buildHtml } = await import('./html')
+const { inlineImages, wrapDocument, buildHtml, stripLocalPaths } = await import('./html')
 
 let dir: string
 let pngUrl: string
@@ -101,6 +101,42 @@ describe('buildHtml', () => {
       documentPath: null,
     })
     expect(html).toContain('<!doctype html>')
+    expect(html).toContain('data:image/png;base64,')
+  })
+})
+
+describe('stripLocalPaths', () => {
+  const localImg = '<img src="file:///C:/Users/someone/notes/missing.png" alt="a chart">'
+
+  it('drops the path from an image it could not embed, keeping the alt text', () => {
+    const out = stripLocalPaths(`<p>${localImg}</p>`)
+    expect(out).not.toContain('file:')
+    expect(out).not.toContain('Users/someone')
+    expect(out).toContain('alt="a chart"')
+  })
+
+  it('unwraps a link to a local file, keeping its words', () => {
+    const out = stripLocalPaths('<p>See <a href="file:///C:/Users/someone/plan.md">the plan</a>.</p>')
+    expect(out).toBe('<p>See the plan.</p>')
+  })
+
+  it('leaves web links and embedded images alone', () => {
+    const html =
+      '<a href="https://example.com">site</a><img src="data:image/png;base64,AAAA" alt="x">'
+    expect(stripLocalPaths(html)).toBe(html)
+  })
+})
+
+describe('an exported document', () => {
+  it('contains no local path once built, even for an image that could not be read', async () => {
+    const html = await buildHtml({
+      title: 'Doc',
+      bodyHtml: `<img src="${pathToFileURL(join(dir, 'gone.png')).href}" alt="gone"><img src="${pngUrl}">`,
+      css: '',
+      themeId: 'github',
+      documentPath: null,
+    })
+    expect(html).not.toMatch(/file:/)
     expect(html).toContain('data:image/png;base64,')
   })
 })
