@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { chooseMenu, newDocument, openFile, useApp, waitForText } from './helpers'
@@ -156,6 +156,13 @@ describe('content width', () => {
 })
 
 describe('block menu', () => {
+  beforeEach(async () => {
+    // A failure above can leave Preferences open over the document, and these
+    // would then fail on a covered paragraph rather than on the menu.
+    await ctx.page.keyboard.press('Escape')
+    await ctx.page.waitForSelector('.prefs__panel', { state: 'detached', timeout: 5000 })
+  })
+
   it('has a half-transparent background, not none', async () => {
     await ctx.page.locator('.ProseMirror p').first().hover()
     await ctx.page.waitForSelector('.milkdown-block-handle', { state: 'visible', timeout: 5000 })
