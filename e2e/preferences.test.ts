@@ -66,12 +66,12 @@ describe('preferences dialog', () => {
 
   it('changes the theme from the dialog as well as the menu', async () => {
     await openPreferences()
-    await ctx.page.locator('.prefs__panel select').selectOption('night')
+    await ctx.page.getByRole('combobox', { name: 'Theme', exact: true }).selectOption('night')
     await expect
       .poll(() => ctx.page.evaluate(() => document.documentElement.getAttribute('data-theme')))
       .toBe('night')
 
-    await ctx.page.locator('.prefs__panel select').selectOption('github')
+    await ctx.page.getByRole('combobox', { name: 'Theme', exact: true }).selectOption('github')
     await expect
       .poll(() => ctx.page.evaluate(() => document.documentElement.getAttribute('data-theme')))
       .toBe('github')
@@ -134,16 +134,20 @@ describe('preferences dialog', () => {
 
   it('keeps the source-mode thresholds in a sane order', async () => {
     await openPreferences()
-    const numbers = ctx.page.locator('.prefs__panel input[type="number"]')
+    // Found by label, not position: Appearance has number fields too.
+    const field = (label: string) =>
+      ctx.page.locator('.prefs__panel .row').filter({ hasText: label }).locator('input')
+    const offer = field('Offer source mode above')
+    const force = field('Default to source mode above')
 
     // Forcing source mode below the line where it is merely offered would mean
     // never offering it at all.
-    await numbers.nth(0).fill('20000')
-    await numbers.nth(0).blur()
+    await offer.fill('20000')
+    await offer.blur()
 
     // The force threshold is pulled up to meet the new offer threshold.
     await expect
-      .poll(async () => Number(await numbers.nth(1).inputValue()))
+      .poll(async () => Number(await force.inputValue()))
       .toBeGreaterThanOrEqual(20000)
     await ctx.page.keyboard.press('Escape')
   })

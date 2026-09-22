@@ -52,7 +52,8 @@ describe('text size', () => {
     await openFile(ctx, file)
     await waitForText(ctx, 'A paragraph to measure.')
     await newDocument(ctx)
-    await ctx.page.locator('.tabs .tab').first().locator('.tab__select').click()
+    // By name: the launch's blank document holds the first tab.
+    await ctx.page.locator('.tab__select', { hasText: 'sized.md' }).click()
     await waitForText(ctx, 'A paragraph to measure.')
   })
 
@@ -205,5 +206,31 @@ describe('tabs', () => {
     expect(tabs.length).toBeGreaterThanOrEqual(6)
     for (const t of tabs) expect(t.width).toBeLessThanOrEqual(160)
     expect(tabs.some((t) => t.title.endsWith(`${long}-5.md`))).toBe(true)
+  })
+})
+
+describe('quotes and alerts', () => {
+  it('draws one bar on a quote, and an alert label on one line', async () => {
+    const file = join(ctx.workdir, 'quotes.md')
+    await writeFile(file, '> A plain quote.\n\n> [!NOTE]\n> An alert.\n', 'utf8')
+    await openFile(ctx, file)
+    await waitForText(ctx, 'An alert.')
+
+    const shape = await ctx.page.evaluate(() => {
+      const quote = document.querySelector('.ProseMirror blockquote:not([data-alert])')!
+      const alert = document.querySelector('.ProseMirror blockquote[data-alert]')!
+      const label = getComputedStyle(alert, '::before')
+      return {
+        quoteBar: getComputedStyle(quote, '::before').content,
+        labelWidth: parseFloat(label.width),
+        labelHeight: parseFloat(label.height),
+        labelLine: parseFloat(label.lineHeight) || parseFloat(label.fontSize) * 1.6,
+      }
+    })
+    // The theme's border is the bar; Crepe's own would be a second one.
+    expect(shape.quoteBar).toBe('none')
+    // "NOTE" on one line, not stacked a letter per line in a 4 px column.
+    expect(shape.labelWidth).toBeGreaterThan(20)
+    expect(shape.labelHeight).toBeLessThan(shape.labelLine * 1.5)
   })
 })

@@ -137,6 +137,22 @@
   text-transform: uppercase;
   color: var(--alert-color);
 }
+/*
+ * Crepe draws its own quote bar: a 4 px absolutely positioned ::before. The
+ * themes draw theirs as a border in --quote-bar, so the quote keeps one bar,
+ * the theme's. An alert's label is that same ::before, and inherited the 4 px
+ * width, which stacked it one letter per line.
+ */
+.milkdown .ProseMirror blockquote:not([data-alert])::before {
+  content: none;
+}
+.milkdown .ProseMirror blockquote[data-alert]::before {
+  content: attr(data-alert);
+  position: static;
+  width: auto;
+  background: none;
+  border-radius: 0;
+}
 .milkdown blockquote[data-alert='note'] {
   --alert-color: var(--doc-accent);
 }
