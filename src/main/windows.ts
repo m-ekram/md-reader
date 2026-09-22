@@ -54,10 +54,6 @@ export function createWindow(openPath?: string): BrowserWindow {
       nodeIntegration: false,
       sandbox: true,
       spellcheck: getSettings().editor.spellcheck,
-      // Keep compiled code from the first launch for the next, rather than
-      // waiting for a script to be seen several times first. The renderer
-      // bundle is large and identical on every launch.
-      v8CacheOptions: 'bypassHeatCheck',
     },
   })
 

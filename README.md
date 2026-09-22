@@ -23,15 +23,18 @@ Built on Electron and Milkdown/Crepe (ProseMirror).
 - **Content** — YAML front matter, GitHub alerts, `[TOC]`, math, mermaid diagrams
   (loaded on first use), and image paste into a local assets folder.
 - **Editing** — find and replace, source mode, focus and typewriter modes, readonly,
-  zoom, word count, smart punctuation, visible whitespace, and a command palette
+  text size (View ▸ Zoom, Ctrl+wheel or the status bar; the title and tab bars keep
+  their size), word count, smart punctuation, visible whitespace, and a command palette
   on Ctrl+Shift+P that searches every implemented command.
 - **Export** — self-contained HTML with inlined styles and embedded images, PDF
   through Chromium's own printing, and print through the same path. Both are
   styled by the theme file the application itself loads, so an export matches
   the screen.
-- **Themes and preferences** — six built-in themes covering both polarities, user
-  themes picked up from the config folder without a restart, and a preferences
-  dialog on Ctrl+, whose every control applies as you change it.
+- **Themes and preferences** — ten built-in themes, among them Nord and One Dark,
+  and Sepia and Gruvbox Dark for long reading sessions; user themes picked up from
+  the config folder without a restart; a text size and a column width, up to the
+  full window, that hold across themes and launches; and a preferences dialog on
+  Ctrl+, whose every control applies as you change it.
 - **Help** — the Help topics are markdown files opened in the editor itself, so the
   documentation is rendered by the code it documents.
 - **Packaging** — builds an NSIS installer, associates `.md` and `.markdown`, and
@@ -94,7 +97,7 @@ not bundle. Each says so in its tooltip rather than reading as unfinished.
 npm install
 npm run dev              # run the app with hot reload
 npm run verify           # typecheck + lint + unit + e2e, in one command
-npm run bench            # cold start and memory, median of five launches
+npm run bench            # startup by phase, close time and memory: a first launch, then the warm median
 npm run build:win        # NSIS installer into dist/
 npm test                 # unit tests only
 npm run test:e2e         # end-to-end tests against the real app
@@ -102,6 +105,11 @@ npm run lint             # eslint
 npm run format           # prettier
 npm run spike:roundtrip  # markdown fidelity corpus
 ```
+
+Every push runs the same checks on a clean Windows machine
+(`.github/workflows/verify.yml`): typecheck, lint, both test suites, a benchmark
+of the pushed commit against `main` on that same machine, and screenshots of the
+main views and every theme, downloadable from the run.
 
 ---
 
