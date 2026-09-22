@@ -12,6 +12,7 @@ import { join } from 'node:path'
 import { getSettings, patchSettings } from './settings'
 import { flushJournals } from './recovery'
 import { log } from './log'
+import { mark } from './startup'
 
 /** A second crash inside this window is treated as a crash loop, not bad luck. */
 const CRASH_LOOP_MS = 30_000
@@ -57,6 +58,7 @@ export function createWindow(openPath?: string): BrowserWindow {
   })
 
   windows.add(win)
+  mark('windowCreated')
   if (saved.maximized) win.maximize()
 
   // Links open in the user's browser, never inside the app shell.
@@ -110,6 +112,7 @@ export function createWindow(openPath?: string): BrowserWindow {
   })
 
   win.on('ready-to-show', () => {
+    mark('shown')
     win.show()
     if (openPath) win.webContents.send('file:open-path', openPath)
   })

@@ -1,4 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
+import { mark } from './startup'
 import { existsSync } from 'node:fs'
 import { installCrashHandlers, log } from './log'
 import { flushSettings, getSettings, patchSettings } from './settings'
@@ -41,6 +42,7 @@ if (!app.requestSingleInstanceLock()) {
   })
 
   app.whenReady().then(() => {
+    mark('appReady')
     app.setAppUserModelId('com.ekram.md')
 
     registerFileIpc()
