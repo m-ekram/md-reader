@@ -17,9 +17,13 @@ export interface ThemeInfo {
 export const BUILTIN_THEMES: ThemeInfo[] = [
   { id: 'claude-light', name: 'Claude Light', builtin: true },
   { id: 'github', name: 'Github', builtin: true },
+  { id: 'gruvbox-dark', name: 'Gruvbox Dark', builtin: true },
   { id: 'newsprint', name: 'Newsprint', builtin: true },
   { id: 'night', name: 'Night', builtin: true },
+  { id: 'nord', name: 'Nord', builtin: true },
+  { id: 'one-dark', name: 'One Dark', builtin: true },
   { id: 'pixyll', name: 'Pixyll', builtin: true },
+  { id: 'sepia', name: 'Sepia', builtin: true },
   { id: 'whitey', name: 'Whitey', builtin: true },
 ]
 
@@ -48,7 +52,6 @@ export function listThemes(): ThemeInfo[] {
   return [...BUILTIN_THEMES, ...user.sort((a, b) => a.name.localeCompare(b.name))]
 }
 
-/** Returns the CSS for a user theme; built-ins are bundled in the renderer. */
 /** Filename-safe ids only: no separators, so nothing can name another folder. */
 const THEME_ID = /^[\w.-]+$/
 

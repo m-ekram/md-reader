@@ -12,11 +12,10 @@ import { acquire, release, releaseAll } from '../editor/pool'
 import type { SourceHandle } from '../editor/sourceMode'
 import { checkRoundTrip } from '../editor/roundtrip'
 import { activeDoc, journalKey, useDocuments, type Doc } from '../stores/documents'
-import { useThemeStore } from '../stores/theme'
+import { isDarkTheme } from '../utils/dark'
 
 const host = ref<HTMLElement | null>(null)
 const docs = useDocuments()
-const theme = useThemeStore()
 
 /**
  * Showing is async, so two quick switches can interleave. Every attempt takes a
@@ -52,7 +51,7 @@ async function showSource(doc: Doc, token: number): Promise<void> {
   source = createSourceEditor({
     root: container,
     value: doc.content,
-    dark: theme.current === 'night',
+    dark: isDarkTheme(),
     onChange: (text) => {
       const target = docs.docs.find((d) => d.id === doc.id)
       if (!target) return

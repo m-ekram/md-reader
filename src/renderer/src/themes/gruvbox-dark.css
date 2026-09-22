@@ -1,0 +1,55 @@
+/*
+ * Gruvbox Dark — warm, low-blue, for evening reading.
+ *
+ * Built on the Gruvbox palette (MIT), using its "soft" dark background: the
+ * warm cream text and brown-grey ground cut the blue light that makes a dark
+ * screen tiring late at night. Slightly larger text and a looser line suit
+ * long reading rather than scanning.
+ */
+:root[data-theme='gruvbox-dark'] {
+  --doc-bg: #32302f;
+  --doc-fg: #ebdbb2;
+  --doc-font: -apple-system, 'Segoe UI', system-ui, sans-serif;
+  --doc-font-size: 17px;
+  --doc-line-height: 1.8;
+  --doc-measure: 780px;
+
+  --doc-heading-fg: #fbf1c7;
+  --doc-muted: #a89984;
+  --doc-accent: #83a598;
+  --doc-rule: #504945;
+  --doc-selection: rgba(131, 165, 152, 0.25);
+
+  --code-bg: #282828;
+  --code-fg: #ebdbb2;
+
+  --quote-bar: #665c54;
+  --quote-fg: #bdae93;
+
+  --table-border: #504945;
+  --table-header-bg: #3c3836;
+  --table-stripe: #2e2c2b;
+
+  --chrome-bg: #282828;
+  --chrome-fg: #ebdbb2;
+  --chrome-fg-dim: #928374;
+  --chrome-hover: rgba(235, 219, 178, 0.07);
+  --chrome-active: rgba(235, 219, 178, 0.12);
+  --chrome-border: rgba(235, 219, 178, 0.08);
+  --chrome-accent: #fabd2f;
+
+  --menu-bg: #3c3836;
+  --menu-fg: #ebdbb2;
+  --menu-fg-disabled: #7c6f64;
+  --menu-hover: #504945;
+  --menu-border: rgba(235, 219, 178, 0.1);
+  --menu-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+
+  --sidebar-bg: #282828;
+  --sidebar-fg: #d5c4a1;
+  --status-bg: #282828;
+  --status-fg: #a89984;
+
+  --danger: #fb4934;
+  --warning: #fabd2f;
+}

@@ -58,6 +58,32 @@ export function withoutTrailingParagraph(markdown: string, doc: ProseNode): stri
 }
 
 /**
+ * Names the block handle's two buttons.
+ *
+ * Crepe draws them as bare icons — a plus, and six dots — and the dots, which
+ * drag the block, looked like a button that did nothing when clicked. Crepe
+ * renders the add button first and the drag handle second. The handle is created
+ * lazily, so this watches for it rather than assuming it already exists.
+ *
+ * Returns a function that stops watching.
+ */
+function labelBlockHandle(root: HTMLElement): () => void {
+  const apply = (): boolean => {
+    const items = root.querySelectorAll<HTMLElement>('.milkdown-block-handle .operation-item')
+    if (items.length < 2) return false
+    items[0].title = 'Add a block'
+    items[1].title = 'Drag to move this block'
+    return true
+  }
+  if (apply()) return () => {}
+  const observer = new MutationObserver(() => {
+    if (apply()) observer.disconnect()
+  })
+  observer.observe(root, { childList: true, subtree: true })
+  return () => observer.disconnect()
+}
+
+/**
  * Emit conventional markdown, so re-serializing an ordinary file is close to a
  * no-op rather than a reformat. Worth six constructs on its own, measured.
  */
@@ -156,6 +182,8 @@ export async function createEditor(opts: {
   await crepe.create()
   if (opts.readonly) crepe.setReadonly(true)
 
+  const stopLabelling = labelBlockHandle(opts.root)
+
   // Attached after create(), when the view exists.
   const detachImages = attachImageHandlers(opts.root, () => {
     let view: EditorView | null = null
@@ -207,6 +235,7 @@ export async function createEditor(opts: {
       // mode — passes through here, so this is the one place its unreported
       // edits are guaranteed to be handed over first.
       flush()
+      stopLabelling()
       detachImages()
       await crepe.destroy()
     },

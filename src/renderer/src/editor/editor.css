@@ -233,3 +233,83 @@
   color: var(--doc-muted);
   font-size: 0.85em;
 }
+
+/*
+ * Crepe's widgets.
+ *
+ * Crepe draws its code blocks, menus, toolbar and tooltips with a family of
+ * --crepe-* variables that its own themes define. This app uses none of those
+ * themes, so every one was undefined: the "+" block menu, the selection toolbar
+ * and the link tooltips all rendered with no background at all, text straight
+ * over the document. Each is mapped here to the theme tokens, so every theme,
+ * built-in or user, styles them without knowing Crepe exists.
+ *
+ * Mapped to the *document* first, because several of these also paint the page:
+ * `surface` is the code-block background and `selected` is the text-selection
+ * highlight. The floating widgets then override them below.
+ */
+:root {
+  --crepe-color-background: var(--doc-bg);
+  --crepe-color-on-background: var(--doc-fg);
+  --crepe-color-surface: var(--code-bg);
+  --crepe-color-surface-low: var(--table-header-bg);
+  --crepe-color-on-surface: var(--doc-fg);
+  --crepe-color-on-surface-variant: var(--doc-muted);
+  --crepe-color-outline: var(--doc-muted);
+  --crepe-color-primary: var(--doc-accent);
+  --crepe-color-secondary: var(--doc-rule);
+  --crepe-color-on-secondary: var(--doc-fg);
+  --crepe-color-inverse: var(--doc-fg);
+  --crepe-color-on-inverse: var(--doc-bg);
+  --crepe-color-inline-code: var(--code-fg);
+  --crepe-color-error: var(--danger);
+  --crepe-color-hover: color-mix(in srgb, var(--doc-fg) 8%, transparent);
+  --crepe-color-selected: var(--doc-selection);
+  --crepe-color-inline-area: var(--code-bg);
+  --crepe-base-font-size: var(--doc-font-size);
+  --crepe-font-title: var(--doc-font);
+  --crepe-font-default: var(--doc-font);
+  --crepe-font-code: var(--code-font);
+  --crepe-shadow-1: var(--menu-shadow);
+  --crepe-shadow-2: var(--menu-shadow);
+}
+
+/*
+ * Floating widgets read as the app's menus, not as part of the page: the same
+ * colours as the menu bar's menus, in every theme.
+ */
+.milkdown .milkdown-slash-menu,
+.milkdown .milkdown-toolbar,
+.milkdown .milkdown-link-preview,
+.milkdown .milkdown-link-edit {
+  --crepe-color-surface: var(--menu-bg);
+  --crepe-color-surface-low: var(--menu-hover);
+  --crepe-color-on-surface: var(--menu-fg);
+  --crepe-color-on-surface-variant: color-mix(in srgb, var(--menu-fg) 70%, transparent);
+  --crepe-color-outline: color-mix(in srgb, var(--menu-fg) 60%, transparent);
+  --crepe-color-hover: var(--menu-hover);
+  --crepe-color-selected: var(--menu-hover);
+  --crepe-color-primary: var(--chrome-accent);
+  border: 1px solid var(--menu-border);
+}
+
+/*
+ * The "+" block menu at 50% opacity, as asked for, with the page behind it
+ * blurred: half-transparent alone would leave the document's text competing
+ * with the menu's, which is the unreadability this replaces.
+ */
+.milkdown .milkdown-slash-menu {
+  --crepe-color-surface: color-mix(in srgb, var(--menu-bg) 50%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+/*
+ * The block handle's second button drags the block; nothing about it said so.
+ * The tooltip is set in `editor/crepe.ts`, which can reach the element.
+ */
+.milkdown .milkdown-block-handle .operation-item:last-child {
+  cursor: grab;
+}
+.milkdown .milkdown-block-handle .operation-item:last-child:active {
+  cursor: grabbing;
+}

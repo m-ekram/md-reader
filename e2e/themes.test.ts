@@ -15,7 +15,18 @@ import { openFile, useApp, waitForText } from './helpers'
  */
 const ctx = useApp()
 
-const THEMES = ['Claude Light', 'Github', 'Newsprint', 'Night', 'Pixyll', 'Whitey']
+const THEMES = [
+  'Claude Light',
+  'Github',
+  'Gruvbox Dark',
+  'Newsprint',
+  'Night',
+  'Nord',
+  'One Dark',
+  'Pixyll',
+  'Sepia',
+  'Whitey',
+]
 
 /**
  * Locates a theme by its label element.
@@ -84,7 +95,7 @@ describe('themes', () => {
 
     // Github and Whitey are both plain white by design, so the assertion is
     // that the set is mostly distinct rather than entirely.
-    expect(new Set(seen.values()).size).toBeGreaterThanOrEqual(4)
+    expect(new Set(seen.values()).size).toBeGreaterThanOrEqual(8)
   })
 
   it('darkens the chrome for the dark theme, not just the document', async () => {
@@ -100,6 +111,25 @@ describe('themes', () => {
       (c.match(/\d+/g) ?? ['255', '255', '255']).slice(0, 3).reduce((a, n) => a + Number(n), 0)
     expect(brightness(bg), 'Night document is not dark').toBeLessThan(300)
     expect(brightness(dark), 'Night left the chrome light').toBeLessThan(300)
+  })
+
+  it('gives a dark theme a dark source view, not only Night', async () => {
+    // Dark themes were recognised by name, and the only name was 'night', so
+    // every later dark theme showed a white source editor on a dark window.
+    await chooseTheme('Nord')
+    await ctx.page.locator('.ProseMirror').click()
+    await ctx.page.keyboard.press('Control+/')
+    await ctx.page.waitForSelector('.cm-editor', { timeout: 15_000 })
+
+    const bg = await ctx.page.evaluate(
+      () => getComputedStyle(document.querySelector('.cm-editor')!).backgroundColor
+    )
+    const brightness = (c: string): number =>
+      (c.match(/\d+/g) ?? ['255', '255', '255']).slice(0, 3).reduce((a, n) => a + Number(n), 0)
+    expect(brightness(bg), `source view under Nord is ${bg}`).toBeLessThan(300)
+
+    await ctx.page.keyboard.press('Control+/')
+    await ctx.page.waitForSelector('.ProseMirror', { timeout: 15_000 })
   })
 
   it('remembers the choice across a restart', async () => {

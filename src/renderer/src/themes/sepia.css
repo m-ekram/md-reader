@@ -1,0 +1,51 @@
+/*
+ * Sepia — warm paper, for long daytime reading.
+ *
+ * A reader's sepia mode: a warm ground instead of white, dark brown text
+ * instead of black, and a serif face at a larger size and a shorter line.
+ * Lower contrast and less glare than a white page, without the effort of
+ * reading light text on a dark one.
+ */
+:root[data-theme='sepia'] {
+  --doc-bg: #f4ecd8;
+  --doc-fg: #433422;
+  --doc-font: Georgia, 'Iowan Old Style', 'Palatino Linotype', serif;
+  --doc-font-size: 18px;
+  --doc-line-height: 1.8;
+  --doc-measure: 700px;
+
+  --doc-heading-fg: #2e2416;
+  --doc-muted: #7d6b54;
+  --doc-accent: #8b5a2b;
+  --doc-rule: #e0d3b8;
+  --doc-selection: rgba(139, 90, 43, 0.18);
+
+  --code-bg: #ebe1c9;
+  --code-fg: #3f3222;
+  --code-font-size: 0.85em;
+
+  --quote-bar: #d4c3a1;
+  --quote-fg: #6e5c45;
+
+  --table-border: #e0d3b8;
+  --table-header-bg: #ebe1c9;
+  --table-stripe: #f0e7d1;
+
+  --chrome-bg: #3d3325;
+  --chrome-fg: #f4ecd8;
+  --chrome-fg-dim: #b5a68c;
+  --chrome-accent: #d9a066;
+
+  --menu-bg: #463b2c;
+  --menu-fg: #f4ecd8;
+  --menu-fg-disabled: #8c7c63;
+  --menu-hover: #54473a;
+
+  --sidebar-bg: #efe5cf;
+  --sidebar-fg: #433422;
+  --status-bg: #efe5cf;
+  --status-fg: #7d6b54;
+
+  --danger: #a33a2a;
+  --warning: #8a6212;
+}

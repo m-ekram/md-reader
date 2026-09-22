@@ -10,6 +10,7 @@
  * Each shot is independent: one that fails is recorded in errors.txt and the
  * rest still run, so a single broken view does not hide all the others.
  */
+/* global document, window -- inside page.evaluate callbacks, which run in the app */
 const { _electron } = require('playwright')
 const { mkdirSync, mkdtempSync, rmSync, writeFileSync } = require('node:fs')
 const { tmpdir } = require('node:os')
@@ -113,5 +114,7 @@ async function shot(page, name, prepare) {
     rmSync(work, { recursive: true, force: true })
     if (errors.length > 0) writeFileSync(join(OUT, 'errors.txt'), errors.join('\n') + '\n')
   }
-  console.log(errors.length ? `\n${errors.length} shot(s) failed; see errors.txt` : '\nall shots captured')
+  console.log(
+    errors.length ? `\n${errors.length} shot(s) failed; see errors.txt` : '\nall shots captured'
+  )
 })()

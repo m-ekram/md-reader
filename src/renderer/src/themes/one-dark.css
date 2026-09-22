@@ -1,0 +1,50 @@
+/*
+ * One Dark — balanced charcoal with soft accents.
+ *
+ * Built on the One Dark palette (MIT). Its familiar charcoal and muted
+ * blue-grey text; blue for links, with the palette's red and yellow kept for
+ * warnings so they read as warnings.
+ */
+:root[data-theme='one-dark'] {
+  --doc-bg: #282c34;
+  --doc-fg: #abb2bf;
+  --doc-font: -apple-system, 'Segoe UI', system-ui, sans-serif;
+  --doc-heading-fg: #d7dae0;
+  --doc-muted: #7f848e;
+  --doc-accent: #61afef;
+  --doc-rule: #3e4451;
+  --doc-selection: rgba(97, 175, 239, 0.22);
+
+  --code-bg: #21252b;
+  --code-fg: #abb2bf;
+
+  --quote-bar: #3e4451;
+  --quote-fg: #8b929e;
+
+  --table-border: #3e4451;
+  --table-header-bg: #21252b;
+  --table-stripe: #2c313a;
+
+  --chrome-bg: #21252b;
+  --chrome-fg: #abb2bf;
+  --chrome-fg-dim: #7f848e;
+  --chrome-hover: rgba(255, 255, 255, 0.06);
+  --chrome-active: rgba(255, 255, 255, 0.11);
+  --chrome-border: rgba(255, 255, 255, 0.06);
+  --chrome-accent: #61afef;
+
+  --menu-bg: #2c313c;
+  --menu-fg: #d7dae0;
+  --menu-fg-disabled: #5c6370;
+  --menu-hover: #3a3f4b;
+  --menu-border: rgba(255, 255, 255, 0.08);
+  --menu-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+
+  --sidebar-bg: #21252b;
+  --sidebar-fg: #abb2bf;
+  --status-bg: #21252b;
+  --status-fg: #7f848e;
+
+  --danger: #e06c75;
+  --warning: #e5c07b;
+}

@@ -22,7 +22,18 @@ export interface ThemeInfo {
  * the entry exists because the file is imported below it, so a theme cannot be
  * listed as available while having no stylesheet behind it.
  */
-const BUILTIN_IDS = new Set(['claude-light', 'github', 'newsprint', 'night', 'pixyll', 'whitey'])
+const BUILTIN_IDS = new Set([
+  'claude-light',
+  'github',
+  'gruvbox-dark',
+  'newsprint',
+  'night',
+  'nord',
+  'one-dark',
+  'pixyll',
+  'sepia',
+  'whitey',
+])
 
 const state = reactive({
   available: [] as ThemeInfo[],

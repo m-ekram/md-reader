@@ -21,6 +21,7 @@ import { Plugin, PluginKey } from '@milkdown/kit/prose/state'
 import { Decoration, DecorationSet } from '@milkdown/kit/prose/view'
 import type { EditorState } from '@milkdown/kit/prose/state'
 import type { MilkdownPlugin } from '@milkdown/kit/ctx'
+import { isDarkTheme } from '../utils/dark'
 
 type MermaidApi = {
   initialize: (config: Record<string, unknown>) => void
@@ -36,7 +37,7 @@ async function loadMermaid(): Promise<MermaidApi> {
       const api = (m.default ?? m) as unknown as MermaidApi
       api.initialize({
         startOnLoad: false,
-        theme: document.documentElement.dataset.theme === 'night' ? 'dark' : 'default',
+        theme: isDarkTheme() ? 'dark' : 'default',
         securityLevel: 'strict',
         fontFamily: 'inherit',
       })

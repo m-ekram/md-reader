@@ -15,6 +15,10 @@ import claudeLightCss from '../themes/claude-light.css?inline'
 import newsprintCss from '../themes/newsprint.css?inline'
 import pixyllCss from '../themes/pixyll.css?inline'
 import whiteyCss from '../themes/whitey.css?inline'
+import nordCss from '../themes/nord.css?inline'
+import oneDarkCss from '../themes/one-dark.css?inline'
+import sepiaCss from '../themes/sepia.css?inline'
+import gruvboxDarkCss from '../themes/gruvbox-dark.css?inline'
 import katexCss from 'katex/dist/katex.min.css?inline'
 import { cleanForExport } from './clean'
 import { activeDoc } from '../stores/documents'
@@ -28,6 +32,10 @@ const BUILTIN_CSS: Record<string, string> = {
   night: nightCss,
   pixyll: pixyllCss,
   whitey: whiteyCss,
+  nord: nordCss,
+  'one-dark': oneDarkCss,
+  sepia: sepiaCss,
+  'gruvbox-dark': gruvboxDarkCss,
 }
 
 /**

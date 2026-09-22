@@ -1,0 +1,50 @@
+/*
+ * Nord — arctic blue-grey, low contrast.
+ *
+ * Built on the Nord palette (MIT). A calm dark theme: the palette's frost
+ * blues carry links and accents, and body text uses its snow tones rather than
+ * pure white, which keeps the contrast gentle for long sessions.
+ */
+:root[data-theme='nord'] {
+  --doc-bg: #2e3440;
+  --doc-fg: #d8dee9;
+  --doc-font: -apple-system, 'Segoe UI', system-ui, sans-serif;
+  --doc-heading-fg: #eceff4;
+  --doc-muted: #8a93a6;
+  --doc-accent: #88c0d0;
+  --doc-rule: #434c5e;
+  --doc-selection: rgba(136, 192, 208, 0.22);
+
+  --code-bg: #3b4252;
+  --code-fg: #e5e9f0;
+
+  --quote-bar: #4c566a;
+  --quote-fg: #aab1be;
+
+  --table-border: #434c5e;
+  --table-header-bg: #3b4252;
+  --table-stripe: #323845;
+
+  --chrome-bg: #242933;
+  --chrome-fg: #d8dee9;
+  --chrome-fg-dim: #7b8394;
+  --chrome-hover: rgba(255, 255, 255, 0.07);
+  --chrome-active: rgba(255, 255, 255, 0.12);
+  --chrome-border: rgba(255, 255, 255, 0.07);
+  --chrome-accent: #88c0d0;
+
+  --menu-bg: #3b4252;
+  --menu-fg: #eceff4;
+  --menu-fg-disabled: #616e88;
+  --menu-hover: #434c5e;
+  --menu-border: rgba(255, 255, 255, 0.08);
+  --menu-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+
+  --sidebar-bg: #2a303b;
+  --sidebar-fg: #d8dee9;
+  --status-bg: #2a303b;
+  --status-fg: #8a93a6;
+
+  --danger: #bf616a;
+  --warning: #ebcb8b;
+}

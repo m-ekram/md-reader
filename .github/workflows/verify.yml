@@ -38,7 +38,7 @@ jobs:
         run: npm run typecheck
 
       - name: Lint
-        run: npx eslint src e2e --max-warnings 0
+        run: npm run lint -- --max-warnings 0
 
       - name: Unit tests
         run: npm test
