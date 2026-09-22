@@ -146,9 +146,7 @@ describe('preferences dialog', () => {
     await offer.blur()
 
     // The force threshold is pulled up to meet the new offer threshold.
-    await expect
-      .poll(async () => Number(await force.inputValue()))
-      .toBeGreaterThanOrEqual(20000)
+    await expect.poll(async () => Number(await force.inputValue())).toBeGreaterThanOrEqual(20000)
     await ctx.page.keyboard.press('Escape')
   })
 })
