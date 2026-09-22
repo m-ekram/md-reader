@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest'
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { chooseMenu, newDocument, nextFrames, openFile, useApp, waitForText } from './helpers'
+import { chooseMenu, newDocument, openFile, useApp, waitForText } from './helpers'
 
 /**
  * Text size, column width, the chrome and the block menu, asserted on what is
@@ -99,24 +99,20 @@ describe('text size', () => {
     expect(await pageZoomLevel()).toBe(0)
   })
 
-  it('leaves the page zoom alone on the keys a browser zooms with', async () => {
-    // Electron's default menu bound Ctrl+Plus, which on this layout is
-    // Ctrl+Shift+=: the app's own Zoom In, and a whole-page zoom on top of it.
-    await ctx.page.locator('.ProseMirror p').first().click()
-    await ctx.page.keyboard.press('Control+Shift+=')
-    await ctx.page.keyboard.press('Control+=')
-    await nextFrames(ctx)
-    expect(await pageZoomLevel()).toBe(0)
-
-    // Ctrl+= made the paragraph a heading, which is the app's; undo it.
-    await ctx.page.keyboard.press('Control+z')
-    await waitForText(ctx, 'A paragraph to measure.')
-
-    await chooseMenu(ctx, 'View', 'Actual Size')
+  it('has no application menu, whose hidden accelerators zoomed the whole page', async () => {
+    // Electron's default menu bound Ctrl+Plus, Ctrl+Minus and Ctrl+0 to a
+    // whole-page zoom. A key pressed through Playwright goes straight into the
+    // page and never reaches a native menu, so pressing those keys here passes
+    // with the menu present; proven by putting it back. The menu is checked.
+    expect(await ctx.app.evaluate(({ Menu }) => Menu.getApplicationMenu() === null)).toBe(true)
   })
 
   it('keeps the chosen size across a restart', async () => {
+    const before = await docFontSize()
     await ctx.page.getByRole('button', { name: 'Larger text' }).click()
+    // Changed on screen first: a size that is stored and never applied reads
+    // the same before and after a reload.
+    await expect.poll(docFontSize, { timeout: 5000 }).toBe(before + 1)
     const chosen = await docFontSize()
 
     await ctx.page.reload()
@@ -188,24 +184,35 @@ describe('block menu', () => {
 })
 
 describe('tabs', () => {
-  it('stay compact when many are open, with the full name in the tooltip', async () => {
-    const long = 'a-rather-long-file-name-that-would-crowd-the-tab-bar'
-    for (let i = 0; i < 6; i++) {
-      const file = join(ctx.workdir, `${long}-${i}.md`)
-      await writeFile(file, `# Tab ${i}\n`, 'utf8')
-      await openFile(ctx, file)
-      await waitForText(ctx, `Tab ${i}`)
-    }
+  it('cap a long name, with the full path in the tooltip', async () => {
+    const name = 'a-rather-long-file-name-that-would-crowd-the-tab-bar.md'
+    const file = join(ctx.workdir, name)
+    await writeFile(file, '# Long\n', 'utf8')
+    await openFile(ctx, file)
+    await waitForText(ctx, 'Long')
 
-    const tabs = await ctx.page.locator('.tabs .tab').evaluateAll((els) =>
-      els.map((el) => ({
-        width: el.getBoundingClientRect().width,
-        title: el.querySelector('.tab__select')?.getAttribute('title') ?? '',
-      }))
-    )
-    expect(tabs.length).toBeGreaterThanOrEqual(6)
-    for (const t of tabs) expect(t.width).toBeLessThanOrEqual(160)
-    expect(tabs.some((t) => t.title.endsWith(`${long}-5.md`))).toBe(true)
+    const seen = await ctx.page.evaluate((n) => {
+      const bar = document.querySelector('.tabs')!
+      const tabs = [...bar.querySelectorAll('.tab')]
+      const tab = tabs.find((t) => t.querySelector('.tab__name')?.textContent === n)!
+      const label = tab.querySelector('.tab__name')!
+      return {
+        width: tab.getBoundingClientRect().width,
+        truncated: label.scrollWidth > label.clientWidth,
+        title: tab.querySelector('.tab__select')!.getAttribute('title') ?? '',
+        used: tabs.reduce((sum, t) => sum + t.getBoundingClientRect().width, 0),
+        room: bar.clientWidth,
+      }
+    }, name)
+    // The bar has room to spare, so nothing but the cap can be narrowing the
+    // tab. With many tabs open they shrink regardless, which is why this
+    // test once passed with the cap removed.
+    expect(seen.used, 'the tab bar is too crowded to show the cap').toBeLessThan(seen.room - 200)
+    expect(seen.width).toBeLessThanOrEqual(160)
+    expect(seen.truncated).toBe(true)
+    // The whole name, with its folder in front of it.
+    expect(seen.title.endsWith(name)).toBe(true)
+    expect(seen.title.length).toBeGreaterThan(name.length)
   })
 })
 
