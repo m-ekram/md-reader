@@ -33,6 +33,10 @@ export interface Settings {
     smartQuotes: boolean
     smartDashes: boolean
     smartEllipses: boolean
+    /** Document text size in px; null keeps the theme's. Zoom steps this. */
+    fontSize: number | null
+    /** Column width in px, or 'full' for the whole pane; null keeps the theme's. */
+    contentWidth: number | 'full' | null
   }
   statusBar: boolean
   /** The formatting toolbar above the document. */
@@ -57,6 +61,8 @@ export const DEFAULT_SETTINGS: Settings = {
     smartQuotes: true,
     smartDashes: true,
     smartEllipses: true,
+    fontSize: null,
+    contentWidth: null,
   },
   statusBar: true,
   toolbar: false,

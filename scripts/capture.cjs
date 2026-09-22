@@ -100,6 +100,12 @@ async function shot(page, name, prepare) {
     })
     await page.keyboard.press('Escape')
 
+    await shot(page, '03-preferences', async () => {
+      await page.keyboard.press('Control+,')
+      await page.waitForSelector('.prefs__panel', { state: 'visible', timeout: 5000 })
+    })
+    await page.keyboard.press('Escape')
+
     // Every built-in theme, by switching the attribute its stylesheet keys on.
     const ids = await page.evaluate(async () =>
       (await window.api.themes.list()).filter((t) => t.builtin).map((t) => t.id)

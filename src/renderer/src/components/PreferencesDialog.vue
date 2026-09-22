@@ -12,13 +12,21 @@
  * — the Themes menu, a View toggle — is reflected here without wiring.
  */
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
-import { patchSettings, useSettingsStore } from '../stores/settings'
+import { patchSettings, setContentWidth, setFontSize, useSettingsStore } from '../stores/settings'
 import { applyTheme, useThemeStore } from '../stores/theme'
 import { setPunctuation } from '../editor/punctuation'
 import { setShowWhitespace } from '../editor/whitespace'
 import { setEditorModes } from '../editor/typewriter'
 import { invalidateCommands } from '../commands/registry'
 import { refreshDecorations } from '../editor/view'
+import {
+  FONT_MAX,
+  FONT_MIN,
+  WIDTH_MAX,
+  WIDTH_MIN,
+  effectiveFontSize,
+  validWidth,
+} from '../stores/appearance'
 
 const props = defineProps<{ open: boolean }>()
 const emit = defineEmits<{ close: [] }>()
@@ -44,6 +52,33 @@ const editor = computed(() => settings.value.editor)
 async function patchEditor(patch: Partial<typeof settings.value.editor>): Promise<void> {
   await patchSettings({ editor: { ...settings.value.editor, ...patch } })
   invalidateCommands()
+}
+
+/** The text size showing now, which follows the theme until one is chosen. */
+const fontSize = computed(() => {
+  void themes.current
+  return effectiveFontSize(settings.value.editor)
+})
+
+/**
+ * Width is one of three kinds — the theme's, a pixel value, or the whole pane —
+ * so the kind is chosen first and the slider appears only for pixels.
+ */
+const width = computed(() => validWidth(editor.value.contentWidth))
+const widthKind = computed(() =>
+  width.value === null ? 'theme' : width.value === 'full' ? 'full' : 'custom'
+)
+/** A custom width starts from the column as it is now, not from an arbitrary number. */
+function currentColumnWidth(): number {
+  const col = document.querySelector('.editor-host') as HTMLElement | null
+  // The content box, which is what max-width limits; the padding is extra.
+  const px = col ? parseFloat(getComputedStyle(col).width) : NaN
+  return Number.isFinite(px) ? px : 900
+}
+async function setWidthKind(kind: string): Promise<void> {
+  if (kind === 'theme') await setContentWidth(null)
+  else if (kind === 'full') await setContentWidth('full')
+  else await setContentWidth(currentColumnWidth())
 }
 
 async function setTheme(id: string): Promise<void> {
@@ -197,6 +232,59 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
               </option>
             </select>
           </label>
+
+          <div class="row">
+            <span class="row__label">Text size</span>
+            <input
+              class="row__control row__control--num"
+              type="number"
+              :min="FONT_MIN"
+              :max="FONT_MAX"
+              :value="fontSize"
+              aria-label="Text size in pixels"
+              @change="setFontSize(Number(($event.target as HTMLInputElement).value) || null)"
+            />
+            <span class="row__unit">px</span>
+            <button
+              class="row__reset"
+              :disabled="editor.fontSize === null"
+              title="Use the theme’s text size"
+              @click="setFontSize(null)"
+            >
+              Reset
+            </button>
+          </div>
+
+          <label class="row">
+            <span class="row__label">Content width</span>
+            <select
+              class="row__control"
+              :value="widthKind"
+              aria-label="Content width"
+              @change="setWidthKind(($event.target as HTMLSelectElement).value)"
+            >
+              <option value="theme">Theme default</option>
+              <option value="custom">Custom</option>
+              <option value="full">Full width</option>
+            </select>
+          </label>
+
+          <label v-if="typeof width === 'number'" class="row">
+            <input
+              class="row__slider"
+              type="range"
+              :min="WIDTH_MIN"
+              :max="WIDTH_MAX"
+              step="20"
+              :value="width"
+              aria-label="Content width in pixels"
+              @input="setContentWidth(Number(($event.target as HTMLInputElement).value))"
+            />
+            <span class="row__value">{{ width }} px</span>
+          </label>
+          <p class="hint">
+            View ▸ Zoom and Ctrl+wheel change the text size too. Exports keep the theme’s layout.
+          </p>
 
           <label class="row row--check">
             <input
@@ -440,6 +528,32 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
 }
 .row__control--num {
   min-width: 90px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.row__unit {
+  margin-left: -6px;
+  opacity: 0.7;
+}
+.row__reset {
+  padding: 3px 8px;
+  background: transparent;
+  color: inherit;
+  border: 1px solid var(--menu-border);
+  border-radius: 4px;
+  font: inherit;
+  font-size: 12px;
+  cursor: default;
+}
+.row__reset:disabled {
+  opacity: 0.4;
+}
+.row__slider {
+  flex: 1;
+  accent-color: var(--chrome-accent);
+}
+.row__value {
+  min-width: 64px;
   text-align: right;
   font-variant-numeric: tabular-nums;
 }

@@ -80,7 +80,7 @@ const close = () => window.api.window.close()
 .titlebar {
   display: flex;
   align-items: stretch;
-  height: 30px;
+  height: 26px;
   background: var(--chrome-bg);
   color: var(--chrome-fg);
   border-bottom: 1px solid var(--chrome-border);
@@ -95,7 +95,7 @@ const close = () => window.api.window.close()
 .titlebar__mark {
   display: grid;
   place-items: center;
-  width: 30px;
+  width: 26px;
   font-weight: 700;
   font-size: 13px;
   color: var(--chrome-accent);
@@ -118,7 +118,7 @@ const close = () => window.api.window.close()
   -webkit-app-region: no-drag;
 }
 .cap {
-  width: 44px;
+  width: 42px;
   border: 0;
   background: transparent;
   color: var(--chrome-fg);

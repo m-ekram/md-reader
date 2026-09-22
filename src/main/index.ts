@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
 import { mark } from './startup'
 import { existsSync } from 'node:fs'
 import { installCrashHandlers, log } from './log'
@@ -44,6 +44,12 @@ if (!app.requestSingleInstanceLock()) {
   app.whenReady().then(() => {
     mark('appReady')
     app.setAppUserModelId('com.ekram.md')
+    // Electron's default menu is never shown (the window is frameless and
+    // draws its own), but its accelerators stayed live: Ctrl+Plus, Ctrl+Minus
+    // and Ctrl+0 zoomed the whole page, title bar included, whenever the app's
+    // own use of those keys was not enabled. Every key the app answers to is
+    // bound by the renderer; on Windows the editing keys need no menu.
+    Menu.setApplicationMenu(null)
 
     registerFileIpc()
     registerWorkspaceIpc()
@@ -169,7 +175,6 @@ function registerWindowIpc(): void {
         break
     }
   })
-  ipcMain.on('window:zoom', (e, level: number) => e.sender.setZoomLevel(level))
 
   ipcMain.on('window:close-reply', (e, allow: boolean) => {
     const w = senderWindow(e)

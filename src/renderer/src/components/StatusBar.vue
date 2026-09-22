@@ -6,10 +6,19 @@
  */
 import { computed, ref, watch, onBeforeUnmount } from 'vue'
 import { activeDoc, isDirty } from '../stores/documents'
-import { useSettingsStore } from '../stores/settings'
+import { setFontSize, stepFontSize, useSettingsStore } from '../stores/settings'
 import { notice } from '../stores/ui'
+import { useThemeStore } from '../stores/theme'
+import { FONT_MAX, FONT_MIN, effectiveFontSize } from '../stores/appearance'
 
 const settings = useSettingsStore()
+const theme = useThemeStore()
+
+/** The text size showing now: the reader's, or the current theme's. */
+const fontSize = computed(() => {
+  void theme.current // A theme switch changes the default.
+  return effectiveFontSize(settings.value.editor)
+})
 
 /**
  * Counting words means walking the whole document. Doing that synchronously on
@@ -70,6 +79,38 @@ const eolLabel = computed(() => (activeDoc.value?.eol === '\r\n' ? 'CRLF' : 'LF'
     </div>
 
     <div class="status__right">
+      <!-- Text size. The same setting as View ▸ Zoom and Ctrl+wheel. -->
+      <span class="size" role="group" aria-label="Text size">
+        <button
+          class="size__btn"
+          title="Smaller text (Ctrl+Shift+-)"
+          aria-label="Smaller text"
+          :disabled="fontSize <= FONT_MIN"
+          @click="stepFontSize(-1)"
+        >
+          A−
+        </button>
+        <button
+          class="size__value"
+          :title="
+            settings.editor.fontSize === null
+              ? 'Text size (theme default)'
+              : 'Reset to the theme’s size'
+          "
+          @click="setFontSize(null)"
+        >
+          {{ fontSize }}px
+        </button>
+        <button
+          class="size__btn"
+          title="Larger text (Ctrl+Shift+=)"
+          aria-label="Larger text"
+          :disabled="fontSize >= FONT_MAX"
+          @click="stepFontSize(1)"
+        >
+          A+
+        </button>
+      </span>
       <template v-if="activeDoc">
         <span>{{ counts.words }} words</span>
         <span>{{ counts.chars }} chars</span>
@@ -105,6 +146,32 @@ const eolLabel = computed(() => (activeDoc.value?.eol === '\r\n' ? 'CRLF' : 'LF'
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.size {
+  display: flex;
+  align-items: center;
+}
+.size__btn,
+.size__value {
+  height: 18px;
+  padding: 0 5px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: default;
+}
+.size__value {
+  min-width: 38px;
+  font-variant-numeric: tabular-nums;
+}
+.size__btn:hover:not(:disabled),
+.size__value:hover {
+  background: var(--doc-rule);
+}
+.size__btn:disabled {
+  opacity: 0.4;
 }
 .notice {
   color: var(--doc-accent);

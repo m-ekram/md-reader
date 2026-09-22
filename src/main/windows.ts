@@ -59,6 +59,14 @@ export function createWindow(openPath?: string): BrowserWindow {
 
   windows.add(win)
   mark('windowCreated')
+
+  // Zoom is the document's text size, never the page's: the chrome stays the
+  // same size at any zoom. Chromium remembers a page zoom per origin, so a
+  // level left by an older version is cleared, and pinching is turned off.
+  win.webContents.on('did-finish-load', () => {
+    win.webContents.setZoomLevel(0)
+    void win.webContents.setVisualZoomLevelLimits(1, 1)
+  })
   if (saved.maximized) win.maximize()
 
   // Links open in the user's browser, never inside the app shell.

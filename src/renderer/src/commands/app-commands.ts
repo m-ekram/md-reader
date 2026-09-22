@@ -20,8 +20,9 @@ import {
   setActive,
   useDocuments,
 } from '../stores/documents'
-import { patchSettings, useSettingsStore } from '../stores/settings'
+import { patchSettings, setFontSize, stepFontSize, useSettingsStore } from '../stores/settings'
 import { applyTheme, useThemeStore } from '../stores/theme'
+import { validFontSize } from '../stores/appearance'
 import { refreshArticles, revealPath, setRoot, useWorkspace } from '../stores/workspace'
 import { commandPalette, preferences, quickOpen } from '../stores/ui'
 import { flushAll } from '../editor/pool'
@@ -319,9 +320,14 @@ const commands: Command[] = [
       window.api.window.setAlwaysOnTop(alwaysOnTop)
     },
   },
-  { id: 'view.actualSize', run: () => setZoom(0) },
-  { id: 'view.zoomIn', run: () => setZoom(zoom + 0.5) },
-  { id: 'view.zoomOut', run: () => setZoom(zoom - 0.5) },
+  // Zoom is the document's text size; the chrome keeps its size. See appearance.ts.
+  {
+    id: 'view.actualSize',
+    checked: () => validFontSize(settings.value.editor.fontSize) === null,
+    run: () => void setFontSize(null),
+  },
+  { id: 'view.zoomIn', run: () => void stepFontSize(1) },
+  { id: 'view.zoomOut', run: () => void stepFontSize(-1) },
   {
     id: 'view.switchDocs',
     enabled: () => docs.docs.length > 1,
@@ -394,12 +400,6 @@ The version currently open will be replaced. It is not written to disk until you
 ]
 
 let alwaysOnTop = false
-let zoom = 0
-function setZoom(level: number): void {
-  zoom = Math.max(-3, Math.min(6, level))
-  window.api.window.setZoom(zoom)
-  invalidateCommands()
-}
 
 /** Theme commands are generated from whatever themes are installed. */
 export function registerThemeCommands(): void {

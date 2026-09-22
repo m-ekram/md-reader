@@ -380,7 +380,7 @@ function isActive(path: number[]): boolean {
 .menubar {
   display: flex;
   align-items: stretch;
-  height: 30px;
+  height: 26px;
   background: var(--chrome-bg);
   -webkit-app-region: drag;
   user-select: none;
@@ -391,7 +391,7 @@ function isActive(path: number[]): boolean {
 }
 .menubar__top {
   height: 100%;
-  padding: 0 11px;
+  padding: 0 9px;
   border: 0;
   background: transparent;
   color: var(--chrome-fg);

@@ -117,7 +117,9 @@ onBeforeUnmount(() => window.removeEventListener('pointermove', onDrag))
 }
 .sidebar__tab {
   flex: 1;
-  padding: 6px 4px;
+  /* The tab bar's height, so the two rows line up side by side. */
+  height: 24px;
+  padding: 0 4px;
   border: 0;
   background: transparent;
   color: var(--sidebar-fg);

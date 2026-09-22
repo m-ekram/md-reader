@@ -15,6 +15,7 @@ import { commandForAccel, isEnabled, isRegistered, run } from './commands/regist
 import { adoptFile, anyDirty, useDocuments, isDirty } from './stores/documents'
 import { saveActive } from './commands/app-commands'
 import { flushAll } from './editor/pool'
+import { stepFontSize } from './stores/settings'
 
 const docs = useDocuments()
 const unsubscribers: Array<() => void> = []
@@ -39,8 +40,27 @@ function onKeydown(e: KeyboardEvent): void {
   void run(id)
 }
 
+/**
+ * Ctrl+wheel changes the document's text size, as View ▸ Zoom does.
+ *
+ * Left alone, Chromium zooms the whole page, chrome included. Cancelling the
+ * event needs a listener that is not passive. A touchpad sends many small
+ * deltas where a mouse sends one per notch, so they are summed to a notch.
+ */
+let wheelDelta = 0
+function onWheel(e: WheelEvent): void {
+  if (!e.ctrlKey) return
+  e.preventDefault()
+  wheelDelta += e.deltaY
+  if (Math.abs(wheelDelta) < 50) return
+  const step = wheelDelta < 0 ? 1 : -1
+  wheelDelta = 0
+  void stepFontSize(step)
+}
+
 onMounted(() => {
   window.addEventListener('keydown', onKeydown, true)
+  window.addEventListener('wheel', onWheel, { passive: false })
 
   unsubscribers.push(
     window.api.file.onOpenPath(async (path) => adoptFile(await window.api.file.read(path)))
@@ -80,6 +100,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown, true)
+  window.removeEventListener('wheel', onWheel)
   for (const u of unsubscribers) u()
 })
 </script>

@@ -1,5 +1,10 @@
 <script setup lang="ts">
-/** Open documents for this window. Hidden entirely when only one is open. */
+/**
+ * Open documents for this window. Hidden entirely when only one is open.
+ *
+ * Tabs are compact: each is capped in width and shrinks as more open, with the
+ * name ellipsized and given in full, with its folder, in the tooltip.
+ */
 import { isDirty, setActive, useDocuments } from '../stores/documents'
 // Not the store's closeDoc, which removes a document without asking: this is
 // the prompting path, the same one Ctrl+W takes.
@@ -20,6 +25,7 @@ const docs = useDocuments()
         class="tab__select"
         role="tab"
         :aria-selected="i === docs.activeIndex"
+        :title="d.path ?? d.name"
         @click="setActive(i)"
         @auxclick.middle="requestClose(i)"
       >
@@ -45,6 +51,10 @@ const docs = useDocuments()
 .tab {
   display: flex;
   align-items: center;
+  flex: 0 1 auto;
+  min-width: 72px;
+  max-width: 160px;
+  height: 24px;
   background: transparent;
   color: var(--chrome-fg-dim);
   font-size: 12px;
@@ -61,11 +71,21 @@ const docs = useDocuments()
 .tab__select {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 4px 6px 10px;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  gap: 4px;
+  padding: 0 2px 0 10px;
+}
+.tab__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .tab__close {
-  padding: 6px 8px 6px 4px;
+  flex: none;
+  height: 100%;
+  padding: 0 8px 0 4px;
 }
 .tab__select:focus-visible,
 .tab__close:focus-visible {
