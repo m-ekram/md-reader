@@ -16,6 +16,7 @@ import '@milkdown/crepe/theme/common/style.css'
 import './editor/editor.css'
 
 import { initSettings, useSettingsStore } from './stores/settings'
+import { mark } from './utils/startup'
 import { initThemes } from './stores/theme'
 import {
   registerAppCommands,
@@ -75,6 +76,7 @@ async function offerRecoveries(): Promise<boolean> {
 }
 
 async function boot(): Promise<void> {
+  mark('bundleEvaluated')
   await initSettings()
   const settings = useSettingsStore()
 
@@ -111,6 +113,7 @@ async function boot(): Promise<void> {
   initWorkspaceSync()
 
   createApp(App).mount('#app')
+  mark('mounted')
 
   // The window must be usable immediately, whatever the recovery prompt does.
   const blank = newDoc()

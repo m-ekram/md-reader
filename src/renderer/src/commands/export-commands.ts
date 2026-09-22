@@ -8,7 +8,10 @@
  * failed write can be told apart.
  */
 import { activeDoc } from '../stores/documents'
-import { collectExport } from '../export/payload'
+// Only the type: the module itself is loaded on first export. It carries
+// DOMPurify and every theme's stylesheet as a string, none of which a launch
+// needs.
+import type { collectExport } from '../export/payload'
 import { showNotice } from '../stores/ui'
 import { registerAll, type Command } from './registry'
 
@@ -28,6 +31,7 @@ type Exporter = (payload: Awaited<ReturnType<typeof collectExport>> & object) =>
  * actions succeeded or failed rather than a generic "done".
  */
 async function runExport(verb: string, exporter: Exporter): Promise<void> {
+  const { collectExport } = await import('../export/payload')
   const payload = await collectExport()
   if (!payload) {
     showNotice('Nothing to export.', 'error')

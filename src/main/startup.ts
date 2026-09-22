@@ -13,3 +13,10 @@ const marks: Record<string, number> = {}
 export function mark(phase: string): void {
   if (marks[phase] === undefined) marks[phase] = process.uptime() * 1000
 }
+
+/**
+ * When this process started, as a wall-clock time. The renderer records its
+ * phases as wall-clock times, and this puts them on the same scale.
+ */
+;(globalThis as unknown as { __startupOrigin: number }).__startupOrigin =
+  Date.now() - process.uptime() * 1000

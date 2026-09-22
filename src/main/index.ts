@@ -60,14 +60,20 @@ if (!app.requestSingleInstanceLock()) {
     registerThemeIpc()
     registerWindowIpc()
     registerAppIpc()
-    watchUserThemes()
-
-    // Reopen the last workspace so the sidebar is populated on launch.
-    const savedWorkspace = getSettings().workspace
-    if (savedWorkspace) watchRoot(savedWorkspace)
 
     const files = markdownArgs(process.argv)
     createWindow(files[0])
+
+    // Watchers start once the window is on its way, not before it: the
+    // renderer lists the folder itself on launch, and these only report later
+    // changes, so the window has no reason to wait for them.
+    setImmediate(() => {
+      watchUserThemes()
+      // Reopen the last workspace so later changes to it are picked up.
+      const savedWorkspace = getSettings().workspace
+      if (savedWorkspace) watchRoot(savedWorkspace)
+      mark('watchersStarted')
+    })
     for (const extra of files.slice(1)) {
       allWindows()[0]?.webContents.send('file:open-path', extra)
     }

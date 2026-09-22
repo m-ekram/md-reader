@@ -35,6 +35,7 @@ import { searchPlugin } from './find'
 import { typewriterPlugin } from './typewriter'
 import { punctuationPlugin } from './punctuation'
 import { whitespacePlugin } from './whitespace'
+import { mark } from '../utils/startup'
 
 /**
  * Drops the newline the trailing plugin's empty paragraph adds.
@@ -180,6 +181,7 @@ export async function createEditor(opts: {
     })
 
   await crepe.create()
+  mark('editorReady')
   if (opts.readonly) crepe.setReadonly(true)
 
   const stopLabelling = labelBlockHandle(opts.root)

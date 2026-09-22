@@ -58,7 +58,17 @@ async function once() {
   const editableMs = Date.now() - started
 
   // Phases the app records about itself, in ms since its process started.
-  const marks = await app.evaluate(() => globalThis.__startupMarks ?? {})
+  const { origin, main } = await app.evaluate(() => ({
+    origin: globalThis.__startupOrigin,
+    main: globalThis.__startupMarks ?? {},
+  }))
+  // The renderer's are wall-clock times; put them on main's scale.
+  const renderer = await page.evaluate(() => globalThis.__startupMarks ?? {})
+  const marks = { ...main }
+  if (origin !== undefined) {
+    for (const [k, v] of Object.entries(renderer)) marks[k] = v - origin
+  }
+  const order = (m) => Object.fromEntries(Object.entries(m).sort((a, b) => a[1] - b[1]))
 
   // Let it settle before reading memory, or the number is mid-startup noise.
   await new Promise((r) => setTimeout(r, 3000))
@@ -71,7 +81,7 @@ async function once() {
   await app.close()
   const closeMs = Date.now() - closing
 
-  return { editableMs, idleRssMb, closeMs, marks }
+  return { editableMs, idleRssMb, closeMs, marks: order(marks) }
 }
 
 ;(async () => {
@@ -97,12 +107,28 @@ async function once() {
   const warm = runs.slice(1)
   console.log('')
   console.log(`first launch         editable ${runs[0].editableMs} ms`)
-  summarize('warm: editable', warm.map((r) => r.editableMs), 'ms')
+  summarize(
+    'warm: editable',
+    warm.map((r) => r.editableMs),
+    'ms'
+  )
   for (const phase of Object.keys(warm[0]?.marks ?? {})) {
-    summarize(`warm: ${phase}`, warm.map((r) => r.marks[phase] ?? 0), 'ms')
+    summarize(
+      `warm: ${phase}`,
+      warm.map((r) => r.marks[phase] ?? 0),
+      'ms'
+    )
   }
-  summarize('close', runs.map((r) => r.closeMs), 'ms')
-  summarize('idle RSS', runs.map((r) => r.idleRssMb), 'MB')
+  summarize(
+    'close',
+    runs.map((r) => r.closeMs),
+    'ms'
+  )
+  summarize(
+    'idle RSS',
+    runs.map((r) => r.idleRssMb),
+    'MB'
+  )
 
   // Budgets from the plan, checked against the median rather than a lucky run.
   const failures = []
