@@ -36,6 +36,7 @@ import { typewriterPlugin } from './typewriter'
 import { punctuationPlugin } from './punctuation'
 import { whitespacePlugin } from './whitespace'
 import { mark } from '../utils/startup'
+import { codeTheme } from './code-theme'
 
 /**
  * Drops the newline the trailing plugin's empty paragraph adds.
@@ -140,6 +141,10 @@ export async function createEditor(opts: {
       // An LLM integration we do not want.
       [CrepeFeature.AI]: false,
       [CrepeFeature.TopBar]: false,
+    },
+    featureConfigs: {
+      // Colours from the theme, not Crepe's fixed dark palette. See code-theme.ts.
+      [CrepeFeature.CodeMirror]: { theme: codeTheme },
     },
   })
 

@@ -22,6 +22,13 @@
 
   --code-bg: #ebe1c9;
   --code-fg: #3f3222;
+  --syntax-keyword: #a0412b;
+  --syntax-string: #5f7a2a;
+  --syntax-number: #8a5a00;
+  --syntax-comment: #8c7a5e;
+  --syntax-function: #6b4a9a;
+  --syntax-type: #8b5a2b;
+  --syntax-property: #3f6a78;
   --code-font-size: 0.85em;
 
   --quote-bar: #d4c3a1;

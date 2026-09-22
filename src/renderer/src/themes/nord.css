@@ -17,6 +17,13 @@
 
   --code-bg: #3b4252;
   --code-fg: #e5e9f0;
+  --syntax-keyword: #81a1c1;
+  --syntax-string: #a3be8c;
+  --syntax-number: #b48ead;
+  --syntax-comment: #7b88a1;
+  --syntax-function: #88c0d0;
+  --syntax-type: #8fbcbb;
+  --syntax-property: #d8dee9;
 
   --quote-bar: #4c566a;
   --quote-fg: #aab1be;

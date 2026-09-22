@@ -22,6 +22,13 @@
 
   --code-bg: #282828;
   --code-fg: #ebdbb2;
+  --syntax-keyword: #fb4934;
+  --syntax-string: #b8bb26;
+  --syntax-number: #d3869b;
+  --syntax-comment: #928374;
+  --syntax-function: #8ec07c;
+  --syntax-type: #fabd2f;
+  --syntax-property: #83a598;
 
   --quote-bar: #665c54;
   --quote-fg: #bdae93;

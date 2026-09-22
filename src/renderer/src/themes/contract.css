@@ -29,6 +29,16 @@
   --code-font: ui-monospace, 'Cascadia Code', Consolas, monospace;
   --code-font-size: 0.9em;
 
+  /* Syntax colours in code blocks: a palette for light pages. Dark themes
+     redefine these. */
+  --syntax-keyword: #cf222e;
+  --syntax-string: #0a3069;
+  --syntax-number: #0550ae;
+  --syntax-comment: #6e7781;
+  --syntax-function: #8250df;
+  --syntax-type: #953800;
+  --syntax-property: #0550ae;
+
   --quote-bar: #dfe2e5;
   --quote-fg: #6a737d;
 

@@ -43,6 +43,10 @@ or ninety.
 `--code-bg` `--code-fg` `--code-font` `--code-font-size` `--quote-bar`
 `--quote-fg` `--table-border` `--table-header-bg` `--table-stripe`
 
+Syntax colours in code blocks: `--syntax-keyword` `--syntax-string` `--syntax-number`
+`--syntax-comment` `--syntax-function` `--syntax-type` `--syntax-property`. The defaults
+suit a light page; a dark theme should set all seven.
+
 ### Application chrome
 
 `--chrome-bg` `--chrome-fg` `--chrome-fg-dim` `--chrome-hover` `--chrome-active`

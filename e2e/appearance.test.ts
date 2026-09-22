@@ -234,3 +234,43 @@ describe('quotes and alerts', () => {
     expect(shape.labelHeight).toBeLessThan(shape.labelLine * 1.5)
   })
 })
+
+describe('code blocks', () => {
+  it('take their colours from the theme, not a fixed dark palette', async () => {
+    const file = join(ctx.workdir, 'code.md')
+    await writeFile(file, '```js\nconst answer = 42\n```\n', 'utf8')
+    await openFile(ctx, file)
+    await ctx.page.waitForSelector('.milkdown-code-block .cm-content', { timeout: 15_000 })
+
+    const seen = await ctx.page.evaluate(() => {
+      // What a token resolves to under the theme in force.
+      const resolve = (token: string): string => {
+        const probe = document.createElement('span')
+        probe.style.color = `var(${token})`
+        document.body.appendChild(probe)
+        const c = getComputedStyle(probe).color
+        probe.remove()
+        return c
+      }
+      const block = document.querySelector('.milkdown-code-block')!
+      const keyword = [...block.querySelectorAll('.cm-line span')].find(
+        (s) => s.textContent === 'const'
+      )!
+      return {
+        text: getComputedStyle(block.querySelector('.cm-content')!).color,
+        codeFg: resolve('--code-fg'),
+        // The active line's number cell, which is drawn whether or not the
+        // block has focus.
+        activeGutter: getComputedStyle(block.querySelector('.cm-activeLineGutter')!)
+          .backgroundColor,
+        keyword: getComputedStyle(keyword).color,
+        keywordToken: resolve('--syntax-keyword'),
+      }
+    })
+    // Plain code was One Dark's pale grey on a light page.
+    expect(seen.text).toBe(seen.codeFg)
+    // The line number sat on a dark box.
+    expect(seen.activeGutter).toBe('rgba(0, 0, 0, 0)')
+    expect(seen.keyword).toBe(seen.keywordToken)
+  })
+})
