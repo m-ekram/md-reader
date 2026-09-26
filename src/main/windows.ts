@@ -17,6 +17,9 @@ import { mark } from './startup'
 /** A second crash inside this window is treated as a crash loop, not bad luck. */
 const CRASH_LOOP_MS = 30_000
 
+/** How long after its page loads a window may stay hidden. See `showWindow`. */
+const SHOW_BACKSTOP_MS = 2_000
+
 const windows = new Set<BrowserWindow>()
 
 /**
@@ -60,12 +63,37 @@ export function createWindow(openPath?: string): BrowserWindow {
   windows.add(win)
   mark('windowCreated')
 
-  // Zoom is the document's text size, never the page's: the chrome stays the
-  // same size at any zoom. Chromium remembers a page zoom per origin, so a
-  // level left by an older version is cleared, and pinching is turned off.
+  /**
+   * The window is created hidden and shown once, from whichever comes first.
+   *
+   * Showing on `ready-to-show` is what keeps a half-painted window off the
+   * screen, but that event is not guaranteed to arrive: when it does not, the
+   * window stays hidden for good and the app looks dead while its page is
+   * loaded and listening. Three end-to-end suites failed every one of their
+   * tests that way — the document was in the DOM, and nothing was ever on
+   * screen — so a late window is now shown regardless, shortly after its page
+   * finishes loading.
+   */
+  let shown = false
+  const showWindow = (): void => {
+    if (shown || win.isDestroyed()) return
+    shown = true
+    mark('shown')
+    win.show()
+    if (openPath) win.webContents.send('file:open-path', openPath)
+  }
+  let showBackstop: NodeJS.Timeout | undefined
+
   win.webContents.on('did-finish-load', () => {
+    // Zoom is the document's text size, never the page's: the chrome stays the
+    // same size at any zoom. Chromium remembers a page zoom per origin, so a
+    // level left by an older version is cleared, and pinching is turned off.
     win.webContents.setZoomLevel(0)
     void win.webContents.setVisualZoomLevelLimits(1, 1)
+
+    // Long enough that the ordinary path has already shown the window, so this
+    // never pre-empts it and never shows an unpainted one.
+    showBackstop = setTimeout(showWindow, SHOW_BACKSTOP_MS)
   })
   if (saved.maximized) win.maximize()
 
@@ -119,11 +147,7 @@ export function createWindow(openPath?: string): BrowserWindow {
     win.reload()
   })
 
-  win.on('ready-to-show', () => {
-    mark('shown')
-    win.show()
-    if (openPath) win.webContents.send('file:open-path', openPath)
-  })
+  win.on('ready-to-show', showWindow)
 
   const persistBounds = () => {
     if (win.isDestroyed()) return
@@ -157,7 +181,10 @@ export function createWindow(openPath?: string): BrowserWindow {
   win.on('focus', sendState)
   win.on('blur', sendState)
 
-  win.on('closed', () => windows.delete(win))
+  win.on('closed', () => {
+    clearTimeout(showBackstop)
+    windows.delete(win)
+  })
 
   if (process.env['ELECTRON_RENDERER_URL']) {
     void win.loadURL(process.env['ELECTRON_RENDERER_URL'])

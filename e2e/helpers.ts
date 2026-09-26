@@ -30,6 +30,42 @@ export interface AppContext {
 }
 
 /**
+ * Waits until the window is on screen and painting.
+ *
+ * A hidden window still answers every DOM query, so `.app` appears and the
+ * suite looks healthy — and then each test spends its whole timeout inside
+ * Playwright's "waiting for element to be visible, enabled and stable", which
+ * needs animation frames a hidden window never produces. Three suites once
+ * failed all their tests that way. Failing here says what actually happened,
+ * once, instead of one 30-second timeout per test.
+ */
+async function waitUntilPainting(ctx: AppContext): Promise<void> {
+  const deadline = Date.now() + 20_000
+  let visible = false
+  while (Date.now() < deadline) {
+    visible = await ctx.app.evaluate(
+      ({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.isVisible() ?? false
+    )
+    if (visible) {
+      const painted = await ctx.page.evaluate(
+        () =>
+          new Promise<boolean>((resolve) => {
+            requestAnimationFrame(() => resolve(true))
+            setTimeout(() => resolve(false), 3000)
+          })
+      )
+      if (painted) return
+    }
+    await new Promise((r) => setTimeout(r, 250))
+  }
+  throw new Error(
+    visible
+      ? 'the window is visible but never painted a frame, so nothing can be clicked'
+      : 'the window never appeared, so nothing can be clicked'
+  )
+}
+
+/**
  * Launches the app for one suite file and tears it down afterwards.
  *
  * Returns a context whose fields are filled in by `beforeAll`, so tests read
@@ -63,6 +99,7 @@ export function useApp(): AppContext {
     })
     ctx.page.on('pageerror', (e) => ctx.consoleErrors.push(String(e)))
     await ctx.page.waitForSelector('.app', { timeout: 30_000 })
+    await waitUntilPainting(ctx)
   }, 90_000)
 
   /**
