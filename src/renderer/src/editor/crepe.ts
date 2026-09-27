@@ -210,12 +210,18 @@ export async function createEditor(opts: {
   })
   // The baseline for "has this changed?", taken while the user is still
   // reading rather than at their first pause in typing.
-  // Electron has requestIdleCallback; the unit tests' DOM does not.
-  if (typeof requestIdleCallback === 'function') {
-    requestIdleCallback(() => settleBaseline(), { timeout: 3000 })
-  } else {
-    setTimeout(() => settleBaseline(), 0)
-  }
+  // Electron has requestIdleCallback; the unit tests' DOM does not. Cancelled
+  // on destroy: an editor evicted before the idle moment has no serializer.
+  const cancelBaseline: () => void =
+    typeof requestIdleCallback === 'function'
+      ? (
+          (id) => () =>
+            cancelIdleCallback(id)
+        )(requestIdleCallback(() => settleBaseline(), { timeout: 3000 }))
+      : (
+          (id) => () =>
+            clearTimeout(id)
+        )(setTimeout(() => settleBaseline(), 0))
   if (opts.readonly) crepe.setReadonly(true)
 
   const stopLabelling = labelBlockHandle(opts.root)
@@ -245,8 +251,9 @@ export async function createEditor(opts: {
   }
 
   /** The document as opened, serialised once: in idle time, or now if needed first. */
+  let destroyed = false
   const settleBaseline = (): void => {
-    if (lastReported !== null || !openedDoc) return
+    if (destroyed || lastReported !== null || !openedDoc) return
     const doc: ProseNode = openedDoc
     crepe.editor.action((ctx) => {
       lastReported = withoutTrailingParagraph(ctx.get(serializerCtx)(doc), doc)
@@ -289,6 +296,8 @@ export async function createEditor(opts: {
       // mode — passes through here, so this is the one place its unreported
       // edits are guaranteed to be handed over first.
       flush()
+      destroyed = true
+      cancelBaseline()
       stopLabelling()
       stopLabellingToolbar()
       detachImages()
