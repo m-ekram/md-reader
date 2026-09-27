@@ -3,10 +3,13 @@ import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSy
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-vi.mock('electron', () => ({ app: { getPath: () => '' }, BrowserWindow: { getAllWindows: () => [] } }))
+vi.mock('electron', () => ({
+  app: { getPath: () => '' },
+  BrowserWindow: { getAllWindows: () => [] },
+}))
 vi.mock('./log', () => ({ log: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } }))
 
-const { readSettingsFile } = await import('./settings')
+const { readSettingsFile, writeSettingsFile } = await import('./settings')
 const { DEFAULT_SETTINGS } = await import('../shared/settings')
 
 let dir: string
@@ -47,5 +50,28 @@ describe('readSettingsFile', () => {
     expect(aside).toHaveLength(1)
     expect(aside[0]).toMatch(/^settings\.corrupt-2026-09-21T10-00-00-000Z\.json$/)
     expect(readFileSync(join(dir, aside[0]), 'utf8')).toBe(broken)
+  })
+})
+
+describe('writeSettingsFile', () => {
+  it('writes settings that read back', () => {
+    writeSettingsFile(path, { ...DEFAULT_SETTINGS, theme: 'sepia' })
+    expect(readSettingsFile(path).theme).toBe('sepia')
+  })
+
+  it('keeps the previous settings when a write is cut short', () => {
+    // A crash, a power cut or a full disk partway through a write. Written in
+    // place, that left a truncated file, which the next launch set aside as
+    // corrupt: every setting — theme, recent files, workspace — was lost.
+    writeFileSync(path, JSON.stringify({ ...DEFAULT_SETTINGS, theme: 'night' }))
+    const cutShort = ((p: string, data: string) => {
+      writeFileSync(p, data.slice(0, 20))
+      throw new Error('ENOSPC: no space left on device')
+    }) as unknown as typeof writeFileSync
+
+    expect(() =>
+      writeSettingsFile(path, { ...DEFAULT_SETTINGS, theme: 'sepia' }, cutShort)
+    ).toThrow()
+    expect(readSettingsFile(path).theme).toBe('night')
   })
 })

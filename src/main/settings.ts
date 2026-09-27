@@ -3,7 +3,7 @@
  * open window so multi-window stays consistent.
  */
 import { app, BrowserWindow } from 'electron'
-import { readFileSync, renameSync, writeFileSync, mkdirSync } from 'node:fs'
+import { readFileSync, renameSync, rmSync, writeFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { DEFAULT_SETTINGS, mergeSettings, type Settings } from '../shared/settings'
 import { log } from './log'
@@ -79,6 +79,44 @@ function scheduleFlush(): void {
   flushTimer = setTimeout(flushSettings, 300)
 }
 
+/**
+ * Writes the settings file whole, or not at all.
+ *
+ * Written in place, a write cut short by a crash or a full disk left a
+ * truncated file, which the next launch set aside as corrupt: every setting
+ * was lost. The new text goes to a temporary file that then replaces the old
+ * one. Synchronous, because it runs on the way out of the app.
+ *
+ * On Windows a rename over a file another program has open fails outright,
+ * so it is retried briefly; if it still fails, the file is written in place
+ * rather than the change being dropped. `write` is replaceable so a test can
+ * cut a write short.
+ */
+export function writeSettingsFile(
+  path: string,
+  settings: Settings,
+  write: typeof writeFileSync = writeFileSync
+): void {
+  const text = JSON.stringify(settings, null, 2)
+  const tmp = `${path}.tmp`
+  write(tmp, text, 'utf8')
+  for (let attempt = 0; ; attempt++) {
+    try {
+      renameSync(tmp, path)
+      return
+    } catch (err) {
+      if (attempt >= 4) {
+        log.warn('settings rename kept failing; writing in place', { err: String(err) })
+        write(path, text, 'utf8')
+        rmSync(tmp, { force: true })
+        return
+      }
+      // A short synchronous pause: this runs during quit, with no event loop.
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50)
+    }
+  }
+}
+
 export function flushSettings(): void {
   if (!cache) return
   if (flushTimer) {
@@ -87,7 +125,7 @@ export function flushSettings(): void {
   }
   try {
     mkdirSync(app.getPath('userData'), { recursive: true })
-    writeFileSync(file(), JSON.stringify(cache, null, 2), 'utf8')
+    writeSettingsFile(file(), cache)
   } catch (err) {
     log.error('settings flush failed', { err: String(err) })
   }
