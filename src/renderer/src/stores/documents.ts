@@ -46,7 +46,15 @@ export interface Doc {
 }
 
 let untitledCounter = 0
-let docSeq = 0
+/**
+ * A document id, unique across windows and launches. Untitled documents are
+ * journalled under it, and a counter that restarted in every window gave two
+ * windows' untitled work the same journal.
+ */
+function newDocId(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(8))
+  return `doc-${Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')}`
+}
 
 /** Journal key: a real path once saved, otherwise a stable synthetic id. */
 export function journalKey(d: Doc): string {
@@ -77,7 +85,7 @@ export function anyDirty(): boolean {
 export function newDoc(): Doc {
   untitledCounter++
   const d: Doc = {
-    id: `doc-${++docSeq}`,
+    id: newDocId(),
     path: null,
     name: untitledCounter === 1 ? 'Untitled' : `Untitled ${untitledCounter}`,
     content: '',
@@ -135,7 +143,7 @@ export function adoptFile(f: DocumentFile): Doc {
   }
 
   const d: Doc = {
-    id: `doc-${++docSeq}`,
+    id: newDocId(),
     path: f.path,
     // Both separators: on Windows a forward-slash-only split leaves the whole
     // path as the document name, which then shows in the tab and title bar.

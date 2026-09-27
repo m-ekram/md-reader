@@ -143,6 +143,8 @@ async function boot(): Promise<void> {
   const blank = opened ? null : newDoc()
 
   void offerRecoveries().then((restored) => {
+    // Observable, so a test can tell "decided not to ask" from "not yet asked".
+    mark('recoveryChecked')
     // Drop the placeholder if recovery supplied real documents and it was never
     // touched, so a restore does not leave a stray empty tab behind.
     if (!restored || !blank) return

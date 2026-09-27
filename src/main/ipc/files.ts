@@ -2,12 +2,13 @@
  * File operations. Every write goes through here so the data-integrity rules
  * are enforced in one place rather than sprinkled across the renderer.
  */
-import { ipcMain, dialog, shell, BrowserWindow } from 'electron'
+import { ipcMain, dialog, shell, BrowserWindow, app, webContents } from 'electron'
 import { readFile, stat } from 'node:fs/promises'
 import { readTextFile, writeTextFile } from '../fs/textfile'
 import { backup, backupInfo, clearJournal, journal, pendingRecoveries } from '../recovery'
 import { addRecentFile } from '../settings'
 import { log } from '../log'
+import { forgetOwner, forgetPage, noteOwner, recoverableFor } from '../journal-owners'
 import type { DocumentFile, SaveRequest, SaveResult } from '../../shared/ipc'
 import { explainSaveError } from '../../shared/save-errors'
 
@@ -82,10 +83,26 @@ export function registerFileIpc(): void {
   })
 
   // Journalling is fire-and-forget: it must never block or fail a keystroke.
-  ipcMain.on('file:journal', (_e, path: string, content: string) => journal(path, content))
-  ipcMain.handle('file:pending-recoveries', () => pendingRecoveries())
+  // Who journals what, so one window is never offered another's live work.
+  ipcMain.on('file:journal', (e, path: string, content: string) => {
+    noteOwner(path, e.sender.id)
+    journal(path, content)
+  })
+  ipcMain.handle('file:pending-recoveries', (e) =>
+    recoverableFor(pendingRecoveries(), e.sender.id, (id) => {
+      const wc = webContents.fromId(id)
+      return wc !== undefined && !wc.isDestroyed()
+    })
+  )
+  app.on('web-contents-created', (_e, wc) => {
+    const id = wc.id
+    wc.once('destroyed', () => forgetPage(id))
+  })
   ipcMain.handle('file:backup-info', (_e, path: string) => backupInfo(path))
-  ipcMain.handle('file:discard-recovery', (_e, path: string) => clearJournal(path))
+  ipcMain.handle('file:discard-recovery', (_e, path: string) => {
+    forgetOwner(path)
+    clearJournal(path)
+  })
 
   ipcMain.handle('file:show-in-folder', (_e, path: string) => shell.showItemInFolder(path))
 
