@@ -8,6 +8,7 @@
  * discard the buffer.
  */
 import type { WatchEvent } from '../../../main/watcher'
+import type { DocumentFile } from '../../../shared/ipc'
 import { isDirty, journalKey, useDocuments, type Doc } from './documents'
 import { refreshArticles, useWorkspace } from './workspace'
 import { invalidateCommands } from '../commands/registry'
@@ -24,11 +25,22 @@ function nameOf(path: string): string {
   return path.split(/[\\/]/).pop() ?? path
 }
 
-/** Applies file content to a document that has nothing unsaved to lose. */
-function adoptFromDisk(doc: Doc, file: { content: string; mtimeMs: number }): void {
+/**
+ * Replaces a document with the file as it is on disk: the one way a reload
+ * happens, whether a watcher saw the change or the user chose Reload.
+ *
+ * Everything that describes the file comes with it. Two earlier copies of this
+ * each missed something: Reload from Disk never bumped `reloadToken`, so the
+ * screen kept the old text and the next save wrote it back; and a reload over
+ * unsaved edits kept the old encoding and line endings.
+ */
+export function adoptFromDisk(doc: Doc, file: DocumentFile): void {
   doc.content = file.content
   doc.savedContent = file.content
   doc.mtimeMs = file.mtimeMs
+  doc.encoding = file.encoding
+  doc.hasBom = file.hasBom
+  doc.eol = file.eol
   doc.lossy = null
   doc.reloadToken++
   doc.detached = false
@@ -72,9 +84,6 @@ async function handleChanged(path: string): Promise<void> {
 
   if (!isDirty(doc)) {
     // Nothing to lose, so take the newer version without interrupting.
-    doc.encoding = file.encoding
-    doc.hasBom = file.hasBom
-    doc.eol = file.eol
     adoptFromDisk(doc, file)
     return
   }

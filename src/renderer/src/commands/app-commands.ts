@@ -20,6 +20,7 @@ import {
   setActive,
   useDocuments,
 } from '../stores/documents'
+import { adoptFromDisk } from '../stores/external-changes'
 import { patchSettings, setFontSize, stepFontSize, useSettingsStore } from '../stores/settings'
 import { applyTheme, useThemeStore } from '../stores/theme'
 import { validFontSize } from '../stores/appearance'
@@ -183,14 +184,7 @@ const commands: Command[] = [
         if (choice === 'cancel') return
         if (choice === 'save' && !(await saveActive())) return
       }
-      const f = await window.api.file.read(d.path)
-      Object.assign(d, {
-        content: f.content,
-        savedContent: f.content,
-        mtimeMs: f.mtimeMs,
-        lossy: null,
-      })
-      invalidateCommands()
+      adoptFromDisk(d, await window.api.file.read(d.path))
     },
   },
   {

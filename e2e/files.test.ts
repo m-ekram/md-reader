@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest'
 import { writeFile, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { openFile, useApp } from './helpers'
+import { chooseMenu, openFile, useApp, waitForText } from './helpers'
 
 /**
  * Opening, saving and recovering files.
@@ -135,5 +135,42 @@ describe('Data Recovery restores the version kept before the last save', () => {
 
     // Restoring does not touch the disk until the user saves.
     expect(await readFile(file, 'utf8')).toContain('ruined')
+  })
+})
+
+describe('Reload from Disk', () => {
+  it('shows the file as it is on disk, and saves that, not the discarded edit', async () => {
+    const file = join(ctx.workdir, 'reload.md')
+    await writeFile(file, 'The first version.\n', 'utf8')
+    await openFile(ctx, file)
+    await waitForText(ctx, 'The first version.')
+
+    await ctx.page.locator('.ProseMirror').click()
+    await ctx.page.keyboard.press('End')
+    await ctx.page.keyboard.type(' An edit to throw away.')
+    await waitForText(ctx, 'An edit to throw away.')
+
+    // Another program rewrites the file. It was opened on its own, outside a
+    // workspace, so no watcher reloads it: only the command does.
+    await writeFile(file, 'The version on disk.\n', 'utf8')
+
+    // The edit is unsaved, so the command asks first; answer Don't Save.
+    await ctx.app.evaluate(({ dialog }) => {
+      dialog.showMessageBox = (async () => ({
+        response: 1,
+        checkboxChecked: false,
+      })) as typeof dialog.showMessageBox
+    })
+    await chooseMenu(ctx, 'File', 'Reload from Disk')
+
+    // On screen: the disk version, not the old text with the edit.
+    await waitForText(ctx, 'The version on disk.')
+    expect(await ctx.page.locator('.ProseMirror').innerText()).not.toContain('first version')
+
+    // And a save writes what is on screen, not the discarded text.
+    await ctx.page.keyboard.press('Control+s')
+    await expect
+      .poll(() => readFile(file, 'utf8'), { timeout: 10_000 })
+      .toBe('The version on disk.\n')
   })
 })
