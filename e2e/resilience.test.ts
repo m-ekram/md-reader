@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest'
-import { chmod, mkdir, readFile, utimes, writeFile } from 'node:fs/promises'
+import { chmod, mkdir, readdir, readFile, utimes, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { openFile, useApp, waitForText } from './helpers'
 
@@ -363,9 +363,22 @@ describe('a renderer that crashes', () => {
     const file = join(ctx.workdir, 'crash.md')
     await openAndEdit(file, 'Saved before the crash.\n', ' Typed but never saved.')
     await expect.poll(activeTabIsDirty, { timeout: 5000 }).toBeGreaterThan(0)
-    // Journalling is fire-and-forget from the renderer; give the message time
-    // to reach main, which is what the crash handler flushes to disk.
-    await ctx.page.waitForTimeout(500)
+    // Journalling is fire-and-forget from the renderer. Wait until the text is
+    // journalled on disk: a fixed 500 ms wait here failed under the load of a
+    // full run, when the crash came before the journal had reached main.
+    const journalDir = join(ctx.workdir, 'userdata', 'journal')
+    await expect
+      .poll(
+        async () => {
+          for (const f of await readdir(journalDir).catch(() => [] as string[])) {
+            const text = await readFile(join(journalDir, f), 'utf8').catch(() => '')
+            if (text.includes('Typed but never saved.')) return true
+          }
+          return false
+        },
+        { timeout: 10_000 }
+      )
+      .toBe(true)
 
     await recordDialogs([['Unsaved changes were recovered', 0]])
     await ctx.app.evaluate(({ BrowserWindow }) => {
