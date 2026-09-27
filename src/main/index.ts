@@ -1,9 +1,9 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, shell } from 'electron'
 import { mark } from './startup'
-import { existsSync } from 'node:fs'
 import { installCrashHandlers, log } from './log'
 import { flushSettings, getSettings, patchSettings } from './settings'
-import { allWindows, createWindow } from './windows'
+import { allWindows, createWindow, openPaths, takePendingPaths } from './windows'
+import { markdownArgs } from './args'
 import { registerFileIpc } from './ipc/files'
 import { registerWorkspaceIpc } from './ipc/workspace'
 import { registerImageIpc } from './ipc/images'
@@ -18,13 +18,6 @@ import icon from '../../resources/icon.png?asset'
 
 installCrashHandlers()
 
-/** Markdown paths passed on the command line, e.g. by "Open with". */
-function markdownArgs(argv: string[]): string[] {
-  return argv
-    .slice(1)
-    .filter((a) => !a.startsWith('-') && /\.(md|markdown|mdown|mkd|txt)$/i.test(a) && existsSync(a))
-}
-
 // A second launch hands its files to the running instance instead of starting
 // a rival process with its own settings and journal.
 if (!app.requestSingleInstanceLock()) {
@@ -36,9 +29,9 @@ if (!app.requestSingleInstanceLock()) {
     if (win) {
       if (win.isMinimized()) win.restore()
       win.focus()
-      for (const f of files) win.webContents.send('file:open-path', f)
+      openPaths(win, files)
     } else {
-      createWindow(files[0])
+      createWindow(files)
     }
   })
 
@@ -62,8 +55,7 @@ if (!app.requestSingleInstanceLock()) {
     registerWindowIpc()
     registerAppIpc()
 
-    const files = markdownArgs(process.argv)
-    createWindow(files[0])
+    createWindow(markdownArgs(process.argv))
 
     // Watchers start once the window is on its way, not before it: the
     // renderer lists the folder itself on launch, and these only report later
@@ -75,9 +67,6 @@ if (!app.requestSingleInstanceLock()) {
       if (savedWorkspace) watchRoot(savedWorkspace)
       mark('watchersStarted')
     })
-    for (const extra of files.slice(1)) {
-      allWindows()[0]?.webContents.send('file:open-path', extra)
-    }
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow()
@@ -122,6 +111,11 @@ const closeTimers = new WeakMap<BrowserWindow, NodeJS.Timeout>()
 function registerWindowIpc(): void {
   const senderWindow = (e: Electron.IpcMainEvent) => BrowserWindow.fromWebContents(e.sender)
 
+  // The page asks once it listens, and gets the files it would have missed.
+  ipcMain.handle('file:take-pending-paths', (e) => {
+    const w = BrowserWindow.fromWebContents(e.sender)
+    return w ? takePendingPaths(w) : []
+  })
   ipcMain.on('window:minimize', (e) => senderWindow(e)?.minimize())
   ipcMain.on('window:toggle-maximize', (e) => {
     const w = senderWindow(e)

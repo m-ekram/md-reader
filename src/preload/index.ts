@@ -39,6 +39,8 @@ const api = {
     discardRecovery: (path: string): Promise<void> =>
       ipcRenderer.invoke('file:discard-recovery', path),
     onOpenPath: (fn: (path: string) => void) => subscribe('file:open-path', fn),
+    /** Files the window was opened with, asked for once the page is listening. */
+    takePendingPaths: (): Promise<string[]> => ipcRenderer.invoke('file:take-pending-paths'),
   },
 
   workspace: {

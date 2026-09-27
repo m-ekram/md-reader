@@ -32,6 +32,7 @@ import { registerContentCommands } from './commands/content-commands'
 import { registerHelpCommands } from './commands/help-commands'
 import { registerUnavailableCommands } from './commands/unavailable-commands'
 import { adoptFile, closeDoc, newDoc, useDocuments } from './stores/documents'
+import { showNotice } from './stores/ui'
 import { initSearchListeners, initWorkspaceSync } from './stores/workspace'
 import { initExternalChanges } from './stores/external-changes'
 import { setEditorModes } from './editor/typewriter'
@@ -75,6 +76,27 @@ async function offerRecoveries(): Promise<boolean> {
   return restoredAny
 }
 
+/**
+ * Opens the files the window was launched with: a double-click in Explorer,
+ * "Open with", or several files at once.
+ *
+ * Asked for, not waited for. App is mounted by now and listening for any that
+ * arrive later, and main holds the ones that came before, so none is lost in
+ * between. Returns whether any opened, so no blank document is made beside it.
+ */
+async function openStartupFiles(): Promise<boolean> {
+  let openedAny = false
+  for (const path of await window.api.file.takePendingPaths()) {
+    try {
+      adoptFile(await window.api.file.read(path))
+      openedAny = true
+    } catch (err) {
+      showNotice(`Could not open ${path}: ${String(err)}`, 'error')
+    }
+  }
+  return openedAny
+}
+
 async function boot(): Promise<void> {
   mark('bundleEvaluated')
   await initSettings()
@@ -115,13 +137,15 @@ async function boot(): Promise<void> {
   createApp(App).mount('#app')
   mark('mounted')
 
-  // The window must be usable immediately, whatever the recovery prompt does.
-  const blank = newDoc()
+  // The window must be usable immediately, whatever the recovery prompt does:
+  // the files it was opened with, or else a blank document.
+  const opened = await openStartupFiles()
+  const blank = opened ? null : newDoc()
 
   void offerRecoveries().then((restored) => {
     // Drop the placeholder if recovery supplied real documents and it was never
     // touched, so a restore does not leave a stray empty tab behind.
-    if (!restored) return
+    if (!restored || !blank) return
     const docs = useDocuments()
     const i = docs.docs.indexOf(blank)
     if (i >= 0 && docs.docs.length > 1 && blank.content === '') closeDoc(i)

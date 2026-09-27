@@ -37,7 +37,38 @@ export function allWindows(): BrowserWindow[] {
   return [...windows]
 }
 
-export function createWindow(openPath?: string): BrowserWindow {
+/**
+ * Files waiting for a window's page to be ready for them.
+ *
+ * A path sent before the page listens is simply lost. It used to be sent when
+ * the window was shown, which measured launches showed was usually before the
+ * page had mounted: double-clicking a document opened an empty Untitled
+ * instead. Paths now wait here until the page asks for them, which it does
+ * once it is listening; after that they go straight to it. A reload, such as
+ * the recovery from a renderer crash, starts the page again, so it waits again.
+ */
+const pendingPaths = new WeakMap<BrowserWindow, string[]>()
+const listening = new WeakSet<BrowserWindow>()
+
+/** Opens files in a window: now if its page is listening, else when it is. */
+export function openPaths(win: BrowserWindow, paths: string[]): void {
+  if (paths.length === 0 || win.isDestroyed()) return
+  if (listening.has(win)) {
+    for (const p of paths) win.webContents.send('file:open-path', p)
+  } else {
+    pendingPaths.set(win, [...(pendingPaths.get(win) ?? []), ...paths])
+  }
+}
+
+/** Called by the page once it listens: the files it would otherwise have missed. */
+export function takePendingPaths(win: BrowserWindow): string[] {
+  listening.add(win)
+  const paths = pendingPaths.get(win) ?? []
+  pendingPaths.delete(win)
+  return paths
+}
+
+export function createWindow(openAtStart: string[] = []): BrowserWindow {
   const saved = getSettings().window
 
   const { dx, dy } = cascadeOffset()
@@ -66,6 +97,9 @@ export function createWindow(openPath?: string): BrowserWindow {
 
   windows.add(win)
   mark('windowCreated')
+  openPaths(win, openAtStart)
+  // A reload starts a new page, which is not listening until it says so.
+  win.webContents.on('did-start-loading', () => listening.delete(win))
 
   /**
    * The window is created hidden and shown once, from whichever comes first.
@@ -84,7 +118,6 @@ export function createWindow(openPath?: string): BrowserWindow {
     shown = true
     mark('shown')
     win.show()
-    if (openPath) win.webContents.send('file:open-path', openPath)
   }
   let showBackstop: NodeJS.Timeout | undefined
 
