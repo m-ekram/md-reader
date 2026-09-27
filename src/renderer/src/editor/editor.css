@@ -9,8 +9,17 @@
   font-size: var(--doc-font-size);
   line-height: var(--doc-line-height);
 }
+/*
+ * Crepe pads the editor by 120 px on each side, inside the column. That made
+ * every width 240 px narrower than it was set to: Full width left a quarter of
+ * the pane empty, and a theme's 860 px measure showed 620 px of text. The left
+ * keeps a gutter for the block handle (its two 32 px buttons sit beside each
+ * block); the right needs none beyond the column's own padding.
+ */
 .milkdown .ProseMirror {
   outline: none;
+  padding-left: 72px;
+  padding-right: 0;
 }
 .milkdown h1,
 .milkdown h2,
