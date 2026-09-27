@@ -109,3 +109,48 @@ describe('a long document', () => {
     expect(Math.abs((await top()) - before)).toBeLessThan(4)
   })
 })
+
+describe('typing in a long document', () => {
+  it('stays responsive: the median keystroke paints within 100 ms', async () => {
+    // A guard against a large regression, not a benchmark: typing here takes
+    // about 30 ms a key on a desktop, and npm run bench:typing measures it
+    // properly. 4,000 lines stays under the size where source mode is offered.
+    const lines: string[] = []
+    for (let n = 1; lines.length < 4000; n++) {
+      lines.push(`## Section ${n}`, '', `Prose for section ${n}, with *emphasis* and \`code\`.`, '')
+      lines.push(`- a point`, `- another point`, '', `> A quote in section ${n}.`, '')
+    }
+    const file = join(ctx.workdir, 'typing.md')
+    await writeFile(file, lines.join('\n') + '\nEnd of the typing document.\n', 'utf8')
+    await openFile(ctx, file)
+    await waitForText(ctx, 'End of the typing document.')
+
+    const middle = ctx.page.locator('.ProseMirror > p').nth(400)
+    await middle.evaluate((el) => el.scrollIntoView({ block: 'center' }))
+    await middle.click()
+    await ctx.page.keyboard.press('End')
+    await ctx.page.evaluate(() => {
+      const w = window as unknown as { __latency: number[] }
+      w.__latency = []
+      document.addEventListener(
+        'keydown',
+        () => {
+          const t = performance.now()
+          requestAnimationFrame(() => setTimeout(() => w.__latency.push(performance.now() - t), 0))
+        },
+        true
+      )
+    })
+    for (const ch of ' steady typing here') {
+      await ctx.page.keyboard.type(ch)
+      // A typist's pace, so each keystroke is measured on its own.
+      await ctx.page.waitForTimeout(120)
+    }
+    const latency = await ctx.page.evaluate(
+      () => (window as unknown as { __latency: number[] }).__latency
+    )
+    const median = [...latency].sort((a, b) => a - b)[Math.floor(latency.length / 2)]
+    expect(latency.length).toBeGreaterThan(10)
+    expect(median, `median keystroke ${median.toFixed(1)} ms`).toBeLessThan(100)
+  }, 120_000)
+})
