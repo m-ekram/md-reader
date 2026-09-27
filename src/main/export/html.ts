@@ -46,7 +46,7 @@ export function imageType(data: Buffer): string | null {
   if (ascii.startsWith('BM')) return 'image/bmp'
   if (ascii.slice(4, 12) === 'ftypavif' || ascii.slice(4, 12) === 'ftypavis') return 'image/avif'
   // SVG is text: its root element, after an optional XML declaration.
-  const text = data.subarray(0, 1024).toString('utf8').replace(/^﻿/, '').trimStart()
+  const text = data.subarray(0, 1024).toString('utf8').replace(/^\uFEFF/, '').trimStart()
   if (/^(<\?xml[^>]*\?>\s*)?(<!--[\s\S]*?-->\s*)*<svg[\s>]/i.test(text)) return 'image/svg+xml'
   return null
 }
