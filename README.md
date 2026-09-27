@@ -100,6 +100,7 @@ npm install
 npm run dev              # run the app with hot reload
 npm run verify           # typecheck + lint + unit + e2e, in one command
 npm run bench            # startup by phase, close time and memory: a first launch, then the warm median
+npm run bench:typing     # typing and opening in 5,000- and 10,000-line documents (--profile, --callers)
 npm run build:win        # NSIS installer into dist/
 npm test                 # unit tests only
 npm run test:e2e         # end-to-end tests against the real app
@@ -267,6 +268,13 @@ clean run mounting only a small document.
 The 3.0 MB eager chunk is the obvious cold-start lever. `@codemirror/language-data` pulls
 ~110 language modes; they are already split into lazy chunks, but the entry is large enough
 to watch if cold start regresses.
+
+Measured later, by phase: parsing and running the bundle takes about 195 ms of a ~650 ms
+launch, Electron itself about 220 ms, and building the first editor about 105 ms. Serving
+the page from a custom scheme so V8 caches compiled code saved only 13–19 ms, and the
+unused AI code is about 3% of the bundle, so neither was kept. In a 10,000-line document,
+letting Chromium skip layout for off-screen blocks (`content-visibility`) halved keystroke
+latency, but broke jumping to a far heading and Ctrl+End, so it was not kept either.
 
 ## Verdict
 

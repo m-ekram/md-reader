@@ -28,6 +28,7 @@ when you hover over it.
 - An export only ever includes real images, never other files a document points
   at.
 - When something goes wrong, you are told.
+- In a long document, Find shows you the match it moves to.
 
 ## 0.1.0 — the first release
 

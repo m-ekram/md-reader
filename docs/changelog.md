@@ -36,10 +36,16 @@
   longer loses every setting.
 - A window could stay hidden for good when its "ready to show" signal never came.
 - Electron 44.4.5 and DOMPurify 3.4.16, for their security fixes.
+- In a long document, Find now scrolls to the match it selects; it could stay
+  out of sight.
+- Large documents open sooner: one full pass over the document at open is
+  gone, about a third of a second at 10,000 lines.
 
 ### Development
 
 - The end-to-end suite runs locally on Linux in WSL (`npm run test:e2e:wsl`).
+- `npm run bench:typing` measures typing and opening in 5,000- and
+  10,000-line documents, with CPU profiles attributed to source files.
 
 ## 0.1.0
 
