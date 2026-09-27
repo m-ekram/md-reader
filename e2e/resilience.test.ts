@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest'
 import { chmod, mkdir, readdir, readFile, utimes, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { openFile, useApp, waitForText } from './helpers'
+import { openFile, useApp, waitForText, watcherReady } from './helpers'
 
 /**
  * What happens when things go wrong: a save that fails, a file changed
@@ -318,6 +318,8 @@ describe('a file in the workspace touched by another program', () => {
     await mkdir(folder(), { recursive: true })
     await writeFile(file(), 'Content nobody else changes.\n', 'utf8')
     await ctx.page.evaluate((root) => window.api.workspace.set(root), folder())
+    // Live before the touch, or the silence below would prove nothing.
+    await watcherReady(ctx, folder())
 
     await openFile(ctx, file())
     await waitForText(ctx, 'Content nobody else changes')

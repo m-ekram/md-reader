@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest'
 import { mkdir, rename, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { openFile, useApp, waitForText } from './helpers'
+import { openFile, useApp, waitForText, watcherReady } from './helpers'
 
 /**
  * The opened folder: sidebar panels, search, watching and renames.
@@ -10,13 +10,6 @@ import { openFile, useApp, waitForText } from './helpers'
  * Own application instance and temp directory, per helpers.ts.
  */
 const ctx = useApp()
-
-/**
- * The file watcher starts asynchronously after a folder is opened and exposes
- * no signal that it is ready, so a test that changes files on disk has to give
- * it a moment first. Everything else here waits on a condition.
- */
-const WATCHER_START_MS = 800
 
 async function showPanel(panel: 'files' | 'articles' | 'outline' | 'search'): Promise<void> {
   await ctx.page.evaluate(
@@ -154,7 +147,7 @@ describe('a renamed file keeps its tab', () => {
 
     // Rename it the way Explorer would, while the tab is open — once the
     // watcher is running, or the rename is never seen at all.
-    await ctx.page.waitForTimeout(WATCHER_START_MS)
+    await watcherReady(ctx, dir)
     await rename(before, after)
 
     // The tab should move to the new name rather than detaching.

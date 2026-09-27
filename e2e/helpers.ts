@@ -9,7 +9,7 @@
  * Isolation costs a few seconds of launch time per file and removes that whole
  * category of problem.
  */
-import { beforeAll, beforeEach, afterAll } from 'vitest'
+import { beforeAll, beforeEach, afterAll, expect } from 'vitest'
 import {
   _electron as electron,
   type ElectronApplication,
@@ -269,4 +269,21 @@ export async function chooseMenu(ctx: AppContext, menu: string, ...path: string[
   const item = await menuItem(ctx, menu, ...path)
   await item.click()
   await ctx.page.waitForSelector('.menu[role="menu"]', { state: 'detached', timeout: 5000 })
+}
+
+/**
+ * Waits until the folder watcher for `root` is ready. It starts asynchronously
+ * after a folder is opened, and a change made before then is never seen: a
+ * fixed 800 ms pause here once let a rename go unnoticed on a busy machine.
+ */
+export async function watcherReady(ctx: AppContext, root: string): Promise<void> {
+  await expect
+    .poll(
+      () =>
+        ctx.app.evaluate(
+          () => (globalThis as unknown as { __watcherReady?: string }).__watcherReady ?? null
+        ),
+      { timeout: 20_000 }
+    )
+    .toBe(root)
 }

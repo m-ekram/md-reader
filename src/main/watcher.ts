@@ -70,11 +70,19 @@ export function watchRoot(root: string | null): void {
       depth: 12,
     })
 
+    const started = watcher
     watcher
       .on('add', (p) => queue('added', p))
       .on('change', (p) => queue('changed', p))
       .on('unlink', (p) => queue('removed', p))
       .on('error', (err) => log.warn('watcher error', { err: String(err) }))
+      // Changes made before this are not seen. Recorded where a test can wait
+      // for it: a fixed pause before renaming a file missed the rename on a
+      // busy machine.
+      .on('ready', () => {
+        if (watcher !== started) return
+        ;(globalThis as unknown as { __watcherReady?: string }).__watcherReady = root
+      })
 
     log.info('watching workspace', { root })
   } catch (err) {
@@ -93,5 +101,6 @@ export async function stopWatching(): Promise<void> {
   const w = watcher
   watcher = null
   watchedRoot = null
+  ;(globalThis as unknown as { __watcherReady?: string }).__watcherReady = undefined
   if (w) await w.close().catch(() => {})
 }
