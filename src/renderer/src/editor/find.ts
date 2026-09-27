@@ -110,6 +110,24 @@ export function applyQuery(): void {
   findState.current = current
 }
 
+/**
+ * Scrolls the match the selection sits on into the middle of the pane, when
+ * it is off screen.
+ *
+ * The find commands ask ProseMirror to scroll, but ProseMirror scrolls to the
+ * browser's own selection, which is in the find box while the user types
+ * there: in a long document the next match was selected, counted "1 of 1",
+ * and left out of sight.
+ */
+function revealSelection(v: EditorView): void {
+  const pane = v.dom.closest<HTMLElement>('.editor-scroll')
+  if (!pane) return
+  const match = v.coordsAtPos(v.state.selection.from)
+  const box = pane.getBoundingClientRect()
+  if (match.top >= box.top && match.bottom <= box.bottom) return
+  pane.scrollTop += match.top - box.top - box.height / 2
+}
+
 function runCommand(command: (s: EditorState, d?: EditorView['dispatch']) => boolean): void {
   const v = view()
   if (!v) return
@@ -122,6 +140,7 @@ function runCommand(command: (s: EditorState, d?: EditorView['dispatch']) => boo
 
   command(v.state, v.dispatch)
   v.focus()
+  revealSelection(v)
 
   // The selection moved, so "3 of 12" needs recomputing.
   const { total, current } = countMatches(v.state, buildQuery())
