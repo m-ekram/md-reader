@@ -93,6 +93,24 @@ describe('workspace, sidebar and watching', () => {
     await waitForText(ctx, 'Rewritten externally')
   })
 
+  it('shows a file changed while its tab was in the background, on return', async () => {
+    // third.md was shown earlier, so its editor is pooled. It used to come
+    // back as that editor, with the text from before the change: the reload
+    // reached the document, and only an active document's editor was rebuilt.
+    await writeFile(join(notes(), 'sub', 'third.md'), '# Third, rewritten\n\nwhile away\n', 'utf8')
+    // Then the active file. Written second, its reload is the signal that
+    // the watcher has reached the first one too.
+    await writeFile(join(notes(), 'first.md'), '# First, again\n', 'utf8')
+    await waitForText(ctx, 'First, again')
+
+    await ctx.page.locator('.tab__select', { hasText: 'third.md' }).click()
+    await waitForText(ctx, 'Third, rewritten')
+
+    // Back to where the next test expects to be.
+    await ctx.page.locator('.tab__select', { hasText: 'first.md' }).click()
+    await waitForText(ctx, 'First, again')
+  })
+
   it('keeps the tab and its content when the file is deleted, and says so', async () => {
     const before = await ctx.page.locator('.ProseMirror').innerText()
     await rm(join(notes(), 'first.md'), { force: true })

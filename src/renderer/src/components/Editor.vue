@@ -24,6 +24,9 @@ const docs = useDocuments()
 let showToken = 0
 let source: SourceHandle | null = null
 
+/** The reload each pooled editor was built from, by document id. */
+const builtAt = new Map<string, number>()
+
 function teardownSource(): void {
   source?.destroy()
   source = null
@@ -90,6 +93,15 @@ async function show(): Promise<void> {
     return
   }
 
+  // A pooled editor built before the document was reloaded shows the old
+  // text: rebuilt. Checked here, on every show, and not only when the active
+  // document reloads, because a document can be reloaded in the background.
+  const builtFor = doc.reloadToken
+  if ((builtAt.get(doc.id) ?? builtFor) !== builtFor) {
+    await release(doc.id)
+    if (token !== showToken) return
+  }
+
   const pooled = await acquire({
     id: doc.id,
     getContent: () => doc.content,
@@ -103,6 +115,7 @@ async function show(): Promise<void> {
       window.api.file.journal(journalKey(target), markdown)
     },
   })
+  builtAt.set(doc.id, builtFor)
 
   if (token !== showToken || !host.value) return
 
@@ -140,7 +153,7 @@ watch(
 )
 
 // A reload replaces the document's content wholesale. A pooled editor holds its
-// own state and will not pick that up, so its editor is discarded and rebuilt.
+// own state and will not pick that up, so show() rebuilds it.
 watch(
   () => (activeDoc.value ? `${activeDoc.value.id}:${activeDoc.value.reloadToken}` : ''),
   async (next, prev) => {
@@ -148,7 +161,6 @@ watch(
     const [id, token] = next.split(':')
     const [prevId, prevToken] = prev.split(':')
     if (id !== prevId || token === prevToken) return
-    await release(id)
     await show()
   }
 )
