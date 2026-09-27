@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, afterEach } from 'vitest'
 import { _electron as electron, type ElectronApplication, type Page } from 'playwright'
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -84,5 +84,39 @@ describe('launching with files', () => {
     await expect
       .poll(async () => (await openNames(page)).sort(), { timeout: 15_000 })
       .toEqual(['first.md', 'second.md'])
+  }, 90_000)
+})
+
+describe('closing the app with "Don\'t Save"', () => {
+  it('leaves nothing to be "recovered" at the next launch', async () => {
+    const page = await launchWith([])
+    await page.locator('.ProseMirror').click()
+    await page.keyboard.type('Thrown away on purpose.')
+
+    // Journalled first, as unsaved work always is.
+    const journalDir = join(workdir!, 'userdata', 'journal')
+    const journalled = async () => {
+      for (const f of await readdir(journalDir).catch(() => [] as string[])) {
+        const text = await readFile(join(journalDir, f), 'utf8').catch(() => '')
+        if (text.includes('Thrown away on purpose.')) return true
+      }
+      return false
+    }
+    await expect.poll(journalled, { timeout: 10_000 }).toBe(true)
+
+    // Close the window and answer the question with Don't Save.
+    await app!.evaluate(({ dialog }) => {
+      dialog.showMessageBox = (async () => ({
+        response: 1,
+        checkboxChecked: false,
+      })) as typeof dialog.showMessageBox
+    })
+    const exited = new Promise<void>((resolve) => app!.once('close', () => resolve()))
+    await app!.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].close())
+    await exited
+    app = undefined
+
+    // The user chose to discard it: it must not come back as a recovery.
+    expect(await journalled(), 'the discarded work was kept for recovery').toBe(false)
   }, 90_000)
 })

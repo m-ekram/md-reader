@@ -12,7 +12,7 @@ import FindReplace from './components/FindReplace.vue'
 import WordCountPopover from './components/WordCountPopover.vue'
 import { commandPalette, preferences, quickOpen } from './stores/ui'
 import { commandForAccel, isEnabled, isRegistered, run } from './commands/registry'
-import { adoptFile, anyDirty, useDocuments, isDirty } from './stores/documents'
+import { adoptFile, anyDirty, useDocuments, isDirty, journalKey } from './stores/documents'
 import { saveActive } from './commands/app-commands'
 import { flushAll } from './editor/pool'
 import { stepFontSize } from './stores/settings'
@@ -84,6 +84,14 @@ onMounted(() => {
       if (choice === 'cancel') {
         window.api.window.replyClose(false)
         return
+      }
+      if (choice === 'discard') {
+        // Discarded on purpose, as closing a tab with Don't Save already
+        // does: otherwise the journals outlive the window and the work is
+        // offered back as a "recovery" at the next launch.
+        for (const d of docs.docs.filter(isDirty)) {
+          await window.api.file.discardRecovery(journalKey(d))
+        }
       }
       if (choice === 'save') {
         for (let i = 0; i < docs.docs.length; i++) {
