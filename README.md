@@ -101,6 +101,7 @@ npm run bench            # startup by phase, close time and memory: a first laun
 npm run build:win        # NSIS installer into dist/
 npm test                 # unit tests only
 npm run test:e2e         # end-to-end tests against the real app
+npm run test:e2e:wsl     # the same, on Linux in WSL (see below)
 npm run lint             # eslint
 npm run format           # prettier
 npm run spike:roundtrip  # markdown fidelity corpus
@@ -116,6 +117,31 @@ behind them, downloadable from the run:
 gh workflow run verify --ref <branch> -f evidence=true -f baseline_ref=<commit>
 gh workflow run verify --ref <branch> -f e2e_runs=3    # stability check
 ```
+
+### End-to-end tests in WSL
+
+Where Windows will not run the unsigned development build of Electron (Smart App
+Control blocks it), the end-to-end suite runs on Linux in WSL instead, which it
+does not block. `npm run test:e2e:wsl` copies the working tree, uncommitted
+changes included, to `~/md-reader` inside the `Ubuntu-24.04` distro, installs
+the Linux dependencies when `package-lock.json` changes, and runs the suite on a
+virtual display, so nothing appears on the desktop:
+
+```powershell
+npm run test:e2e:wsl                              # the whole suite, about 3 minutes
+npm run test:e2e:wsl -- e2e/appearance.test.ts    # one file
+npm run test:e2e:wsl -- -t "name of one test"     # one test
+npm run test:e2e:wsl -- --headed                  # watch it run, through WSLg
+```
+
+It is a Linux run: behaviour that only Windows has, such as a read-only file
+refusing a save, is skipped there with the reason in the test, and the Windows
+run on CI remains the check before a merge.
+
+One-time setup: `wsl --install -d Ubuntu-24.04`, then, as root in that distro, a
+normal user as the default (Electron will not run as root), Node 24, `rsync`,
+`xvfb`, and Electron's runtime libraries (GTK 3, NSS, GBM, ALSA, XSS, XTST, CUPS,
+DRM, xkbcommon, libsecret) with `fonts-liberation`.
 
 ---
 

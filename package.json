@@ -21,6 +21,7 @@
     "start": "electron-vite preview",
     "test": "vitest run --project unit",
     "test:e2e": "electron-vite build && vitest run --project e2e",
+    "test:e2e:wsl": "wsl -d Ubuntu-24.04 -- bash scripts/wsl-e2e.sh",
     "typecheck": "vue-tsc --noEmit -p tsconfig.json",
     "verify": "npm run typecheck && npm run lint && npm run test && npm run test:e2e"
   },

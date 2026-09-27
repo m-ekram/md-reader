@@ -133,7 +133,11 @@ describe('copying as markdown straight after typing', () => {
   })
 })
 
-describe('a save that fails', () => {
+// Windows only. A read-only file there makes the save's rename over it fail,
+// which is the failure this reports. On Linux a rename over a read-only file
+// succeeds, so there is no failure to report and the save goes through. The
+// second test saves what the first left unsaved, so they skip together.
+describe.skipIf(process.platform !== 'win32')('a save that fails', () => {
   const file = () => join(ctx.workdir, 'readonly.md')
 
   it('says so, instead of appearing to succeed', async () => {
@@ -388,16 +392,20 @@ describe('a renderer that crashes', () => {
       .toBe(true)
 
     // Restored, and on screen once its tab is chosen — not merely offered.
-    const selectCrashTab = `(() => {
+    //
+    // Chosen again on every poll. Each restored document becomes the active
+    // tab, and the others may still be being restored when this one's tab
+    // appears: a choice made then is taken over by the next. A user cannot hit
+    // that, since each recovery prompt is modal; a test answering them
+    // instantly can, and did on Linux, where the journal's hashed order put
+    // another document after this one.
+    const showCrashTab = `(() => {
       const name = [...document.querySelectorAll('.tab__name')].find((e) => e.textContent === 'crash.md')
       name?.closest('button')?.click()
-      return !!name
+      return document.querySelector(".ProseMirror")?.innerText ?? ""
     })()`
-    await expect.poll(() => inWindow<boolean>(selectCrashTab), { timeout: 15_000 }).toBe(true)
     await expect
-      .poll(() => inWindow<string>('document.querySelector(".ProseMirror")?.innerText ?? ""'), {
-        timeout: 15_000,
-      })
+      .poll(() => inWindow<string>(showCrashTab), { timeout: 15_000 })
       .toContain('Typed but never saved')
   }, 90_000)
 })
