@@ -13,7 +13,6 @@
  */
 import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
-import { extname } from 'node:path'
 import { log } from '../log'
 
 export interface ExportPayload {
@@ -28,15 +27,28 @@ export interface ExportPayload {
 /** Images above this are left as links: a data URI of one is unusable anyway. */
 const MAX_INLINE_BYTES = 10 * 1024 * 1024
 
-const MIME_BY_EXT: Record<string, string> = {
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.gif': 'image/gif',
-  '.webp': 'image/webp',
-  '.svg': 'image/svg+xml',
-  '.bmp': 'image/bmp',
-  '.avif': 'image/avif',
+/**
+ * The image type a file's own first bytes declare, or null for anything else.
+ *
+ * Decided by content, never by the link's extension: a received document can
+ * point an "image" at any file, and whatever is embedded travels inside an
+ * export the user then shares. Anything that is not recognisably an image —
+ * a key, a password file, a text file named .png — is not embedded.
+ */
+export function imageType(data: Buffer): string | null {
+  const head = data.subarray(0, 16)
+  if (head.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])))
+    return 'image/png'
+  if (head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff) return 'image/jpeg'
+  const ascii = head.toString('latin1')
+  if (ascii.startsWith('GIF87a') || ascii.startsWith('GIF89a')) return 'image/gif'
+  if (ascii.startsWith('RIFF') && ascii.slice(8, 12) === 'WEBP') return 'image/webp'
+  if (ascii.startsWith('BM')) return 'image/bmp'
+  if (ascii.slice(4, 12) === 'ftypavif' || ascii.slice(4, 12) === 'ftypavis') return 'image/avif'
+  // SVG is text: its root element, after an optional XML declaration.
+  const text = data.subarray(0, 1024).toString('utf8').replace(/^﻿/, '').trimStart()
+  if (/^(<\?xml[^>]*\?>\s*)?(<!--[\s\S]*?-->\s*)*<svg[\s>]/i.test(text)) return 'image/svg+xml'
+  return null
 }
 
 function escapeHtml(text: string): string {
@@ -63,11 +75,23 @@ export async function inlineImages(html: string): Promise<string> {
     if (sources.has(url)) continue
 
     try {
+      // A file URL with a host is a network share: on Windows, reading it
+      // sends the user's credentials to whoever named the host. Refused before
+      // any read.
+      const host = new URL(url).hostname
+      if (host !== '' && host !== 'localhost') {
+        log.warn('refused a network image path', { url })
+        continue
+      }
       const path = fileURLToPath(url)
       const data = await readFile(path)
       if (data.byteLength > MAX_INLINE_BYTES) continue
 
-      const mime = MIME_BY_EXT[extname(path).toLowerCase()] ?? 'application/octet-stream'
+      const mime = imageType(data)
+      if (!mime) {
+        log.warn('not an image; left out of the export', { url })
+        continue
+      }
       sources.set(url, `data:${mime};base64,${data.toString('base64')}`)
     } catch (err) {
       log.warn('could not inline image', { url, err: String(err) })

@@ -42,6 +42,49 @@ describe('inlineImages', () => {
     expect(out.match(/data:image\/png;base64,/g)).toHaveLength(2)
   })
 
+  it('embeds nothing that is not an image, whatever the link calls it', async () => {
+    // A received document can point an image at any file. Embedded, it would
+    // travel inside an export the user then shares: a key, a password file.
+    const secret = 'PRIVATE KEY — must never leave this machine'
+    const urls: string[] = []
+    for (const name of ['notes.txt', 'id_rsa', 'disguised.png']) {
+      const p = join(dir, name)
+      await writeFile(p, secret, 'utf8')
+      urls.push(pathToFileURL(p).href)
+    }
+    const out = await inlineImages(urls.map((u) => `<img src="${u}">`).join(''))
+    expect(out).not.toContain('data:')
+    expect(out).not.toContain(Buffer.from(secret).toString('base64'))
+  })
+
+  it('still recognises every image type an export can carry', async () => {
+    const { imageType } = await import('./html')
+    const bytes = (...b: number[]) => Buffer.from(b)
+    const text = (s: string) => Buffer.from(s, 'latin1')
+    expect(imageType(Buffer.from(PNG_BASE64, 'base64'))).toBe('image/png')
+    expect(imageType(bytes(0xff, 0xd8, 0xff, 0xe0, 0, 0x10))).toBe('image/jpeg')
+    expect(imageType(text('GIF89a\x01\x00'))).toBe('image/gif')
+    expect(imageType(text('RIFF\x24\x00\x00\x00WEBPVP8 '))).toBe('image/webp')
+    expect(imageType(text('BM\x36\x00\x00\x00'))).toBe('image/bmp')
+    expect(imageType(text('\x00\x00\x00\x1cftypavif'))).toBe('image/avif')
+    expect(
+      imageType(text('<?xml version="1.0"?>\n<svg xmlns="http://www.w3.org/2000/svg"/>'))
+    ).toBe('image/svg+xml')
+    expect(imageType(text('<!-- drawn by hand -->\n<svg width="1"></svg>'))).toBe('image/svg+xml')
+    expect(imageType(text('-----BEGIN OPENSSH PRIVATE KEY-----'))).toBeNull()
+    expect(imageType(text('<html><svg></svg></html>'))).toBeNull()
+  })
+
+  it('refuses a network path rather than reading it', async () => {
+    // On Windows a file URL with a host is an SMB share: reading it sends the
+    // user's credentials to whoever named the host.
+    const { log } = await import('../log')
+    vi.mocked(log.warn).mockClear()
+    const html = '<img src="file://attacker.example/share/pic.png">'
+    expect(await inlineImages(html)).toBe(html)
+    expect(log.warn).toHaveBeenCalledWith('refused a network image path', expect.anything())
+  })
+
   it('leaves remote images alone', async () => {
     // Downloading them would make exporting a local file reach the network.
     const html = '<img src="https://example.com/remote.png">'
@@ -116,7 +159,9 @@ describe('stripLocalPaths', () => {
   })
 
   it('unwraps a link to a local file, keeping its words', () => {
-    const out = stripLocalPaths('<p>See <a href="file:///C:/Users/someone/plan.md">the plan</a>.</p>')
+    const out = stripLocalPaths(
+      '<p>See <a href="file:///C:/Users/someone/plan.md">the plan</a>.</p>'
+    )
     expect(out).toBe('<p>See the plan.</p>')
   })
 
