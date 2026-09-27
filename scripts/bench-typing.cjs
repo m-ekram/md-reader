@@ -1,7 +1,7 @@
 /**
  * Typing latency in large documents: keystroke to the next painted frame.
  *
- *   node scripts/bench-typing.cjs [--lines 5000,10000] [--keys 40] [--repeat 3]
+ *   node scripts/bench-typing.cjs [--lines 5000,10000] [--keys 40] [--repeat 3] [--gap 120]
  *                                 [--profile] [--detail <source>] [--callers <source>]
  *                                 [--no-build]
  *
@@ -46,8 +46,9 @@ const DETAIL = arg('--detail', null)
 const CALLERS = arg('--callers', null)
 const PROFILE = process.argv.includes('--profile') || DETAIL !== null || CALLERS !== null
 const BUILD = !process.argv.includes('--no-build')
-// A steady typist. Every keystroke is measured on its own.
-const KEY_GAP_MS = 120
+// Time between keystrokes. 120 ms is a fast typist; 250 ms a relaxed one,
+// whose pauses are what the editor's change reporting waits for.
+const KEY_GAP_MS = Number(arg('--gap', '120'))
 
 /** A document that looks like real notes, not one line repeated. */
 function makeDocument(lines) {
@@ -125,17 +126,18 @@ function attribute(profile, outDir) {
     all += dt
     const seen = new Set()
     const seenDetail = new Set()
-    let inside = false
-    let caller = null
+    // The caller is the parent of the *outermost* frame inside the source:
+    // work like serialising recurses in and out of other libraries, and the
+    // nearest outside frame would only name the recursion.
+    let outermost = null
     for (let n = id; n !== undefined; n = parent.get(n)) {
       const source = sourceOf.get(n)
       seen.add(source)
       if (DETAIL && source.includes(DETAIL)) seenDetail.add(labelOf.get(n))
-      if (CALLERS && caller === null) {
-        if (source.includes(CALLERS)) inside = true
-        else if (inside) caller = labelOf.get(n)
-      }
+      if (CALLERS && source.includes(CALLERS)) outermost = n
     }
+    const callerNode = outermost === null ? undefined : parent.get(outermost)
+    const caller = callerNode === undefined ? null : labelOf.get(callerNode)
     for (const s of seen) add(total, s, dt)
     for (const s of seenDetail) add(detail, s, dt)
     if (caller) add(callers, caller, dt)
