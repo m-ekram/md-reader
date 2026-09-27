@@ -146,11 +146,26 @@ describe('content width', () => {
   it('takes a width in pixels from the slider', async () => {
     await openPreferences()
     await ctx.page.getByRole('combobox', { name: 'Content width' }).selectOption('custom')
-    await ctx.page.getByRole('slider', { name: 'Content width in pixels' }).fill('1000')
-    await expect.poll(columnMaxWidth, { timeout: 5000 }).toBe('1000px')
+    await ctx.page.getByRole('slider', { name: 'Content width in pixels' }).fill('700')
+    await expect.poll(columnMaxWidth, { timeout: 5000 }).toBe('700px')
+
+    // The width the text gets, not the column's box. Crepe's own 120 px of
+    // padding each side once took 240 px of every width while the column's
+    // max-width read exactly as set; only the gutter for the block handle
+    // may remain.
+    const text = await ctx.page.evaluate(() => {
+      const editor = document.querySelector('.milkdown .ProseMirror') as HTMLElement
+      const cs = getComputedStyle(editor)
+      return (
+        editor.getBoundingClientRect().width -
+        parseFloat(cs.paddingLeft) -
+        parseFloat(cs.paddingRight)
+      )
+    })
+    expect(text, `700 px column, ${text} px of text`).toBeGreaterThanOrEqual(700 - 72)
 
     await ctx.page.getByRole('combobox', { name: 'Content width' }).selectOption('theme')
-    await expect.poll(columnMaxWidth, { timeout: 5000 }).not.toBe('1000px')
+    await expect.poll(columnMaxWidth, { timeout: 5000 }).not.toBe('700px')
     await ctx.page.keyboard.press('Escape')
   })
 })

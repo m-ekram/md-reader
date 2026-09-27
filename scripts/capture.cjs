@@ -200,7 +200,21 @@ function docFontSize() {
     const column = () =>
       page.evaluate(() => {
         const cs = getComputedStyle(document.querySelector('.editor-host'))
-        return { maxWidth: cs.maxWidth, width: parseFloat(cs.width), paddingLeft: cs.paddingLeft }
+        // The width the text actually gets, inside the editor's own padding.
+        // The column's box alone once read as set while 240 px of it was empty.
+        const editor = document.querySelector('.milkdown .ProseMirror')
+        const es = getComputedStyle(editor)
+        const text =
+          editor.getBoundingClientRect().width -
+          parseFloat(es.paddingLeft) -
+          parseFloat(es.paddingRight)
+        return {
+          maxWidth: cs.maxWidth,
+          columnWidth: parseFloat(cs.width),
+          textWidth: Math.round(text),
+          editorPadding: `${es.paddingLeft} ${es.paddingRight}`,
+          paneWidth: document.querySelector('.editor-scroll').clientWidth,
+        }
       })
     const widthKind = () => page.getByRole('combobox', { name: 'Content width' })
     const openPrefs = async () => {
