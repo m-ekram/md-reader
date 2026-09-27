@@ -7,7 +7,8 @@
  * pushed to every window. Building the registry now costs little; retrofitting it
  * later would mean touching every store.
  */
-import { BrowserWindow, dialog, shell } from 'electron'
+import { BrowserWindow, Menu, clipboard, dialog, shell } from 'electron'
+import { buildContextMenu } from './context-menu'
 import { join } from 'node:path'
 import { getSettings, patchSettings } from './settings'
 import { flushJournals } from './recovery'
@@ -135,6 +136,19 @@ export function createWindow(openAtStart: string[] = []): BrowserWindow {
   if (saved.maximized) win.maximize()
 
   // Links open in the user's browser, never inside the app shell.
+  // The right-click menu: spelling fixes, links, images, cut/copy/paste.
+  win.webContents.on('context-menu', (_e, params) => {
+    const wc = win.webContents
+    const items = buildContextMenu(params, {
+      replaceMisspelling: (word) => wc.replaceMisspelling(word),
+      addToDictionary: (word) => void wc.session.addWordToSpellCheckerDictionary(word),
+      openLink: (url) => void shell.openExternal(url),
+      copyText: (text) => clipboard.writeText(text),
+      copyImageAt: (x, y) => wc.copyImageAt(x, y),
+    })
+    if (items.length > 0) Menu.buildFromTemplate(items).popup({ window: win })
+  })
+
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https?:/.test(url)) void shell.openExternal(url)
     return { action: 'deny' }

@@ -141,3 +141,32 @@ describe('the command palette runs what it lists', () => {
     await ctx.page.keyboard.press('Escape')
   })
 })
+
+describe('the right-click menu', () => {
+  it('opens in the document with cut, copy and paste', async () => {
+    // Native menus cannot be clicked from here, so the popup is recorded
+    // instead of shown; what it would have shown is the assertion.
+    await ctx.app.evaluate(({ Menu }) => {
+      const g = globalThis as unknown as { __menu?: string[] }
+      g.__menu = undefined
+      Menu.prototype.popup = function (this: Electron.Menu) {
+        g.__menu = this.items.map((i) => i.role ?? i.label)
+      }
+    })
+    // The palette tests above can leave the palette open over the document.
+    const palette = ctx.page.locator('.palette__panel')
+    if (await palette.isVisible()) {
+      await ctx.page.locator('.palette__panel input').first().press('Escape')
+      await palette.waitFor({ state: 'detached', timeout: 5000 })
+    }
+    await newDocument(ctx)
+    await ctx.page.keyboard.type('Some text to right-click')
+    await ctx.page.locator('.ProseMirror p').first().click({ button: 'right' })
+
+    await expect
+      .poll(() =>
+        ctx.app.evaluate(() => (globalThis as unknown as { __menu?: string[] }).__menu ?? null)
+      )
+      .toEqual(expect.arrayContaining(['cut', 'copy', 'paste', 'selectall']))
+  })
+})
