@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, shell } from 'electron'
 import { mark } from './startup'
 import { existsSync } from 'node:fs'
 import { installCrashHandlers, log } from './log'
@@ -14,6 +14,7 @@ import { cancelAllSearches } from './search'
 import { listThemes, readUserTheme, watchUserThemes } from './themes'
 import { flushJournals } from './recovery'
 import type { Settings } from '../shared/settings'
+import icon from '../../resources/icon.png?asset'
 
 installCrashHandlers()
 
@@ -226,6 +227,19 @@ function registerAppIpc(): void {
     await shell.openExternal(url)
   })
   ipcMain.handle('app:version', () => app.getVersion())
+
+  // Its own handler rather than app:info, which also carries error messages:
+  // only About shows the logo.
+  ipcMain.handle('app:about', async (e) => {
+    const win = BrowserWindow.fromWebContents(e.sender)
+    await dialog.showMessageBox(win ?? undefined!, {
+      type: 'none',
+      icon: nativeImage.createFromPath(icon).resize({ width: 64, height: 64 }),
+      buttons: ['OK'],
+      message: 'ekram.md',
+      detail: `Version ${app.getVersion()}`,
+    })
+  })
 
   // Native dialogs rather than window.confirm/alert: those block the renderer
   // and look nothing like the rest of the application.

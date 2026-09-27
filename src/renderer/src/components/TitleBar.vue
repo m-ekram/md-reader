@@ -6,6 +6,7 @@
 import { onMounted, onBeforeUnmount, ref, computed, watchEffect } from 'vue'
 import { activeDoc, isDirty, useDocuments } from '../stores/documents'
 import MenuBar from './MenuBar.vue'
+import logoMark from '../assets/logo-mark.png'
 
 const docs = useDocuments()
 const maximized = ref(false)
@@ -44,7 +45,10 @@ const close = () => window.api.window.close()
 <template>
   <header class="titlebar">
     <div class="titlebar__left">
-      <span class="titlebar__mark" aria-hidden="true">m</span>
+      <!-- The window title already names the app, so the logo is decoration. -->
+      <span class="titlebar__mark" aria-hidden="true">
+        <img class="titlebar__logo" :src="logoMark" alt="" draggable="false" />
+      </span>
       <MenuBar />
     </div>
 
@@ -95,10 +99,20 @@ const close = () => window.api.window.close()
 .titlebar__mark {
   display: grid;
   place-items: center;
-  width: 26px;
-  font-weight: 700;
-  font-size: 13px;
-  color: var(--chrome-accent);
+  width: 30px;
+}
+/*
+ * The logo on a small tile of its own paper colour. Most themes' title bars are
+ * dark, and the logo's dark strokes would disappear on them; on the tile it
+ * reads the same under every theme, in its own colours.
+ */
+.titlebar__logo {
+  width: 18px;
+  height: 18px;
+  padding: 1px;
+  border-radius: 4px;
+  background: #fefdfb;
+  box-sizing: border-box;
 }
 .titlebar__drag {
   flex: 1;

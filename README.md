@@ -1,3 +1,5 @@
+<p align="center"><img src="resources/logo.png" alt="ekram.md logo" width="260"></p>
+
 # ekram.md
 
 A fast, native-feeling WYSIWYG markdown editor for Windows.

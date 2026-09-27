@@ -32,6 +32,10 @@ asarUnpack:
   - out/main/search-worker.js
 
 win:
+  # Built from resources/logo.png by scripts/make-icons.py. Named here rather
+  # than left to discovery: a missing icon would otherwise fall back, silently,
+  # to Electron's own.
+  icon: resources/icon.ico
   target:
     - target: nsis
       arch: [x64]

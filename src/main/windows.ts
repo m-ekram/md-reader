@@ -13,6 +13,7 @@ import { getSettings, patchSettings } from './settings'
 import { flushJournals } from './recovery'
 import { log } from './log'
 import { mark } from './startup'
+import icon from '../../resources/icon.png?asset'
 
 /** A second crash inside this window is treated as a crash loop, not bad luck. */
 const CRASH_LOOP_MS = 30_000
@@ -51,6 +52,9 @@ export function createWindow(openPath?: string): BrowserWindow {
     frame: false,
     titleBarStyle: 'hidden',
     backgroundColor: '#1f2430',
+    // A packaged Windows build takes its icon from the exe; a development run
+    // and a Linux run have no exe to take it from.
+    icon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,

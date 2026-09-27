@@ -22,6 +22,38 @@ describe('application shell', () => {
   it('starts with an editable document', async () => {
     expect(await ctx.page.locator('.ProseMirror').count()).toBe(1)
   })
+
+  it('shows the logo in the title bar, drawn, with its page intact', async () => {
+    // Read back from the image as drawn: loaded, and with the book's page
+    // opaque. The first cut of the icon made the page transparent along with
+    // the paper around it, which left a hole on every dark background.
+    const logo = await ctx.page.evaluate(async () => {
+      const img = document.querySelector('.titlebar__logo') as HTMLImageElement | null
+      if (!img) return null
+      if (!img.complete) await new Promise((r) => img.addEventListener('load', r, { once: true }))
+      const canvas = document.createElement('canvas')
+      canvas.width = img.naturalWidth
+      canvas.height = img.naturalHeight
+      const g = canvas.getContext('2d')!
+      g.drawImage(img, 0, 0)
+      const alpha = (x: number, y: number) => g.getImageData(x, y, 1, 1).data[3]
+      const w = img.naturalWidth
+      return {
+        width: w,
+        shownWidth: img.getBoundingClientRect().width,
+        corner: alpha(0, 0),
+        // Inside the page, clear of its lines: right of centre, below the text.
+        page: alpha(Math.round(w * 0.62), Math.round(w * 0.72)),
+        markText: document.querySelector('.titlebar__mark')!.textContent!.trim(),
+      }
+    })
+    expect(logo, 'no logo in the title bar').not.toBeNull()
+    expect(logo!.width, 'the logo image did not load').toBeGreaterThan(0)
+    expect(logo!.shownWidth).toBeGreaterThan(10)
+    expect(logo!.corner, 'the paper around the mark should be transparent').toBe(0)
+    expect(logo!.page, 'the book page should be opaque').toBe(255)
+    expect(logo!.markText, 'the old "m" is still there').toBe('')
+  })
 })
 
 describe('the command palette runs what it lists', () => {

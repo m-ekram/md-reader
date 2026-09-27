@@ -128,6 +128,8 @@ const api = {
       ipcRenderer.invoke('app:confirm', message, detail),
     info: (message: string, detail?: string): Promise<void> =>
       ipcRenderer.invoke('app:info', message, detail),
+    /** The About box, with the logo. */
+    about: (): Promise<void> => ipcRenderer.invoke('app:about'),
   },
 }
 

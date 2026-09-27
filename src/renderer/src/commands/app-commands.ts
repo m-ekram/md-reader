@@ -392,10 +392,7 @@ The version currently open will be replaced. It is not written to disk until you
   },
   {
     id: 'help.about',
-    run: async () => {
-      const v = await window.api.app.version()
-      await window.api.app.info('ekram.md', `Version ${v}`)
-    },
+    run: () => window.api.app.about(),
   },
 ]
 
