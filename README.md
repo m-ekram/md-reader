@@ -107,9 +107,15 @@ npm run spike:roundtrip  # markdown fidelity corpus
 ```
 
 Every push runs the same checks on a clean Windows machine
-(`.github/workflows/verify.yml`): typecheck, lint, both test suites, a benchmark
-of the pushed commit against `main` on that same machine, and screenshots of the
-main views and every theme, downloadable from the run.
+(`.github/workflows/verify.yml`): typecheck, lint and both test suites. A manual
+run adds, with **evidence** ticked, a benchmark against any baseline on that same
+machine, and screenshots of the main views and every theme with the measurements
+behind them, downloadable from the run:
+
+```powershell
+gh workflow run verify --ref <branch> -f evidence=true -f baseline_ref=<commit>
+gh workflow run verify --ref <branch> -f e2e_runs=3    # stability check
+```
 
 ---
 
