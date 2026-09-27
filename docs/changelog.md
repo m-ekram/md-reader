@@ -14,7 +14,29 @@
 - View ▸ Toolbar shows a formatting toolbar, with a label on every button.
 - The app has its logo: on the window, the taskbar, the installer and About.
 
+### Everyday
+
+- The last session's saved files reopen at launch, with the same one in front;
+  missing files are skipped with a notice. Preferences ▸ Files turns it off.
+- A welcome screen replaces the blank Untitled document at launch and after the
+  last tab closes: New, Open, Open Folder and up to eight recent files.
+- Save automatically (off by default): files with a path are saved a second
+  after typing stops, on switching away, and before the window closes. It
+  refuses to overwrite a file another program changed and says so; Untitled
+  documents and files the round-trip guard warned about are left alone.
+- A right-click menu: spelling suggestions and Add to Dictionary, cut, copy,
+  paste and select all, Open Link and Copy Link, Copy Image.
+- Markdown files dropped anywhere on the window open in tabs.
+- Match Windows light or dark mode (off by default), with a theme for each.
+- On Windows the caption buttons are the system's, so Maximize offers Snap
+  Layouts; they take the theme's title bar colours.
+
 ### Fixes
+
+- A file changed on disk while its tab was in the background came back showing
+  the old text.
+- Every new document warned that saving would reformat it.
+- Saving a file the round-trip guard had warned about kept the warning up.
 
 - Opening a file by double-clicking it, or several at once, could leave the
   file unopened and show an empty Untitled instead.

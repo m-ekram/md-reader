@@ -15,6 +15,23 @@ for long reading sessions. Code blocks now take their colours from the theme.
 **View ▸ Toolbar** shows a formatting toolbar; every button says what it does
 when you hover over it.
 
+### Everyday comforts
+
+- The documents you had open come back when you start the app again, with the
+  same one in front. Turn it off in **Preferences ▸ Files**.
+- With nothing to reopen, a welcome screen offers a new document (press
+  `Enter`), Open, Open Folder and your recent files, instead of a blank page.
+- **Save automatically**, in **Preferences ▸ Files**, saves a document that
+  already has a file a moment after you stop typing, and when you switch away.
+  It is off unless you turn it on, and it never saves over a change another
+  program made.
+- Right-click for spelling suggestions, **Add to Dictionary**, cut, copy and
+  paste, and for opening or copying a link.
+- Drop a markdown file onto the window to open it.
+- **Match Windows light or dark mode**, in **Preferences ▸ Appearance**, picks
+  a light theme and a dark theme and switches as Windows does.
+- On Windows 11, hover over the maximize button for Snap Layouts.
+
 ### Safer with your work
 
 - Double-clicking a document opens it, every time. It could open an empty

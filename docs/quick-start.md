@@ -23,9 +23,13 @@ same text.
 | Find and replace | `Ctrl+F` |
 | Run any command | `Ctrl+Shift+P` |
 
-Files are only written when you save. Opening a document and closing it again
-never changes it, even if the editor would have written it back slightly
-differently.
+Files are only written when you save, unless you turn on **Save automatically**
+in Preferences. Opening a document and closing it again never changes it, even
+if the editor would have written it back slightly differently.
+
+Drop a markdown file onto the window to open it. The documents you had open come
+back the next time you start the app; with none, it opens at a welcome screen
+with your recent files.
 
 ## Working in a folder
 
