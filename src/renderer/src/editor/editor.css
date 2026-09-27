@@ -260,6 +260,14 @@
 }
 
 /*
+ * The formatting toolbar, built in every editor and shown only with
+ * View > Toolbar: a class on the root, set from the setting (see toolbar.ts).
+ */
+:root:not(.show-toolbar) .milkdown .milkdown-top-bar {
+  display: none;
+}
+
+/*
  * Crepe's widgets.
  *
  * Crepe draws its code blocks, menus, toolbar and tooltips with a family of

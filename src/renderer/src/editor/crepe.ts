@@ -37,6 +37,7 @@ import { punctuationPlugin } from './punctuation'
 import { whitespacePlugin } from './whitespace'
 import { mark } from '../utils/startup'
 import { codeTheme } from './code-theme'
+import { buildTopBar, labelTopBar } from './toolbar'
 
 /**
  * Drops the newline the trailing plugin's empty paragraph adds.
@@ -140,11 +141,13 @@ export async function createEditor(opts: {
     features: {
       // An LLM integration we do not want.
       [CrepeFeature.AI]: false,
-      [CrepeFeature.TopBar]: false,
+      // Always built; View > Toolbar shows or hides it. See toolbar.ts.
+      [CrepeFeature.TopBar]: true,
     },
     featureConfigs: {
       // Colours from the theme, not Crepe's fixed dark palette. See code-theme.ts.
       [CrepeFeature.CodeMirror]: { theme: codeTheme },
+      [CrepeFeature.TopBar]: { buildTopBar },
     },
   })
 
@@ -190,6 +193,7 @@ export async function createEditor(opts: {
   if (opts.readonly) crepe.setReadonly(true)
 
   const stopLabelling = labelBlockHandle(opts.root)
+  const stopLabellingToolbar = labelTopBar(opts.root)
 
   // Attached after create(), when the view exists.
   const detachImages = attachImageHandlers(opts.root, () => {
@@ -243,6 +247,7 @@ export async function createEditor(opts: {
       // edits are guaranteed to be handed over first.
       flush()
       stopLabelling()
+      stopLabellingToolbar()
       detachImages()
       await crepe.destroy()
     },

@@ -307,3 +307,59 @@ describe('code blocks', () => {
     expect(seen.keyword).toBe(seen.keywordToken)
   })
 })
+
+describe('toolbar', () => {
+  const bar = () => ctx.page.locator('.milkdown-top-bar').first()
+
+  it('is hidden until View > Toolbar shows it, and hides again', async () => {
+    const file = join(ctx.workdir, 'toolbar.md')
+    await writeFile(file, 'Make this bold please.\n', 'utf8')
+    await openFile(ctx, file)
+    await waitForText(ctx, 'Make this bold please.')
+
+    expect(await bar().isVisible()).toBe(false)
+    await chooseMenu(ctx, 'View', 'Toolbar')
+    await expect.poll(() => bar().isVisible(), { timeout: 5000 }).toBe(true)
+    await chooseMenu(ctx, 'View', 'Toolbar')
+    await expect.poll(() => bar().isVisible(), { timeout: 5000 }).toBe(false)
+  })
+
+  it('formats with a labelled button, and offers no block math', async () => {
+    await chooseMenu(ctx, 'View', 'Toolbar')
+    await expect.poll(() => bar().isVisible(), { timeout: 5000 }).toBe(true)
+
+    // Every button says what it does: they are icons only.
+    const titles = await bar()
+      .locator('.top-bar-item')
+      .evaluateAll((els) => els.map((e) => e.getAttribute('title')))
+    expect(titles).toEqual([
+      'Bold',
+      'Italic',
+      'Strikethrough',
+      'Inline code',
+      'Bullet list',
+      'Numbered list',
+      'Task list',
+      'Link',
+      'Image',
+      'Table',
+      'Code block',
+      'Quote',
+      'Horizontal rule',
+    ])
+
+    // The label is the behaviour: "Bold" makes bold.
+    // The document is that one line: select all of it, as a user would.
+    await ctx.page.locator('.ProseMirror p', { hasText: 'Make this bold please.' }).click()
+    await ctx.page.keyboard.press('Control+a')
+    await expect
+      .poll(() => ctx.page.evaluate(() => window.getSelection()?.toString() ?? ''))
+      .toContain('Make this bold please.')
+    await bar().locator('.top-bar-item[title="Bold"]').click()
+    await expect
+      .poll(() => ctx.page.locator('.ProseMirror strong').count(), { timeout: 5000 })
+      .toBeGreaterThan(0)
+
+    await chooseMenu(ctx, 'View', 'Toolbar')
+  })
+})

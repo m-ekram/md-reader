@@ -74,3 +74,11 @@ export function effectiveFontSize(editor: Editor): number {
 export function steppedFontSize(editor: Editor, delta: number): number {
   return Math.min(FONT_MAX, Math.max(FONT_MIN, effectiveFontSize(editor) + delta))
 }
+
+/**
+ * Shows or hides the formatting toolbar in every editor at once. It is built
+ * in all of them and only hidden, so toggling keeps each editor's undo history.
+ */
+export function applyToolbar(visible: boolean): void {
+  document.documentElement.classList.toggle('show-toolbar', visible)
+}

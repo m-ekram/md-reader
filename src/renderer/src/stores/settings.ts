@@ -7,7 +7,13 @@ import { ref } from 'vue'
 import { DEFAULT_SETTINGS, type Settings } from '../../../shared/settings'
 import { invalidateCommands } from '../commands/registry'
 import { setCapacity } from '../editor/pool'
-import { applyAppearance, steppedFontSize, validFontSize, validWidth } from './appearance'
+import {
+  applyAppearance,
+  applyToolbar,
+  steppedFontSize,
+  validFontSize,
+  validWidth,
+} from './appearance'
 
 const state = ref<Settings>(structuredClone(DEFAULT_SETTINGS))
 
@@ -19,10 +25,12 @@ export async function initSettings(): Promise<void> {
   state.value = await window.api.settings.get()
   setCapacity(state.value.editor.liveEditors)
   applyAppearance(state.value.editor)
+  applyToolbar(state.value.toolbar)
   window.api.settings.onChanged((s) => {
     state.value = s
     setCapacity(s.editor.liveEditors)
     applyAppearance(s.editor)
+    applyToolbar(s.toolbar)
     invalidateCommands()
   })
 }
@@ -30,6 +38,7 @@ export async function initSettings(): Promise<void> {
 export async function patchSettings(patch: Partial<Settings>): Promise<void> {
   state.value = await window.api.settings.patch(patch)
   applyAppearance(state.value.editor)
+  applyToolbar(state.value.toolbar)
   invalidateCommands()
 }
 
