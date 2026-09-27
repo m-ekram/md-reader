@@ -18,6 +18,7 @@ import { flushAll } from './editor/pool'
 import { stepFontSize } from './stores/settings'
 import { installFileDrop } from './drop'
 import { flushSession } from './stores/session'
+import { autoSaveNow, installAutoSave } from './commands/autosave'
 
 const docs = useDocuments()
 const unsubscribers: Array<() => void> = []
@@ -70,6 +71,7 @@ onMounted(() => {
   window.addEventListener('keydown', onKeydown, true)
   window.addEventListener('wheel', onWheel, { passive: false })
   unsubscribers.push(installFileDrop())
+  unsubscribers.push(installAutoSave())
 
   unsubscribers.push(
     window.api.file.onOpenPath(async (path) => adoptFile(await window.api.file.read(path)))
@@ -84,6 +86,8 @@ onMounted(() => {
       // The dirty check reads the store, which lags the editor by a debounce:
       // quitting straight after typing closed without asking.
       flushAll()
+      // With auto-save on, what it can save is saved rather than asked about.
+      await autoSaveNow()
       if (!anyDirty()) {
         await closeNow()
         return

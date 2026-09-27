@@ -323,6 +323,19 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
             />
             <span>Reopen documents from last time</span>
           </label>
+
+          <label class="row row--check">
+            <input
+              type="checkbox"
+              :checked="settings.autoSave"
+              @change="patchSettings({ autoSave: ($event.target as HTMLInputElement).checked })"
+            />
+            <span>Save automatically</span>
+          </label>
+          <p class="hint">
+            Files are saved a moment after you stop typing, and when you switch away. New documents
+            still ask for a name.
+          </p>
         </section>
 
         <section class="prefs__section">

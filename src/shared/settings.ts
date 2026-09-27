@@ -48,6 +48,8 @@ export interface Settings {
    * recovery, never through here.
    */
   session: { restore: boolean; files: string[]; active: string | null }
+  /** Saves documents that have a file a moment after typing stops. */
+  autoSave: boolean
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -74,6 +76,7 @@ export const DEFAULT_SETTINGS: Settings = {
   toolbar: false,
   recentFiles: [],
   session: { restore: true, files: [], active: null },
+  autoSave: false,
 }
 
 /**

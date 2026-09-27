@@ -19,7 +19,9 @@ import {
   newDoc,
   setActive,
   useDocuments,
+  type Doc,
 } from '../stores/documents'
+import type { SaveResult } from '../../../shared/ipc'
 import { adoptFromDisk } from '../stores/external-changes'
 import { patchSettings, setFontSize, stepFontSize, useSettingsStore } from '../stores/settings'
 import { applyTheme, useThemeStore } from '../stores/theme'
@@ -97,10 +99,37 @@ export async function saveActive(saveAs = false): Promise<boolean> {
     name: path.split(/[\\/]/).pop() ?? path,
     savedContent: request.content,
     mtimeMs: res.mtimeMs,
+    // The file is now what the editor wrote, which it keeps exactly: the
+    // warning about reformatting it has been acted on. Left in place, it also
+    // kept auto-save away from the document for good.
+    lossy: { lossy: false, note: '' },
   })
   if (previousJournalKey !== path) await window.api.file.discardRecovery(previousJournalKey)
   invalidateCommands()
   return true
+}
+
+/**
+ * Writes a document back to its own file, refusing if another program has
+ * changed the file since it was read or last saved. Asks nothing and reports
+ * nothing: the caller decides what the user hears. For auto-save.
+ */
+export async function saveInPlace(d: Doc & { path: string }): Promise<SaveResult> {
+  const content = d.content
+  const res = await window.api.file.save({
+    path: d.path,
+    content,
+    encoding: d.encoding,
+    hasBom: d.hasBom,
+    eol: d.eol,
+    expectedMtimeMs: d.mtimeMs,
+  })
+  if (res.ok) {
+    d.savedContent = content
+    d.mtimeMs = res.mtimeMs
+    invalidateCommands()
+  }
+  return res
 }
 
 async function openFiles(): Promise<void> {
