@@ -12,6 +12,9 @@ on:
       e2e_runs:
         description: How many times to run the end-to-end suite (stability check)
         default: '1'
+      baseline_ref:
+        description: What to benchmark against (a branch, tag or commit)
+        default: origin/main
 
 concurrency:
   group: verify-${{ github.ref }}
@@ -56,16 +59,21 @@ jobs:
 
       # Same machine, same job: the only fair comparison. Numbers from different
       # runners, or from a laptop, are not comparable with each other.
-      - name: Benchmark against main
-        if: github.ref != 'refs/heads/main'
+      # On a push to main there is nothing to compare with, unless a run is
+      # started by hand with an older baseline_ref, such as the commit before a
+      # change landed.
+      - name: Benchmark against baseline
+        if: github.event_name == 'workflow_dispatch' || github.ref != 'refs/heads/main'
         # A shared runner may be slower than a desktop; the comparison between
         # the two rows is the result, not the budget check.
         continue-on-error: true
         shell: bash
+        env:
+          BASELINE: ${{ github.event.inputs.baseline_ref || 'origin/main' }}
         run: |
-          git worktree add ../baseline origin/main
+          git worktree add ../baseline "$BASELINE"
           (cd ../baseline && npm ci --no-audit --no-fund && npm run build)
-          echo "## baseline (main)" | tee bench.txt
+          echo "## baseline ($BASELINE)" | tee bench.txt
           (cd ../baseline && node "$GITHUB_WORKSPACE/scripts/bench.cjs" 6) | tee -a bench.txt
           npm run build
           echo "## this commit" | tee -a bench.txt
