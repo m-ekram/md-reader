@@ -177,14 +177,23 @@ function registerWindowIpc(): void {
     }
   })
 
-  ipcMain.on('window:close-reply', (e, allow: boolean) => {
-    const w = senderWindow(e)
-    if (!w) return
+  const standDown = (w: BrowserWindow): void => {
     const t = closeTimers.get(w)
     if (t) {
       clearTimeout(t)
       closeTimers.delete(w)
     }
+  }
+  // The page heard the request. From here the user's answer may take as long
+  // as it takes: the timer below is only for a page that cannot answer at all.
+  ipcMain.on('window:close-ack', (e) => {
+    const w = senderWindow(e)
+    if (w) standDown(w)
+  })
+  ipcMain.on('window:close-reply', (e, allow: boolean) => {
+    const w = senderWindow(e)
+    if (!w) return
+    standDown(w)
     if (allow) {
       closing.add(w)
       w.destroy()
@@ -199,7 +208,9 @@ function registerWindowIpc(): void {
 
       // If the renderer has crashed, or has not mounted its listener yet, no
       // reply will ever arrive and the window becomes impossible to close.
-      // Give it a moment, then go anyway.
+      // Give it a moment, then go anyway. A page that is alive acknowledges at
+      // once (window:close-ack), which stops this: the reply itself waits on
+      // the user, who once lost the window mid-question after four seconds.
       const bail = setTimeout(() => {
         if (!win.isDestroyed()) {
           log.warn('close negotiation timed out; closing anyway')

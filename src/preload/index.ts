@@ -121,6 +121,8 @@ const api = {
     /** Main asks the renderer whether it may close; renderer replies. */
     onCloseRequest: (fn: () => void) => subscribe('window:close-request', fn),
     replyClose: (allow: boolean): void => ipcRenderer.send('window:close-reply', allow),
+    /** Tells main the close request arrived, before any question is asked. */
+    ackClose: (): void => ipcRenderer.send('window:close-ack'),
   },
 
   app: {

@@ -69,6 +69,9 @@ onMounted(() => {
   // Main asks before closing so unsaved work can be rescued first.
   unsubscribers.push(
     window.api.window.onCloseRequest(async () => {
+      // Heard, at once: the answer below can wait on the user for as long as
+      // they need, and main must not give up on it meanwhile.
+      window.api.window.ackClose()
       // The dirty check reads the store, which lags the editor by a debounce:
       // quitting straight after typing closed without asking.
       flushAll()
