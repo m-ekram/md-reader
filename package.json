@@ -9,6 +9,7 @@
   "private": true,
   "scripts": {
     "bench": "node scripts/bench.cjs",
+    "bench:typing": "node scripts/bench-typing.cjs",
     "build": "electron-vite build",
     "build:dir": "electron-vite build && electron-builder --win --dir",
     "build:win": "electron-vite build && electron-builder --win",
