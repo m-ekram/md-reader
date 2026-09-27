@@ -1,7 +1,19 @@
 # Markdown Reference
 
-Everything here round-trips: open a file containing it, save, and the file is
-unchanged.
+Everything shown here is saved back as you wrote it, with a few exceptions
+that a save rewrites into an equivalent form:
+
+- tables: the delimiter row and cell padding are normalised (the content and
+  the alignment are kept)
+- reference links (`[text][label]`) become inline links
+- a line break made with two trailing spaces becomes a backslash
+- HTML entities such as `&amp;` become the characters they stand for
+- underlined headings (`Title` over `=====`) become `#` headings
+- indented code blocks become fenced ones
+- a bare `*` or `_` is escaped
+
+When a file you open contains any of these, the status bar says which ones,
+and where the first change would be, before you edit anything.
 
 ## Text
 
@@ -98,8 +110,8 @@ tags: [notes]
 
 ## Not supported
 
-**Reference links** (`[text][label]` with a separate definition) and **block
-math** (`$$…$$` on its own lines) are read correctly but are not modelled
-separately, so saving rewrites them: a reference link becomes an inline link.
-The menu items that would create them are greyed rather than offering something
-the next save would undo.
+**Reference links** (`[text][label]` with a separate definition) are read
+correctly but saved as inline links. **Block math** (`$$…$$` on its own lines)
+is read and saved unchanged, but cannot be created from the menus. The menu
+items for both are greyed rather than offering something that would not behave
+as expected.
