@@ -199,3 +199,25 @@ describe('a recent file that is gone', () => {
     await ctx.page.keyboard.press('Escape')
   })
 })
+
+describe('dropping a markdown file onto the window', () => {
+  it('opens it in a new tab, with its name and its text', async () => {
+    // A synthetic drop: Playwright cannot drag from the desktop, and a file it
+    // makes has no path on disk, so this exercises the no-path branch. A real
+    // file from Explorer has a path and opens the way File > Open does.
+    await ctx.page.evaluate(() => {
+      const dt = new DataTransfer()
+      dt.items.add(new File(['# Dropped in\n\nFrom a drag.\n'], 'dropped.md', { type: '' }))
+      const target = document.querySelector('.ProseMirror') ?? document.body
+      for (const type of ['dragenter', 'dragover', 'drop']) {
+        target.dispatchEvent(
+          new DragEvent(type, { dataTransfer: dt, bubbles: true, cancelable: true })
+        )
+      }
+    })
+    await waitForText(ctx, 'From a drag.')
+    await expect
+      .poll(() => ctx.page.locator('.tab__name').allTextContents())
+      .toContain('dropped.md')
+  })
+})

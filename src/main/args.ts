@@ -1,7 +1,5 @@
 import { existsSync } from 'node:fs'
-
-/** The file types the app opens from the command line and from Explorer. */
-export const OPENABLE = /\.(md|markdown|mdown|mkd|txt)$/i
+import { OPENABLE } from '../shared/openable'
 
 /**
  * Markdown paths passed on the command line, e.g. by "Open with" or a

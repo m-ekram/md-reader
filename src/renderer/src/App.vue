@@ -16,6 +16,7 @@ import { adoptFile, anyDirty, useDocuments, isDirty, journalKey } from './stores
 import { saveActive } from './commands/app-commands'
 import { flushAll } from './editor/pool'
 import { stepFontSize } from './stores/settings'
+import { installFileDrop } from './drop'
 
 const docs = useDocuments()
 const unsubscribers: Array<() => void> = []
@@ -61,6 +62,7 @@ function onWheel(e: WheelEvent): void {
 onMounted(() => {
   window.addEventListener('keydown', onKeydown, true)
   window.addEventListener('wheel', onWheel, { passive: false })
+  unsubscribers.push(installFileDrop())
 
   unsubscribers.push(
     window.api.file.onOpenPath(async (path) => adoptFile(await window.api.file.read(path)))

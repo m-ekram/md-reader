@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { DocumentFile, SaveRequest, SaveResult, WindowState } from '../shared/ipc'
 import type { Settings } from '../shared/settings'
 import type { BackupInfo, JournalEntry } from '../main/recovery'
@@ -39,6 +39,8 @@ const api = {
     discardRecovery: (path: string): Promise<void> =>
       ipcRenderer.invoke('file:discard-recovery', path),
     onOpenPath: (fn: (path: string) => void) => subscribe('file:open-path', fn),
+    /** Where a dropped file is on disk; empty when it has no path. */
+    pathForFile: (file: File): string => webUtils.getPathForFile(file),
     /** Files the window was opened with, asked for once the page is listening. */
     takePendingPaths: (): Promise<string[]> => ipcRenderer.invoke('file:take-pending-paths'),
   },
