@@ -232,6 +232,9 @@ function registerAppIpc(): void {
     await shell.openExternal(url)
   })
   ipcMain.handle('app:version', () => app.getVersion())
+  ipcMain.on('app:log-error', (_e, message: string) => {
+    log.error('renderer', { message: String(message).slice(0, 4000) })
+  })
 
   // Its own handler rather than app:info, which also carries error messages:
   // only About shows the logo.

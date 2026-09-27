@@ -33,6 +33,7 @@ import { registerHelpCommands } from './commands/help-commands'
 import { registerUnavailableCommands } from './commands/unavailable-commands'
 import { adoptFile, closeDoc, newDoc, useDocuments } from './stores/documents'
 import { showNotice } from './stores/ui'
+import { logError } from './utils/report'
 import { initSearchListeners, initWorkspaceSync } from './stores/workspace'
 import { initExternalChanges } from './stores/external-changes'
 import { setEditorModes } from './editor/typewriter'
@@ -99,6 +100,12 @@ async function openStartupFiles(): Promise<boolean> {
 
 async function boot(): Promise<void> {
   mark('bundleEvaluated')
+  // Anything nothing else caught goes to main.log, not onto the screen:
+  // libraries raise harmless ones (a resize observer's, for one) that would
+  // only alarm. Failures of the user's own actions are shown by the command
+  // runner.
+  window.addEventListener('unhandledrejection', (e) => logError('unhandled rejection', e.reason))
+  window.addEventListener('error', (e) => logError('uncaught error', e.error ?? e.message))
   await initSettings()
   const settings = useSettingsStore()
 

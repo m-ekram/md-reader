@@ -1,8 +1,8 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest'
-import { writeFile, readFile } from 'node:fs/promises'
+import { writeFile, readFile, unlink } from 'node:fs/promises'
 import { join } from 'node:path'
-import { chooseMenu, openFile, useApp, waitForText } from './helpers'
+import { chooseMenu, menuItem, openFile, useApp, waitForText } from './helpers'
 
 /**
  * Opening, saving and recovering files.
@@ -172,5 +172,30 @@ describe('Reload from Disk', () => {
     await expect
       .poll(() => readFile(file, 'utf8'), { timeout: 10_000 })
       .toBe('The version on disk.\n')
+  })
+})
+
+describe('a recent file that is gone', () => {
+  it('says so, and drops it from Open Recent', async () => {
+    const file = join(ctx.workdir, 'gone.md')
+    await writeFile(file, '# Soon gone\n', 'utf8')
+    await openFile(ctx, file)
+    await waitForText(ctx, 'Soon gone')
+    await unlink(file)
+
+    // It used to do nothing at all: the failed read went nowhere, and the
+    // entry stayed in the list to fail again.
+    await chooseMenu(ctx, 'File', 'Open Recent', 'gone.md')
+    await expect
+      .poll(() => ctx.page.locator('.status .notice').textContent(), { timeout: 5000 })
+      .toContain('gone.md')
+
+    await (await menuItem(ctx, 'File', 'Open Recent')).click()
+    await ctx.page.waitForSelector('.menu--nested .menu__item', { state: 'visible' })
+    const labels = await ctx.page
+      .locator('.menu--nested .menu__label')
+      .evaluateAll((els) => els.map((e) => e.textContent?.trim()))
+    expect(labels).not.toContain('gone.md')
+    await ctx.page.keyboard.press('Escape')
   })
 })

@@ -132,6 +132,8 @@ const api = {
       ipcRenderer.invoke('app:confirm', message, detail),
     info: (message: string, detail?: string): Promise<void> =>
       ipcRenderer.invoke('app:info', message, detail),
+    /** Errors from the page, into main.log beside main's own. */
+    logError: (message: string): void => ipcRenderer.send('app:log-error', message),
     /** The About box, with the logo. */
     about: (): Promise<void> => ipcRenderer.invoke('app:about'),
   },

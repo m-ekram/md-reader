@@ -25,7 +25,7 @@ import { patchSettings, setFontSize, stepFontSize, useSettingsStore } from '../s
 import { applyTheme, useThemeStore } from '../stores/theme'
 import { validFontSize } from '../stores/appearance'
 import { refreshArticles, revealPath, setRoot, useWorkspace } from '../stores/workspace'
-import { commandPalette, preferences, quickOpen } from '../stores/ui'
+import { commandPalette, preferences, quickOpen, showNotice } from '../stores/ui'
 import { flushAll } from '../editor/pool'
 
 const docs = useDocuments()
@@ -427,7 +427,18 @@ export function registerRecentCommands(): void {
       run: async () => {
         const path = settings.value.recentFiles[i]
         if (!path) return
-        adoptFile(await window.api.file.read(path))
+        try {
+          adoptFile(await window.api.file.read(path))
+        } catch (err) {
+          if (!/ENOENT/.test(String(err))) throw err
+          // Moved or deleted since: say so, and stop offering it.
+          await patchSettings({ recentFiles: settings.value.recentFiles.filter((p) => p !== path) })
+          const name = path.split(/[\\/]/).pop() ?? path
+          showNotice(
+            `“${name}” is no longer at ${path}, so it was removed from Open Recent.`,
+            'error'
+          )
+        }
       },
     }))
   )

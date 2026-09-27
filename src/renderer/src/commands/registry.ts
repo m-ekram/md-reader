@@ -7,6 +7,7 @@
  * later phases light up their own items by registering handlers, with no stub
  * handlers and no second list to keep in sync.
  */
+import { reportError } from '../utils/report'
 import { reactive, shallowReactive } from 'vue'
 
 export interface Command {
@@ -70,8 +71,15 @@ export function isChecked(id: string): boolean | undefined {
 export async function run(id: string): Promise<void> {
   const c = commands.get(id)
   if (!c || (c.enabled && !c.enabled())) return
-  await c.run()
-  invalidateCommands()
+  try {
+    await c.run()
+  } catch (err) {
+    // Every menu item, shortcut and palette entry comes through here. A
+    // failure used to do nothing visible at all.
+    reportError(`command ${id}`, err)
+  } finally {
+    invalidateCommands()
+  }
 }
 
 export function registeredIds(): string[] {
