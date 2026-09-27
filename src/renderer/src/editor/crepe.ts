@@ -22,8 +22,8 @@ import {
 import type { EditorView } from '@milkdown/kit/prose/view'
 import type { Node as ProseNode } from '@milkdown/kit/prose/model'
 import { Plugin } from '@milkdown/kit/prose/state'
+import { listener } from '@milkdown/kit/plugin/listener'
 import { $prose } from '@milkdown/kit/utils'
-import { listener, listenerCtx } from '@milkdown/kit/plugin/listener'
 import { frontmatterPlugin } from './frontmatter'
 import { applyImageAltFix, applyImageSrcResolution } from './image'
 import { directoryOf } from './assets'
@@ -87,6 +87,17 @@ function labelBlockHandle(root: HTMLElement): () => void {
 }
 
 /**
+ * How long a pause in typing before edits are reported to the store.
+ *
+ * Each report serialises the whole document. The same 200 ms Milkdown's
+ * listener used: a longer pause (600 ms) was measured with
+ * `npm run bench:typing`, at 120 and 250 ms between keys, and made no
+ * difference to typing latency, only to how soon the store caught up.
+ * Anything that needs the text sooner calls `flush`.
+ */
+const REPORT_AFTER_MS = 200
+
+/**
  * Emit conventional markdown, so re-serializing an ordinary file is close to a
  * no-op rather than a reformat. Worth six constructs on its own, measured.
  */
@@ -124,16 +135,20 @@ export async function createEditor(opts: {
   const documentDir = directoryOf(opts.documentPath ?? null)
 
   /**
-   * True while the document holds edits the listener has not yet reported.
+   * True while the document holds edits not yet reported to the store.
    *
-   * The listener is debounced — serializing a large document on every
-   * keystroke would be the most expensive thing on the typing path — so the
-   * document store lags the screen by that window. Anything that *decides*
-   * from the store (save, close, quit, switching to source mode) has to flush
-   * first, or it acts on text without the last keystrokes. Measured: Ctrl+S
-   * straight after typing wrote the file without them.
+   * Edits are reported once the user pauses (REPORT_AFTER_MS), because each
+   * report serialises the whole document, so the document store lags the
+   * screen by that window. Anything that *decides* from the store (save,
+   * close, quit, switching to source mode) has to flush first, or it acts on
+   * text without the last keystrokes. Measured: Ctrl+S straight after typing
+   * wrote the file without them.
    */
   let pending = false
+  let reportTimer: ReturnType<typeof setTimeout> | undefined
+  /** What was last reported; to begin with, the document as opened. */
+  let lastReported: string | null = null
+  let openedDoc: ProseNode | null = null
 
   const crepe = new Crepe({
     root: opts.root,
@@ -159,7 +174,6 @@ export async function createEditor(opts: {
       applyImageSrcResolution(ctx, documentDir)
       applyAlerts(ctx)
     })
-    .use(listener)
     .use(frontmatterPlugin)
     .use(tocPlugin)
     .use(mermaidPlugin)
@@ -168,28 +182,40 @@ export async function createEditor(opts: {
     .use(punctuationPlugin)
     .use(whitespacePlugin)
     .use(
-      // Marks edits the debounced listener has not reported yet. See `flush`.
+      // Marks unreported edits, and reports them once the user pauses.
       $prose(
         () =>
           new Plugin({
             view: () => ({
               update: (view, prev) => {
-                if (!prev.doc.eq(view.state.doc)) pending = true
+                if (prev.doc.eq(view.state.doc)) return
+                pending = true
+                clearTimeout(reportTimer)
+                reportTimer = setTimeout(flush, REPORT_AFTER_MS)
               },
             }),
           })
       )
     )
-    .config((ctx) => {
-      ctx.get(listenerCtx).markdownUpdated((c, markdown, prevMarkdown) => {
-        pending = false
-        if (markdown === prevMarkdown) return
-        opts.onChange(withoutTrailingParagraph(markdown, c.get(editorViewCtx).state.doc))
-      })
-    })
 
+  // Crepe installs Milkdown's change listener, which serialises the whole
+  // document as the editor is created and after every pause. Changes are
+  // reported by the plugin above instead, so it only cost time: without it, a
+  // 10,000-line file opened about 350 ms sooner (bench:typing, 3 runs each).
+  await crepe.editor.remove(listener)
   await crepe.create()
   mark('editorReady')
+  crepe.editor.action((ctx) => {
+    openedDoc = ctx.get(editorViewCtx).state.doc
+  })
+  // The baseline for "has this changed?", taken while the user is still
+  // reading rather than at their first pause in typing.
+  // Electron has requestIdleCallback; the unit tests' DOM does not.
+  if (typeof requestIdleCallback === 'function') {
+    requestIdleCallback(() => settleBaseline(), { timeout: 3000 })
+  } else {
+    setTimeout(() => settleBaseline(), 0)
+  }
   if (opts.readonly) crepe.setReadonly(true)
 
   const stopLabelling = labelBlockHandle(opts.root)
@@ -218,13 +244,30 @@ export async function createEditor(opts: {
     return doc ? withoutTrailingParagraph(raw, doc) : raw
   }
 
+  /** The document as opened, serialised once: in idle time, or now if needed first. */
+  const settleBaseline = (): void => {
+    if (lastReported !== null || !openedDoc) return
+    const doc: ProseNode = openedDoc
+    crepe.editor.action((ctx) => {
+      lastReported = withoutTrailingParagraph(ctx.get(serializerCtx)(doc), doc)
+    })
+  }
+
   const flush = (): void => {
+    clearTimeout(reportTimer)
     // Only when there is something unreported. Serializing unconditionally
     // would mark a clean document dirty whenever its file does not round-trip
     // byte for byte, which the guard already warns about.
     if (!pending) return
     pending = false
-    opts.onChange(currentMarkdown())
+    const markdown = currentMarkdown()
+    // A change that serialises the same as before is not an edit: the trailing
+    // paragraph added on the first click is one. Reporting it would mark a file
+    // that does not round-trip byte for byte as edited.
+    settleBaseline()
+    if (markdown === lastReported) return
+    lastReported = markdown
+    opts.onChange(markdown)
   }
 
   return {

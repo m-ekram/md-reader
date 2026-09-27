@@ -63,18 +63,25 @@ describe('a document ending in a block the trailing plugin follows', () => {
     expect(h.getMarkdown()).toBe(md)
   })
 
-  it('reports the file unchanged through the debounced listener', async () => {
-    // The path that dirtied real documents: the plugin's paragraph makes the
-    // listener report, a moment later, markdown with the extra newline.
+  it('never reports the file as changed for the paragraph alone', async () => {
+    // The path that dirtied real documents: the plugin's paragraph was
+    // reported, a moment later, as markdown with an extra newline. Now a
+    // change that serialises the same is not reported at all.
     const changes: string[] = []
     const h = await open(SHAPES.list, changes)
     touch(h)
-    await new Promise((r) => setTimeout(r, 600))
-
-    // Non-vacuous: the listener must actually have reported, or the loop
-    // below asserts nothing.
-    expect(changes.length, 'the listener reported the appended paragraph').toBeGreaterThan(0)
+    // Past the pause after which edits are reported, then a forced report.
+    await new Promise((r) => setTimeout(r, 800))
+    h.flush()
     for (const reported of changes) expect(reported).toBe(SHAPES.list)
+
+    // Non-vacuous: the same path does report a real edit.
+    h.crepe.editor.action((ctx) => {
+      const view = ctx.get(editorViewCtx)
+      view.dispatch(view.state.tr.insertText('Edited. ', 1))
+    })
+    h.flush()
+    expect(changes.at(-1), 'a real edit is reported').toContain('Edited.')
   })
 
   it('keeps what the user types into that final paragraph', async () => {
