@@ -209,6 +209,23 @@ describe('saving over a file another program changed', () => {
     await ctx.page.keyboard.press('Control+s')
     await expect.poll(() => readFile(file(), 'utf8'), { timeout: 10_000 }).toContain('Our addition')
   })
+
+  it('notices a replacement that carries an older timestamp', async () => {
+    // Sync clients and backup restores put back a file with its original,
+    // older time. The check asked only "is it newer?", so this was missed and
+    // the save overwrote their version without a word.
+    const older = join(ctx.workdir, 'restored.md')
+    await openAndEdit(older, 'Our starting point.\n', ' Our addition.')
+    await writeFile(older, 'Restored from a backup.\n', 'utf8')
+    const anHourAgo = new Date(Date.now() - 60 * 60 * 1000)
+    await utimes(older, anHourAgo, anHourAgo)
+
+    await recordDialogs([['has changed on disk', 1]])
+    await ctx.page.keyboard.press('Control+s')
+
+    await expect.poll(() => findCall('has changed on disk'), { timeout: 10_000 }).toBeTruthy()
+    expect(await readFile(older, 'utf8')).toBe('Restored from a backup.\n')
+  })
 })
 
 describe('saving while another program reads the file', () => {

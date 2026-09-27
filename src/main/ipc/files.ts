@@ -45,7 +45,11 @@ export function registerFileIpc(): void {
       let previous: Buffer | null = null
       try {
         const s = await stat(req.path)
-        if (req.expectedMtimeMs !== undefined && s.mtimeMs > req.expectedMtimeMs + 1) {
+        // Any other time, not only a newer one: a sync client or a backup
+        // restore puts a file back with its original, older time, and asking
+        // only "is it newer?" let a save overwrite that without a word. The
+        // millisecond of slack absorbs file systems that round times.
+        if (req.expectedMtimeMs !== undefined && Math.abs(s.mtimeMs - req.expectedMtimeMs) > 1) {
           return {
             ok: false,
             reason: 'conflict',
