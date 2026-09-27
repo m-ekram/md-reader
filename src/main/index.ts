@@ -11,7 +11,7 @@ import {
 import { mark } from './startup'
 import { installCrashHandlers, log } from './log'
 import { flushSettings, getSettings, patchSettings } from './settings'
-import { allWindows, createWindow, openPaths, takePendingPaths } from './windows'
+import { allWindows, createWindow, OVERLAY_CAPTIONS, openPaths, takePendingPaths } from './windows'
 import { markdownArgs } from './args'
 import { registerFileIpc } from './ipc/files'
 import { registerWorkspaceIpc } from './ipc/workspace'
@@ -126,6 +126,20 @@ function registerWindowIpc(): void {
     return w ? takePendingPaths(w) : { paths: [], restoreSession: false }
   })
   ipcMain.on('window:minimize', (e) => senderWindow(e)?.minimize())
+  // The theme's title bar colours, for the caption buttons Windows draws.
+  // Checked before use: they come from the page's CSS, which a user theme
+  // supplies.
+  ipcMain.on('window:caption-colours', (e, color: unknown, symbolColor: unknown) => {
+    const css = (v: unknown): v is string =>
+      typeof v === 'string' && v.length < 64 && /^[#\w(),.%\s-]+$/.test(v)
+    const w = senderWindow(e)
+    if (!OVERLAY_CAPTIONS || !w || !css(color) || !css(symbolColor)) return
+    try {
+      w.setTitleBarOverlay({ color, symbolColor })
+    } catch (err) {
+      log.warn('caption colours refused', { color, symbolColor, err: String(err) })
+    }
+  })
   ipcMain.on('window:toggle-maximize', (e) => {
     const w = senderWindow(e)
     if (!w) return

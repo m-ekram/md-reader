@@ -3,8 +3,9 @@
  * Custom title bar. The window is frameless so the menu can be themed, which
  * means the caption buttons and drag region are ours to provide.
  */
-import { onMounted, onBeforeUnmount, ref, computed, watchEffect } from 'vue'
+import { onMounted, onBeforeUnmount, ref, computed, watch, watchEffect } from 'vue'
 import { activeDoc, isDirty, useDocuments } from '../stores/documents'
+import { useThemeStore } from '../stores/theme'
 import MenuBar from './MenuBar.vue'
 import logoMark from '../assets/logo-mark.png'
 
@@ -37,13 +38,37 @@ void docs
 
 // `window` does not resolve inside a Vue template, so the bridge is reached
 // through component methods rather than directly in the markup.
+/**
+ * Whether Windows draws the caption buttons over this bar (see main's
+ * `createWindow`). It does on Windows; there, the page leaves them room and
+ * paints them in the theme's title bar colours.
+ */
+const systemCaptions =
+  (navigator as { windowControlsOverlay?: { visible: boolean } }).windowControlsOverlay?.visible ??
+  false
+
+if (systemCaptions) {
+  const themes = useThemeStore()
+  watch(
+    () => themes.applied,
+    () => {
+      const s = getComputedStyle(document.documentElement)
+      window.api.window.captionColours(
+        s.getPropertyValue('--chrome-bg').trim(),
+        s.getPropertyValue('--chrome-fg').trim()
+      )
+    },
+    { immediate: true }
+  )
+}
+
 const minimize = () => window.api.window.minimize()
 const toggleMaximize = () => window.api.window.toggleMaximize()
 const close = () => window.api.window.close()
 </script>
 
 <template>
-  <header class="titlebar">
+  <header class="titlebar" :class="{ 'titlebar--system-captions': systemCaptions }">
     <div class="titlebar__left">
       <!-- The window title already names the app, so the logo is decoration. -->
       <span class="titlebar__mark" aria-hidden="true">
@@ -56,7 +81,7 @@ const close = () => window.api.window.close()
       <span class="titlebar__title">{{ title }}</span>
     </div>
 
-    <div class="titlebar__controls">
+    <div v-if="!systemCaptions" class="titlebar__controls">
       <button class="cap" aria-label="Minimize" @click="minimize">
         <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
           <path d="M0 5h10" stroke="currentColor" stroke-width="1" />
@@ -81,6 +106,13 @@ const close = () => window.api.window.close()
 </template>
 
 <style scoped>
+/*
+ * Room for the caption buttons Windows draws over the bar's right-hand end:
+ * everything right of the area it leaves the page.
+ */
+.titlebar--system-captions {
+  padding-right: calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw));
+}
 .titlebar {
   display: flex;
   align-items: stretch;

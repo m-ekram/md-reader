@@ -116,6 +116,9 @@ const api = {
 
   window: {
     minimize: (): void => ipcRenderer.send('window:minimize'),
+    /** Paints the caption buttons Windows draws in the theme's title bar colours. */
+    captionColours: (color: string, symbolColor: string): void =>
+      ipcRenderer.send('window:caption-colours', color, symbolColor),
     toggleMaximize: (): void => ipcRenderer.send('window:toggle-maximize'),
     close: (): void => ipcRenderer.send('window:close'),
     newWindow: (): void => ipcRenderer.send('window:new'),

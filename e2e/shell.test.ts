@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest'
-import { newDocument, nextFrames, useApp, waitForText } from './helpers'
+import { chooseMenu, newDocument, nextFrames, useApp, waitForText } from './helpers'
 
 /**
  * The application shell: window chrome, status bar, and a usable document on launch.
@@ -49,6 +49,67 @@ describe('application shell', () => {
     expect(logo!.corner, 'the paper around the mark should be transparent').toBe(0)
     expect(logo!.page, 'the book page should be opaque').toBe(255)
     expect(logo!.markText, 'the old "m" is still there').toBe('')
+  })
+})
+
+describe.runIf(process.platform === 'win32')('Windows caption buttons', () => {
+  /**
+   * Windows' own, so hovering Maximize offers Snap Layouts, which buttons
+   * drawn by the page never can. They sit over the page's title bar, so the
+   * page leaves them room and paints them in the theme's colours.
+   */
+  it('are the system’s, over the title bar, with room left for them', async () => {
+    const layout = await ctx.page.evaluate(() => {
+      // Typed by hand: the DOM library this project builds against lacks it.
+      const wco = (
+        navigator as unknown as {
+          windowControlsOverlay?: { visible: boolean; getTitlebarAreaRect(): DOMRect }
+        }
+      ).windowControlsOverlay
+      const area = wco?.getTitlebarAreaRect()
+      return {
+        visible: wco?.visible ?? false,
+        areaRight: area ? area.x + area.width : null,
+        pageButtons: document.querySelectorAll('.titlebar__controls .cap').length,
+        barRight: document.querySelector('.titlebar__drag')!.getBoundingClientRect().right,
+      }
+    })
+    expect(layout.visible, 'no system caption buttons').toBe(true)
+    expect(layout.pageButtons, 'the page draws its own as well').toBe(0)
+    expect(layout.barRight).toBeLessThanOrEqual(layout.areaRight! + 0.5)
+  })
+
+  it('take the theme’s title bar colours, and change with it', async () => {
+    await ctx.app.evaluate(({ BrowserWindow }) => {
+      const g = globalThis as unknown as { __overlay: unknown[] }
+      g.__overlay = []
+      const original = BrowserWindow.prototype.setTitleBarOverlay
+      BrowserWindow.prototype.setTitleBarOverlay = function (this: Electron.BrowserWindow, o) {
+        g.__overlay.push(o)
+        return original.call(this, o)
+      }
+    })
+    const chrome = () =>
+      ctx.page.evaluate(() => {
+        const s = getComputedStyle(document.documentElement)
+        return s.getPropertyValue('--chrome-bg').trim()
+      })
+    const last = () =>
+      ctx.app.evaluate(() => {
+        const calls = (globalThis as unknown as { __overlay: Array<{ color?: string }> }).__overlay
+        return calls.at(-1)?.color ?? null
+      })
+
+    await chooseMenu(ctx, 'Themes', 'Sepia')
+    await expect.poll(last).toBe(await chrome())
+    await chooseMenu(ctx, 'Themes', 'Github')
+    await expect.poll(last).toBe(await chrome())
+  })
+})
+
+describe.skipIf(process.platform === 'win32')('caption buttons elsewhere', () => {
+  it('are drawn by the page', async () => {
+    expect(await ctx.page.locator('.titlebar__controls .cap').count()).toBe(3)
   })
 })
 

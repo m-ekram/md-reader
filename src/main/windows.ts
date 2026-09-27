@@ -19,6 +19,9 @@ import icon from '../../resources/icon.png?asset'
 /** A second crash inside this window is treated as a crash loop, not bad luck. */
 const CRASH_LOOP_MS = 30_000
 
+/** Whether Windows draws the caption buttons. See `createWindow`. */
+export const OVERLAY_CAPTIONS = process.platform === 'win32'
+
 /** How long after its page loads a window may stay hidden. See `showWindow`. */
 const SHOW_BACKSTOP_MS = 2_000
 
@@ -95,8 +98,15 @@ export function createWindow(openAtStart: string[] = []): BrowserWindow {
     minWidth: 560,
     minHeight: 400,
     show: false,
-    frame: false,
     titleBarStyle: 'hidden',
+    // On Windows, Windows draws the caption buttons, over the page's title
+    // bar: hovering Maximize then offers Snap Layouts, which buttons drawn by
+    // the page never can, and the window keeps its native frame and shadow.
+    // The page repaints them in the theme's colours. Elsewhere the page draws
+    // its own, on a frameless window.
+    ...(OVERLAY_CAPTIONS
+      ? { titleBarOverlay: { color: '#24292e', symbolColor: '#e1e4e8', height: 26 } }
+      : { frame: false }),
     backgroundColor: '#1f2430',
     // A packaged Windows build takes its icon from the exe; a development run
     // and a Linux run have no exe to take it from.

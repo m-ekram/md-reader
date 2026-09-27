@@ -38,6 +38,12 @@ const BUILTIN_IDS = new Set([
 const state = reactive({
   available: [] as ThemeInfo[],
   current: 'github',
+  /**
+   * Counts themes finished applying. `current` changes first, before a user
+   * theme's stylesheet has arrived, so anything reading the theme's colours
+   * watches this instead.
+   */
+  applied: 0,
   isImplemented: (id: string) => BUILTIN_IDS.has(id),
 })
 
@@ -66,6 +72,7 @@ export async function applyTheme(id: string): Promise<void> {
   // Mermaid bakes colours into the SVG it produces, so a theme change means
   // the cached diagrams and the initialized instance are both stale.
   resetMermaid()
+  state.applied++
   invalidateCommands()
 }
 
