@@ -33,6 +33,11 @@ async function launchWith(files: Array<{ name: string; text: string }>): Promise
     await writeFile(p, f.text, 'utf8')
     paths.push(p)
   }
+  return start(paths)
+}
+
+/** Launches on the suite's profile, so a relaunch sees what the last run left. */
+async function start(paths: string[]): Promise<Page> {
   // ELECTRON_RUN_AS_NODE is set in some shells and would boot Electron as
   // plain Node, with no application at all.
   const env: Record<string, string> = {}
@@ -40,13 +45,26 @@ async function launchWith(files: Array<{ name: string; text: string }>): Promise
     if (k !== 'ELECTRON_RUN_AS_NODE' && v !== undefined) env[k] = v
   }
   app = await electron.launch({
-    args: ['.', `--user-data-dir=${join(workdir, 'userdata')}`, ...paths],
+    args: ['.', `--user-data-dir=${join(workdir!, 'userdata')}`, ...paths],
     cwd: process.cwd(),
     env,
   })
   const page = await app.firstWindow()
   await page.waitForSelector('.app', { timeout: 30_000 })
   return page
+}
+
+/**
+ * Closes the window as a user does, then starts the app again with no files
+ * on the same profile. Not `app.close()`: that quits, and a quit closes windows
+ * without asking their pages, so what a page keeps on closing is never kept.
+ */
+async function relaunch(): Promise<Page> {
+  const exited = new Promise<void>((resolve) => app!.once('close', () => resolve()))
+  await app!.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].close())
+  await exited
+  app = undefined
+  return start([])
 }
 
 /** The names of the open documents, whichever way they are shown. */
@@ -90,6 +108,8 @@ describe('launching with files', () => {
 describe('closing the app with "Don\'t Save"', () => {
   it('leaves nothing to be "recovered" at the next launch', async () => {
     const page = await launchWith([])
+    await page.locator('.welcome').waitFor({ state: 'visible', timeout: 15_000 })
+    await page.keyboard.press('Control+n')
     await page.locator('.ProseMirror').click()
     await page.keyboard.type('Thrown away on purpose.')
 
@@ -119,4 +139,72 @@ describe('closing the app with "Don\'t Save"', () => {
     // The user chose to discard it: it must not come back as a recovery.
     expect(await journalled(), 'the discarded work was kept for recovery').toBe(false)
   }, 90_000)
+})
+
+describe('the next launch', () => {
+  it('reopens the files that were open, with the same one in front', async () => {
+    const page = await launchWith([
+      { name: 'alpha.md', text: '# Alpha\n\nThe first file.\n' },
+      { name: 'beta.md', text: '# Beta\n\nThe second file.\n' },
+    ])
+    await expect
+      .poll(async () => (await openNames(page)).sort(), { timeout: 15_000 })
+      .toEqual(['alpha.md', 'beta.md'])
+    // Bring the first one to the front, so "which was in front" is tested.
+    await page.locator('.tab__select', { hasText: 'alpha.md' }).click()
+    await page.waitForFunction(() =>
+      document.querySelector('.ProseMirror')?.textContent?.includes('The first file.')
+    )
+
+    const next = await relaunch()
+    await expect
+      .poll(async () => (await openNames(next)).sort(), { timeout: 15_000 })
+      .toEqual(['alpha.md', 'beta.md'])
+    await next.waitForFunction(
+      () => document.querySelector('.ProseMirror')?.textContent?.includes('The first file.'),
+      null,
+      { timeout: 15_000 }
+    )
+  }, 120_000)
+
+  it('reopens a file the app was launched with, though nothing else happened', async () => {
+    // Double-clicked in Explorer, read, closed. Nothing changed after it
+    // opened, and at first nothing was kept.
+    const page = await launchWith([{ name: 'opened.md', text: '# Opened\n\nFrom Explorer.\n' }])
+    await page.waitForFunction(() =>
+      document.querySelector('.ProseMirror')?.textContent?.includes('From Explorer.')
+    )
+
+    const next = await relaunch()
+    await next.waitForFunction(
+      () => document.querySelector('.ProseMirror')?.textContent?.includes('From Explorer.'),
+      null,
+      { timeout: 15_000 }
+    )
+  }, 120_000)
+
+  it('starts at the welcome screen when there is nothing to reopen', async () => {
+    const page = await launchWith([])
+    await page.locator('.welcome').waitFor({ state: 'visible', timeout: 15_000 })
+    expect(await page.locator('.ProseMirror').count()).toBe(0)
+
+    // New is ready for Enter: starting to write is one key away.
+    await page.keyboard.press('Enter')
+    await page.locator('.ProseMirror').waitFor({ state: 'visible', timeout: 15_000 })
+  }, 90_000)
+
+  it('does not reopen them when that is switched off', async () => {
+    const page = await launchWith([{ name: 'gamma.md', text: '# Gamma\n' }])
+    await page.waitForFunction(() =>
+      document.querySelector('.ProseMirror')?.textContent?.includes('Gamma')
+    )
+    await page.evaluate(async () => {
+      const s = await window.api.settings.get()
+      await window.api.settings.patch({ session: { ...s.session, restore: false } })
+    })
+
+    const next = await relaunch()
+    await next.locator('.welcome').waitFor({ state: 'visible', timeout: 15_000 })
+    expect(await next.locator('.tab__name').count()).toBe(0)
+  }, 120_000)
 })

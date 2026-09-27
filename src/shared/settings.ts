@@ -42,6 +42,12 @@ export interface Settings {
   /** The formatting toolbar above the document. */
   toolbar: boolean
   recentFiles: string[]
+  /**
+   * The files open when the app last closed, reopened at the next launch when
+   * `restore` is on. Saved files only: unsaved work comes back through
+   * recovery, never through here.
+   */
+  session: { restore: boolean; files: string[]; active: string | null }
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -67,6 +73,7 @@ export const DEFAULT_SETTINGS: Settings = {
   statusBar: true,
   toolbar: false,
   recentFiles: [],
+  session: { restore: true, files: [], active: null },
 }
 
 /**

@@ -61,12 +61,26 @@ export function openPaths(win: BrowserWindow, paths: string[]): void {
   }
 }
 
-/** Called by the page once it listens: the files it would otherwise have missed. */
-export function takePendingPaths(win: BrowserWindow): string[] {
+/**
+ * The window that reopens the last session: the launch's first. A New Window
+ * starts empty, and a reload of the first window (a renderer crash) gets its
+ * files back.
+ */
+let sessionWindow: BrowserWindow | null = null
+
+/**
+ * Called by the page once it listens: the files it would otherwise have
+ * missed, and whether it is the window that reopens the last session.
+ */
+export function takePendingPaths(win: BrowserWindow): {
+  paths: string[]
+  restoreSession: boolean
+} {
   listening.add(win)
   const paths = pendingPaths.get(win) ?? []
   pendingPaths.delete(win)
-  return paths
+  sessionWindow ??= win
+  return { paths, restoreSession: sessionWindow === win }
 }
 
 export function createWindow(openAtStart: string[] = []): BrowserWindow {

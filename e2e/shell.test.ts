@@ -19,10 +19,6 @@ describe('application shell', () => {
     expect(await ctx.page.locator('.status').count()).toBe(1)
   })
 
-  it('starts with an editable document', async () => {
-    expect(await ctx.page.locator('.ProseMirror').count()).toBe(1)
-  })
-
   it('shows the logo in the title bar, drawn, with its page intact', async () => {
     // Read back from the image as drawn: loaded, and with the book's page
     // opaque. The first cut of the icon made the page transparent along with

@@ -114,7 +114,7 @@ function registerWindowIpc(): void {
   // The page asks once it listens, and gets the files it would have missed.
   ipcMain.handle('file:take-pending-paths', (e) => {
     const w = BrowserWindow.fromWebContents(e.sender)
-    return w ? takePendingPaths(w) : []
+    return w ? takePendingPaths(w) : { paths: [], restoreSession: false }
   })
   ipcMain.on('window:minimize', (e) => senderWindow(e)?.minimize())
   ipcMain.on('window:toggle-maximize', (e) => {

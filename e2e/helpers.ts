@@ -100,6 +100,7 @@ export function useApp(): AppContext {
     ctx.page.on('pageerror', (e) => ctx.consoleErrors.push(String(e)))
     await ctx.page.waitForSelector('.app', { timeout: 30_000 })
     await waitUntilPainting(ctx)
+    await startDocument(ctx)
   }, 90_000)
 
   /**
@@ -120,6 +121,18 @@ export function useApp(): AppContext {
   })
 
   return ctx
+}
+
+/**
+ * Leaves the welcome screen for a new document, as most suites start with one.
+ * Also after a reload, which comes back to the welcome screen when the only
+ * documents open were never saved.
+ */
+export async function startDocument(ctx: AppContext): Promise<void> {
+  await ctx.page.waitForSelector('.welcome, .ProseMirror', { timeout: 30_000 })
+  if ((await ctx.page.locator('.ProseMirror').count()) > 0) return
+  await ctx.page.keyboard.press('Control+n')
+  await ctx.page.waitForSelector('.ProseMirror', { timeout: 15_000 })
 }
 
 /** Opens a path through main, exactly as the File menu would. */

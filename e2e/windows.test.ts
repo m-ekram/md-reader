@@ -37,7 +37,10 @@ async function recordDialogs(): Promise<void> {
 const dialogCalls = () =>
   ctx.app.evaluate(() => (globalThis as unknown as { __calls: DialogCall[] }).__calls ?? [])
 
-/** Whether the second window has booted: its app is up with a document in it. */
+/**
+ * Whether the second window has booted: its app is up, at the welcome screen.
+ * A new window starts empty; only the launch's first reopens the last session.
+ */
 const secondWindowReady = () =>
   ctx.app.evaluate(async ({ BrowserWindow }) => {
     const wins = BrowserWindow.getAllWindows().filter((w) => !w.isDestroyed())
@@ -45,7 +48,7 @@ const secondWindowReady = () =>
     const newest = wins.reduce((a, b) => (a.id > b.id ? a : b))
     try {
       return await newest.webContents.executeJavaScript(
-        '!!document.querySelector(".app") && !!document.querySelector(".ProseMirror")'
+        '!!document.querySelector(".app") && !!document.querySelector(".welcome")'
       )
     } catch {
       return false

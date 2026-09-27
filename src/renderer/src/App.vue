@@ -17,6 +17,7 @@ import { saveActive } from './commands/app-commands'
 import { flushAll } from './editor/pool'
 import { stepFontSize } from './stores/settings'
 import { installFileDrop } from './drop'
+import { flushSession } from './stores/session'
 
 const docs = useDocuments()
 const unsubscribers: Array<() => void> = []
@@ -59,6 +60,12 @@ function onWheel(e: WheelEvent): void {
   void stepFontSize(step)
 }
 
+/** Lets the window go, once the files open in it are kept for next time. */
+async function closeNow(): Promise<void> {
+  await flushSession().catch(() => {})
+  window.api.window.replyClose(true)
+}
+
 onMounted(() => {
   window.addEventListener('keydown', onKeydown, true)
   window.addEventListener('wheel', onWheel, { passive: false })
@@ -78,7 +85,7 @@ onMounted(() => {
       // quitting straight after typing closed without asking.
       flushAll()
       if (!anyDirty()) {
-        window.api.window.replyClose(true)
+        await closeNow()
         return
       }
       const names = docs.docs.filter(isDirty).map((d) => d.name)
@@ -106,7 +113,7 @@ onMounted(() => {
           }
         }
       }
-      window.api.window.replyClose(true)
+      await closeNow()
     })
   )
 })

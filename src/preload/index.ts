@@ -41,8 +41,12 @@ const api = {
     onOpenPath: (fn: (path: string) => void) => subscribe('file:open-path', fn),
     /** Where a dropped file is on disk; empty when it has no path. */
     pathForFile: (file: File): string => webUtils.getPathForFile(file),
-    /** Files the window was opened with, asked for once the page is listening. */
-    takePendingPaths: (): Promise<string[]> => ipcRenderer.invoke('file:take-pending-paths'),
+    /**
+     * Files the window was opened with, asked for once the page is listening,
+     * and whether this window reopens the last session.
+     */
+    takePendingPaths: (): Promise<{ paths: string[]; restoreSession: boolean }> =>
+      ipcRenderer.invoke('file:take-pending-paths'),
   },
 
   workspace: {

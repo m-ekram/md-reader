@@ -31,7 +31,8 @@ import { registerExportCommands } from './commands/export-commands'
 import { registerContentCommands } from './commands/content-commands'
 import { registerHelpCommands } from './commands/help-commands'
 import { registerUnavailableCommands } from './commands/unavailable-commands'
-import { adoptFile, closeDoc, newDoc, useDocuments } from './stores/documents'
+import { adoptFile, newDoc } from './stores/documents'
+import { restoreSession, started, trackSession } from './stores/session'
 import { showNotice } from './stores/ui'
 import { logError } from './utils/report'
 import { initSearchListeners, initWorkspaceSync } from './stores/workspace'
@@ -47,11 +48,9 @@ import { setShowWhitespace } from './editor/whitespace'
  * that was never saved, so the prompt describes both without showing the
  * synthetic key to the user.
  */
-async function offerRecoveries(): Promise<boolean> {
+async function offerRecoveries(): Promise<void> {
   const pending = await window.api.file.pendingRecoveries()
-  if (pending.length === 0) return false
 
-  let restoredAny = false
   // Prompting happens after the window is usable, never as a gate in front of
   // it: a modal that appears before the first document exists leaves the app
   // looking hung if anything goes wrong answering it.
@@ -70,11 +69,13 @@ async function offerRecoveries(): Promise<boolean> {
     }
 
     const file = untitled ? null : await window.api.file.read(entry.path).catch(() => null)
+    // The file may be open already, reopened with the last session: adoptFile
+    // then returns that tab, whose editor was built from the text on disk.
+    // The reload token has it rebuilt from the recovered text instead.
     const doc = file ? adoptFile(file) : newDoc()
     doc.content = entry.content
-    restoredAny = true
+    doc.reloadToken++
   }
-  return restoredAny
 }
 
 /**
@@ -83,19 +84,19 @@ async function offerRecoveries(): Promise<boolean> {
  *
  * Asked for, not waited for. App is mounted by now and listening for any that
  * arrive later, and main holds the ones that came before, so none is lost in
- * between. Returns whether any opened, so no blank document is made beside it.
+ * between. Launched with none, the launch's first window reopens the last
+ * session instead.
  */
-async function openStartupFiles(): Promise<boolean> {
-  let openedAny = false
-  for (const path of await window.api.file.takePendingPaths()) {
+async function openStartupFiles(): Promise<void> {
+  const { paths, restoreSession: restore } = await window.api.file.takePendingPaths()
+  for (const path of paths) {
     try {
       adoptFile(await window.api.file.read(path))
-      openedAny = true
     } catch (err) {
       showNotice(`Could not open ${path}: ${String(err)}`, 'error')
     }
   }
-  return openedAny
+  if (paths.length === 0 && restore) await restoreSession()
 }
 
 async function boot(): Promise<void> {
@@ -145,20 +146,15 @@ async function boot(): Promise<void> {
   mark('mounted')
 
   // The window must be usable immediately, whatever the recovery prompt does:
-  // the files it was opened with, or else a blank document.
-  const opened = await openStartupFiles()
-  const blank = opened ? null : newDoc()
+  // the files it was opened with, the last session's, or the welcome screen.
+  await openStartupFiles().catch((err) => logError('open startup files', err))
+  // Only now: tracking before the restore would record the empty window
+  // over the session it was about to reopen.
+  trackSession()
+  started.value = true
 
-  void offerRecoveries().then((restored) => {
-    // Observable, so a test can tell "decided not to ask" from "not yet asked".
-    mark('recoveryChecked')
-    // Drop the placeholder if recovery supplied real documents and it was never
-    // touched, so a restore does not leave a stray empty tab behind.
-    if (!restored || !blank) return
-    const docs = useDocuments()
-    const i = docs.docs.indexOf(blank)
-    if (i >= 0 && docs.docs.length > 1 && blank.content === '') closeDoc(i)
-  })
+  // Observable, so a test can tell "decided not to ask" from "not yet asked".
+  void offerRecoveries().finally(() => mark('recoveryChecked'))
 }
 
 void boot()

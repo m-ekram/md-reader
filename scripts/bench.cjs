@@ -54,7 +54,10 @@ async function once() {
     env,
   })
   const page = await app.firstWindow()
-  await page.waitForSelector('.ProseMirror', { timeout: 30_000 })
+  // The first thing the user can act on: an editor, or since the welcome
+  // screen replaced the blank document, that. The welcome screen builds no
+  // editor, so a baseline from before it is not comparing like with like.
+  await page.waitForSelector('.ProseMirror, .welcome', { timeout: 30_000 })
   const editableMs = Date.now() - started
 
   // Phases the app records about itself, in ms since its process started.

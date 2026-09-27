@@ -306,6 +306,26 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
         </section>
 
         <section class="prefs__section">
+          <h3>Files</h3>
+
+          <label class="row row--check">
+            <input
+              type="checkbox"
+              :checked="settings.session.restore"
+              @change="
+                patchSettings({
+                  session: {
+                    ...settings.session,
+                    restore: ($event.target as HTMLInputElement).checked,
+                  },
+                })
+              "
+            />
+            <span>Reopen documents from last time</span>
+          </label>
+        </section>
+
+        <section class="prefs__section">
           <h3>Editing</h3>
 
           <label class="row row--check">

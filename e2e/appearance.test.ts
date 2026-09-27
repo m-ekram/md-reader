@@ -2,7 +2,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { chooseMenu, newDocument, openFile, useApp, waitForText } from './helpers'
+import { chooseMenu, newDocument, openFile, startDocument, useApp, waitForText } from './helpers'
 
 /**
  * Text size, column width, the chrome and the block menu, asserted on what is
@@ -116,7 +116,7 @@ describe('text size', () => {
     const chosen = await docFontSize()
 
     await ctx.page.reload()
-    await ctx.page.waitForSelector('.ProseMirror', { timeout: 30_000 })
+    await startDocument(ctx)
     await expect.poll(docFontSize, { timeout: 15_000 }).toBe(chosen)
 
     await chooseMenu(ctx, 'View', 'Actual Size')
@@ -139,7 +139,7 @@ describe('content width', () => {
     expect(parseFloat(padding)).toBeGreaterThan(0)
 
     await ctx.page.reload()
-    await ctx.page.waitForSelector('.ProseMirror', { timeout: 30_000 })
+    await startDocument(ctx)
     await expect.poll(columnMaxWidth, { timeout: 15_000 }).toBe('none')
   })
 

@@ -13,6 +13,8 @@ import type { SourceHandle } from '../editor/sourceMode'
 import { checkRoundTrip } from '../editor/roundtrip'
 import { activeDoc, journalKey, useDocuments, type Doc } from '../stores/documents'
 import { isDarkTheme } from '../utils/dark'
+import { started } from '../stores/session'
+import Welcome from './Welcome.vue'
 
 const host = ref<HTMLElement | null>(null)
 const docs = useDocuments()
@@ -96,6 +98,8 @@ async function show(): Promise<void> {
   // A pooled editor built before the document was reloaded shows the old
   // text: rebuilt. Checked here, on every show, and not only when the active
   // document reloads, because a document can be reloaded in the background.
+  // Crash recovery does that: the last session reopens a file, and then its
+  // recovered text replaces what was read from disk.
   const builtFor = doc.reloadToken
   if ((builtAt.get(doc.id) ?? builtFor) !== builtFor) {
     await release(doc.id)
@@ -168,10 +172,7 @@ watch(
 
 <template>
   <div class="editor-scroll" :class="{ 'is-source': activeDoc?.sourceMode }">
-    <div v-if="!activeDoc" class="empty">
-      <p>No document open</p>
-      <p class="empty__hint">Ctrl+N for a new file, Ctrl+O to open one</p>
-    </div>
+    <Welcome v-if="!activeDoc && started" />
     <div v-show="activeDoc" ref="host" class="editor-host" />
   </div>
 </template>
@@ -200,16 +201,5 @@ watch(
   margin: 0;
   padding: 0;
   height: 100%;
-}
-.empty {
-  height: 100%;
-  display: grid;
-  place-content: center;
-  text-align: center;
-  color: var(--doc-muted);
-}
-.empty__hint {
-  font-size: 13px;
-  margin-top: 4px;
 }
 </style>
