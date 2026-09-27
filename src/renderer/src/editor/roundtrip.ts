@@ -89,7 +89,9 @@ function explain(original: string, reserialized: string, firstLine: number | nul
 export function checkRoundTrip(original: string, reserialized: string): LossReport {
   const a = normalize(original)
   const b = normalize(reserialized)
-  if (a === b) return { lossy: false, note: '', firstDiffLine: null }
+  // Nothing to lose: an empty document reserializes as a lone empty paragraph,
+  // which differs, and every new document was warned about.
+  if (a === b || a.trim() === '') return { lossy: false, note: '', firstDiffLine: null }
   const firstDiffLine = firstDifference(a, b)
   return { lossy: true, note: explain(a, b, firstDiffLine), firstDiffLine }
 }

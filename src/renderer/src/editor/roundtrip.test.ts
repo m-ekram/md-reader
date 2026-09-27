@@ -35,6 +35,13 @@ describe('the round-trip warning', () => {
     expect(r.note).not.toContain('callouts')
   })
 
+  it('says nothing about an empty document, which has nothing to lose', () => {
+    // Every new document is empty. It was warned about, from line 1, and the
+    // warning outlived its first save, so auto-save never touched it.
+    expect(report('').lossy).toBe(false)
+    expect(report('\n').lossy).toBe(false)
+  })
+
   it('says nothing about front matter, callouts or a TOC marker, which all survive', () => {
     const md = '---\ntitle: T\n---\n\n[TOC]\n\n> [!TIP]\n> Kept.\n\nPlain text.'
     expect(report(md).lossy).toBe(false)
