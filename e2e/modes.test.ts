@@ -35,17 +35,21 @@ describe('focus mode', () => {
     await ctx.page.waitForSelector('.ProseMirror .is-focused-block', { timeout: 10_000 })
     expect(await ctx.page.locator('.ProseMirror .is-focused-block').count()).toBe(1)
 
-    const opacities = await ctx.page.evaluate(() => {
-      const blocks = [...document.querySelectorAll('.ProseMirror > *')]
-      const focused = blocks.find((b) => b.classList.contains('is-focused-block'))
-      const other = blocks.find((b) => !b.classList.contains('is-focused-block'))
-      return {
-        focused: focused ? getComputedStyle(focused).opacity : null,
-        other: other ? getComputedStyle(other).opacity : null,
-      }
-    })
-    expect(Number(opacities.focused)).toBe(1)
-    expect(Number(opacities.other)).toBeLessThan(1)
+    const opacities = () =>
+      ctx.page.evaluate(() => {
+        const blocks = [...document.querySelectorAll('.ProseMirror > *')]
+        const focused = blocks.find((b) => b.classList.contains('is-focused-block'))
+        const other = blocks.find((b) => !b.classList.contains('is-focused-block'))
+        return {
+          focused: focused ? Number(getComputedStyle(focused).opacity) : null,
+          other: other ? Number(getComputedStyle(other).opacity) : null,
+        }
+      })
+    // The dimming fades in over 180 ms. Read once, at the instant the mode
+    // switches on, it can still be the first frame at full opacity; this
+    // failed that way once. Polled until the fade has settled instead.
+    await expect.poll(async () => (await opacities()).other, { timeout: 5000 }).toBeLessThan(0.5)
+    expect((await opacities()).focused).toBe(1)
   })
 
   it('moves the highlight as the caret moves', async () => {
