@@ -24,7 +24,8 @@ import {
 import type { SaveResult } from '../../../shared/ipc'
 import { adoptFromDisk } from '../stores/external-changes'
 import { patchSettings, setFontSize, stepFontSize, useSettingsStore } from '../stores/settings'
-import { applyTheme, useThemeStore } from '../stores/theme'
+import { useThemeStore } from '../stores/theme'
+import { chooseTheme } from '../stores/system-theme'
 import { validFontSize } from '../stores/appearance'
 import { refreshArticles, revealPath, setRoot, useWorkspace } from '../stores/workspace'
 import { commandPalette, preferences, quickOpen, showNotice } from '../stores/ui'
@@ -428,10 +429,7 @@ export function registerThemeCommands(): void {
       id: `theme.${t.id}`,
       enabled: () => theme.isImplemented(t.id) || !t.builtin,
       checked: () => theme.current === t.id,
-      run: async () => {
-        await applyTheme(t.id)
-        await patchSettings({ theme: t.id })
-      },
+      run: () => chooseTheme(t.id),
     }))
   )
   rebindAccelerators()

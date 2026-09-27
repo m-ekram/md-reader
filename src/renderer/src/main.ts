@@ -18,6 +18,7 @@ import './editor/editor.css'
 import { initSettings, useSettingsStore } from './stores/settings'
 import { mark } from './utils/startup'
 import { initThemes } from './stores/theme'
+import { initSystemTheme } from './stores/system-theme'
 import {
   registerAppCommands,
   registerRecentCommands,
@@ -110,7 +111,7 @@ async function boot(): Promise<void> {
   await initSettings()
   const settings = useSettingsStore()
 
-  await initThemes(settings.value.theme)
+  await initThemes(await initSystemTheme())
 
   setPunctuation({
     quotes: settings.value.editor.smartQuotes,

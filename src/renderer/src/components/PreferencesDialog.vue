@@ -13,7 +13,8 @@
  */
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { patchSettings, setContentWidth, setFontSize, useSettingsStore } from '../stores/settings'
-import { applyTheme, useThemeStore } from '../stores/theme'
+import { useThemeStore } from '../stores/theme'
+import { chooseTheme } from '../stores/system-theme'
 import { setPunctuation } from '../editor/punctuation'
 import { setShowWhitespace } from '../editor/whitespace'
 import { setEditorModes } from '../editor/typewriter'
@@ -81,9 +82,8 @@ async function setWidthKind(kind: string): Promise<void> {
   else await setContentWidth(currentColumnWidth())
 }
 
-async function setTheme(id: string): Promise<void> {
-  await applyTheme(id)
-  await patchSettings({ theme: id })
+function setTheme(id: string): Promise<void> {
+  return chooseTheme(id)
 }
 
 /**
@@ -220,7 +220,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
         <section class="prefs__section">
           <h3>Appearance</h3>
 
-          <label class="row">
+          <label v-if="!settings.followSystem.enabled" class="row">
             <span class="row__label">Theme</span>
             <select
               class="row__control"
@@ -231,6 +231,43 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
                 {{ t.name }}
               </option>
             </select>
+          </label>
+          <template v-else>
+            <label v-for="mode in ['light', 'dark'] as const" :key="mode" class="row">
+              <span class="row__label">{{ mode === 'light' ? 'Light theme' : 'Dark theme' }}</span>
+              <select
+                class="row__control"
+                :value="settings.followSystem[mode]"
+                @change="
+                  patchSettings({
+                    followSystem: {
+                      ...settings.followSystem,
+                      [mode]: ($event.target as HTMLSelectElement).value,
+                    },
+                  })
+                "
+              >
+                <option v-for="t in themes.available" :key="t.id" :value="t.id">
+                  {{ t.name }}
+                </option>
+              </select>
+            </label>
+          </template>
+
+          <label class="row row--check">
+            <input
+              type="checkbox"
+              :checked="settings.followSystem.enabled"
+              @change="
+                patchSettings({
+                  followSystem: {
+                    ...settings.followSystem,
+                    enabled: ($event.target as HTMLInputElement).checked,
+                  },
+                })
+              "
+            />
+            <span>Match Windows light or dark mode</span>
           </label>
 
           <div class="row">

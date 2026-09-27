@@ -1,4 +1,13 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, shell } from 'electron'
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  Menu,
+  nativeImage,
+  nativeTheme,
+  shell,
+} from 'electron'
 import { mark } from './startup'
 import { installCrashHandlers, log } from './log'
 import { flushSettings, getSettings, patchSettings } from './settings'
@@ -232,6 +241,16 @@ function registerAppIpc(): void {
     await shell.openExternal(url)
   })
   ipcMain.handle('app:version', () => app.getVersion())
+
+  // Whether Windows is in dark mode, for themes that follow it. Read here, not
+  // from the page's prefers-color-scheme: measured, that did not follow the
+  // system's mode, while nativeTheme did, and says when it changes.
+  ipcMain.handle('app:system-dark', () => nativeTheme.shouldUseDarkColors)
+  nativeTheme.on('updated', () => {
+    for (const w of allWindows()) {
+      if (!w.isDestroyed()) w.webContents.send('app:system-dark', nativeTheme.shouldUseDarkColors)
+    }
+  })
   ipcMain.on('app:log-error', (_e, message: string) => {
     log.error('renderer', { message: String(message).slice(0, 4000) })
   })

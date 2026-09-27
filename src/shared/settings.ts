@@ -50,6 +50,11 @@ export interface Settings {
   session: { restore: boolean; files: string[]; active: string | null }
   /** Saves documents that have a file a moment after typing stops. */
   autoSave: boolean
+  /**
+   * Follows Windows' light or dark mode with a theme for each. While on,
+   * `theme` is kept as the choice to return to when it is switched off.
+   */
+  followSystem: { enabled: boolean; light: string; dark: string }
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -77,6 +82,7 @@ export const DEFAULT_SETTINGS: Settings = {
   recentFiles: [],
   session: { restore: true, files: [], active: null },
   autoSave: false,
+  followSystem: { enabled: false, light: 'github', dark: 'night' },
 }
 
 /**

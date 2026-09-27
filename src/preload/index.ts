@@ -142,6 +142,9 @@ const api = {
     logError: (message: string): void => ipcRenderer.send('app:log-error', message),
     /** The About box, with the logo. */
     about: (): Promise<void> => ipcRenderer.invoke('app:about'),
+    /** Whether Windows is in dark mode, and word when that changes. */
+    systemDark: (): Promise<boolean> => ipcRenderer.invoke('app:system-dark'),
+    onSystemDarkChanged: (fn: (dark: boolean) => void) => subscribe('app:system-dark', fn),
   },
 }
 
