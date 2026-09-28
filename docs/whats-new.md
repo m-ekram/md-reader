@@ -46,6 +46,12 @@ when you hover over it.
   at.
 - When something goes wrong, you are told.
 - In a long document, Find shows you the match it moves to.
+- `Ctrl+Z` undoes one burst of typing at a time, even if Windows corrects the
+  clock in between. It could take back two at once.
+- Renaming an open file in Explorer moves its tab to the new name, instead of
+  sometimes marking it as deleted.
+- A pasted image shows straight away. It showed as broken until the file was
+  opened again.
 
 ## 0.1.0 — the first release
 

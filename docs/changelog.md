@@ -37,6 +37,12 @@
   the old text.
 - Every new document warned that saving would reformat it.
 - Saving a file the round-trip guard had warned about kept the warning up.
+- One Ctrl+Z could undo two bursts of typing when the system clock was set back
+  between them; undo steps now follow the time that actually passed.
+- A file renamed while open could detach its tab instead of following the new
+  name, when the watcher reported the removal and the new file separately.
+- A pasted image showed broken until the file was reopened: images inside a line
+  of text did not resolve their relative link for display.
 
 - Opening a file by double-clicking it, or several at once, could leave the
   file unopened and show an empty Untitled instead.
