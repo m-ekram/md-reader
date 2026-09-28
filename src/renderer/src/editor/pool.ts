@@ -44,17 +44,15 @@ export function size(): number {
 }
 
 /**
- * The editor most recently brought on screen.
+ * A document's editor, if it has one built. Commands reach it through
+ * `editor/view.ts`, which asks for the active document's.
  *
- * Menu commands act on whatever the user is looking at, and the pool is the
- * only thing that knows which instance that is.
+ * There used to be an "editor most recently on screen" instead. A document
+ * shown as source has no editor of its own, so that was another tab's, and a
+ * command in the source view changed a document the user could not see.
  */
-export function activeEditor(): EditorHandle | null {
-  let best: Entry | null = null
-  for (const e of entries.values()) {
-    if (!best || e.usedAt > best.usedAt) best = e
-  }
-  return best?.handle ?? null
+export function editorFor(id: string): EditorHandle | null {
+  return entries.get(id)?.handle ?? null
 }
 
 /**

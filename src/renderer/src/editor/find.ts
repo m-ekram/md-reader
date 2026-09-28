@@ -25,7 +25,7 @@ import { editorViewCtx } from '@milkdown/kit/core'
 import type { MilkdownPlugin } from '@milkdown/kit/ctx'
 import type { EditorState } from '@milkdown/kit/prose/state'
 import type { EditorView } from '@milkdown/kit/prose/view'
-import { activeEditor } from './pool'
+import { activeEditor } from './view'
 
 export const findState = reactive({
   open: false,

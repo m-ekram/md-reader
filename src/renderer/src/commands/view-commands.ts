@@ -8,11 +8,11 @@
 import { activeDoc } from '../stores/documents'
 import { patchSettings, useSettingsStore } from '../stores/settings'
 import { registerAll, invalidateCommands, type Command } from './registry'
-import { activeEditor, flushAll } from '../editor/pool'
+import { flushAll } from '../editor/pool'
 import { uiState } from '../stores/ui'
 import { setPunctuation } from '../editor/punctuation'
 import { setShowWhitespace, stripTrailingWhitespace } from '../editor/whitespace'
-import { fromView, refreshDecorations, withView } from '../editor/view'
+import { activeEditor, fromView, refreshDecorations, withView } from '../editor/view'
 
 const settings = useSettingsStore()
 

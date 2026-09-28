@@ -75,7 +75,9 @@ const delegatedCommands: Command[] = (
   ] as const
 ).map(([id, action]) => ({
   id,
-  enabled: hasEditor,
+  // Any document on screen: the action goes to whatever has focus, the source
+  // view included.
+  enabled: hasDocument,
   run: () => {
     window.api.edit.action(action)
     withView(() => {})

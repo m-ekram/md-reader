@@ -15,10 +15,21 @@ import { callCommand } from '@milkdown/kit/utils'
 import type { Node as ProseNode } from '@milkdown/kit/prose/model'
 import type { EditorView } from '@milkdown/kit/prose/view'
 import { activeDoc } from '../stores/documents'
-import { activeEditor } from './pool'
+import { editorFor } from './pool'
+import type { EditorHandle } from './crepe'
 
-/** True when a document is open in the formatted view, which commands need. */
-export const hasEditor = (): boolean => activeDoc.value !== null && activeEditor() !== null
+/**
+ * The formatted editor showing the active document: null when it is shown as
+ * source, or before its editor is built. Never another document's.
+ */
+export function activeEditor(): EditorHandle | null {
+  const doc = activeDoc.value
+  if (!doc || doc.sourceMode) return null
+  return editorFor(doc.id)
+}
+
+/** True when the active document is shown formatted, which commands need. */
+export const hasEditor = (): boolean => activeEditor() !== null
 
 /**
  * Runs `fn` against the view on screen, then returns focus to it.

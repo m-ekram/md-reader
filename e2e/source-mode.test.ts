@@ -98,3 +98,49 @@ describe('source mode', () => {
     await ctx.page.keyboard.press('Escape')
   })
 })
+
+describe('commands in a document shown as source', () => {
+  it('never reach another tab’s hidden editor', async () => {
+    // Commands found "the editor" as the one most recently on screen. A
+    // document shown as source has none of its own, so Ctrl+B there made the
+    // text selected in another tab bold, out of sight.
+    const rich = join(ctx.workdir, 'rich.md')
+    await writeFile(rich, 'Leave this text plain.\n', 'utf8')
+    await openFile(ctx, rich)
+    await waitForText(ctx, 'Leave this text plain.')
+    await ctx.page.locator('.ProseMirror').click()
+    await ctx.page.keyboard.press('Control+a')
+
+    // Past the line count at which a document opens as source: no rich editor
+    // is ever built for it.
+    await ctx.page.evaluate(async () => {
+      const s = await window.api.settings.get()
+      await window.api.settings.patch({ editor: { ...s.editor, sourceModeForceLines: 3 } })
+    })
+    const long = join(ctx.workdir, 'long.md')
+    await writeFile(long, 'one\n\ntwo\n\nthree\n\nfour\n', 'utf8')
+    await openFile(ctx, long)
+    await ctx.page.waitForSelector('.cm-content', { state: 'visible', timeout: 15_000 })
+    await ctx.page.locator('.cm-content').click()
+    await ctx.page.keyboard.press('Control+a')
+    await ctx.page.keyboard.press('Control+b')
+
+    // The Edit menu's own actions go to whatever has focus, the source view
+    // included, so they stay available there.
+    await ctx.page.keyboard.press('Escape')
+    await ctx.page.locator('.menubar__top', { hasText: /^Edit$/ }).click()
+    await ctx.page.waitForSelector('.menu[role="menu"]', { state: 'visible' })
+    for (const label of ['Undo', 'Copy', 'Paste']) {
+      const item = ctx.page.locator('.menu__item', { hasText: new RegExp(`^${label}`) }).first()
+      expect(await item.getAttribute('aria-disabled'), `${label} is greyed out`).not.toBe('true')
+    }
+    await ctx.page.keyboard.press('Escape')
+
+    await ctx.page.locator('.tab__select', { hasText: 'rich.md' }).click()
+    await waitForText(ctx, 'Leave this text plain.')
+    expect(await ctx.page.locator('.ProseMirror strong').count()).toBe(0)
+    expect(
+      await ctx.page.locator('.tab__select', { hasText: 'rich.md' }).locator('.tab__dot').count()
+    ).toBe(0)
+  })
+})
