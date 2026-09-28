@@ -240,3 +240,15 @@ describe('changing line endings', () => {
     await expect.poll(() => ctx.page.locator('.titlebar__title').innerText()).not.toMatch(/^•/)
   })
 })
+
+describe('a file that cannot be opened', () => {
+  it('says so, naming it', async () => {
+    // From the sidebar, Open Quickly or Explorer, a failed open went to the
+    // log and nowhere else: the click simply did nothing.
+    await openFile(ctx, join(ctx.workdir, 'moved-away.md'))
+    await expect
+      .poll(() => ctx.page.locator('.status').innerText(), { timeout: 10_000 })
+      .toContain('moved-away.md')
+    expect(await ctx.page.locator('.status').innerText()).toContain('no longer')
+  })
+})

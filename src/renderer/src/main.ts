@@ -32,9 +32,8 @@ import { registerExportCommands } from './commands/export-commands'
 import { registerContentCommands } from './commands/content-commands'
 import { registerHelpCommands } from './commands/help-commands'
 import { registerUnavailableCommands } from './commands/unavailable-commands'
-import { adoptFile } from './stores/documents'
+import { openPath } from './stores/documents'
 import { restoreSession, started, trackSession } from './stores/session'
-import { showNotice } from './stores/ui'
 import { logError } from './utils/report'
 import { initSearchListeners, initWorkspaceSync } from './stores/workspace'
 import { offerRecoveries } from './stores/recovery'
@@ -54,13 +53,7 @@ import { setShowWhitespace } from './editor/whitespace'
  */
 async function openStartupFiles(): Promise<void> {
   const { paths, restoreSession: restore } = await window.api.file.takePendingPaths()
-  for (const path of paths) {
-    try {
-      adoptFile(await window.api.file.read(path))
-    } catch (err) {
-      showNotice(`Could not open ${path}: ${String(err)}`, 'error')
-    }
-  }
+  for (const path of paths) await openPath(path)
   if (paths.length === 0 && restore) await restoreSession()
 }
 

@@ -10,6 +10,9 @@ import type { DocumentFile } from '../../../shared/ipc'
 import { invalidateCommands } from '../commands/registry'
 import { release } from '../editor/pool'
 import { useSettingsStore } from './settings'
+import { showNotice } from './ui'
+import { logError } from '../utils/report'
+import { explainOpenError } from '../../../shared/open-errors'
 
 export interface Doc {
   /**
@@ -185,9 +188,21 @@ export function adoptFile(f: DocumentFile): Doc {
   return state.docs[state.activeIndex]
 }
 
-/** Opens a path, focusing it if it is already open. Used by every panel. */
-export async function openPath(path: string): Promise<Doc> {
-  return adoptFile(await window.api.file.read(path))
+/**
+ * Opens a path, focusing it if it is already open: the sidebar, Open Quickly,
+ * Explorer and the launch all come through here.
+ *
+ * A failure is said, naming the file, and null returned. From the sidebar or
+ * Explorer it used to reach the log and nowhere else: the click did nothing.
+ */
+export async function openPath(path: string): Promise<Doc | null> {
+  try {
+    return adoptFile(await window.api.file.read(path))
+  } catch (err) {
+    showNotice(explainOpenError(path, err), 'error')
+    logError(`open ${path}`, err)
+    return null
+  }
 }
 
 export function closeDoc(index: number): void {

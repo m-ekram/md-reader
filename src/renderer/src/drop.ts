@@ -11,7 +11,7 @@
  * unsaved document with its name and its text.
  */
 import { OPENABLE } from '../../shared/openable'
-import { adoptFile, newDoc } from './stores/documents'
+import { newDoc, openPath } from './stores/documents'
 import { reportError } from './utils/report'
 
 function markdownFiles(dt: DataTransfer | null): File[] {
@@ -23,7 +23,7 @@ async function open(files: File[]): Promise<void> {
     try {
       const path = window.api.file.pathForFile(file)
       if (path) {
-        adoptFile(await window.api.file.read(path))
+        await openPath(path)
       } else {
         // Read first: the editor is built from the document's text as soon
         // as the document exists.

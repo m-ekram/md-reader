@@ -12,7 +12,7 @@ import FindReplace from './components/FindReplace.vue'
 import WordCountPopover from './components/WordCountPopover.vue'
 import { commandPalette, preferences, quickOpen } from './stores/ui'
 import { commandForAccel, isEnabled, isRegistered, run } from './commands/registry'
-import { adoptFile, anyDirty, useDocuments, isDirty, journalKey } from './stores/documents'
+import { anyDirty, openPath, useDocuments, isDirty, journalKey } from './stores/documents'
 import { saveActive } from './commands/app-commands'
 import { flushAll } from './editor/pool'
 import { stepFontSize } from './stores/settings'
@@ -73,9 +73,7 @@ onMounted(() => {
   unsubscribers.push(installFileDrop())
   unsubscribers.push(installAutoSave())
 
-  unsubscribers.push(
-    window.api.file.onOpenPath(async (path) => adoptFile(await window.api.file.read(path)))
-  )
+  unsubscribers.push(window.api.file.onOpenPath((path) => void openPath(path)))
 
   // Main asks before closing so unsaved work can be rescued first.
   unsubscribers.push(
