@@ -62,6 +62,15 @@ describe('the answer to "Unsaved changes were recovered"', () => {
     expect(docs.useDocuments().docs).toEqual([])
   })
 
+  it('gives restored unsaved work back its own journal', async () => {
+    // Under a new id, its edits were journalled somewhere new while the old
+    // journal stayed on disk, so the same work was offered again next launch.
+    answers = ['restore']
+    await recovery.offerRecoveries()
+    const draft = docs.useDocuments().docs.find((d) => d.path === null)!
+    expect(docs.journalKey(draft)).toBe('untitled:doc-1234')
+  })
+
   it('names an unsaved document by how it begins', () => {
     expect(recovery.recoveryLabel(pending[1])).toBe(
       'An unsaved document beginning “Recovered draft”'

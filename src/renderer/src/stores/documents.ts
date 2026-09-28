@@ -82,10 +82,14 @@ export function anyDirty(): boolean {
   return state.docs.some(isDirty)
 }
 
-export function newDoc(): Doc {
+/**
+ * A new, empty, unsaved document. `id` is given only when restoring one, so it
+ * keeps the journal it was recovered from.
+ */
+export function newDoc(opts: { id?: string } = {}): Doc {
   untitledCounter++
   const d: Doc = {
-    id: newDocId(),
+    id: opts.id ?? newDocId(),
     path: null,
     name: untitledCounter === 1 ? 'Untitled' : `Untitled ${untitledCounter}`,
     content: '',

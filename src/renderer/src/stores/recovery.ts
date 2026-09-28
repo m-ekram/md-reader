@@ -24,7 +24,9 @@ async function restore(entry: JournalEntry): Promise<void> {
   // The file may be open already, reopened with the last session: adoptFile
   // then returns that tab, whose editor was built from the text on disk. The
   // reload token has it rebuilt from the recovered text instead.
-  const doc = file ? adoptFile(file) : newDoc()
+  // A draft keeps its id, and so its journal: under a new one, the old journal
+  // stayed on disk and the same work was offered again at the next launch.
+  const doc = file ? adoptFile(file) : newDoc({ id: entry.path.slice('untitled:'.length) })
   doc.content = entry.content
   doc.reloadToken++
 }
