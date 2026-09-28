@@ -9,7 +9,8 @@
 import { TextSelection, NodeSelection } from '@milkdown/kit/prose/state'
 import type { EditorView } from '@milkdown/kit/prose/view'
 import { moveRowCommand } from '@milkdown/kit/preset/gfm'
-import { canEdit, hasEditor, runCommand, withView } from '../editor/view'
+import { canEdit, fromView, hasEditor, runCommand, withView } from '../editor/view'
+import { isInTable, selectedRect } from '@milkdown/kit/prose/tables'
 import { registerAll, type Command } from './registry'
 
 /** Word characters for selection purposes: letters, digits, and the joiners. */
@@ -98,6 +99,31 @@ function insertAtomBlock(nodeName: string) {
     })
 }
 
+/**
+ * Where the row with the caret would move, or null when it cannot: outside a
+ * table, the header row, or the first or last body row going past its end.
+ *
+ * The move takes row numbers. It was handed a document position instead, and
+ * moved nothing, or the header.
+ */
+function rowMove(delta: -1 | 1): { from: number; to: number; pos: number } | null {
+  if (!canEdit()) return null
+  return fromView((view) => {
+    if (!isInTable(view.state)) return null
+    const rect = selectedRect(view.state)
+    const from = rect.top
+    const to = from + delta
+    // Row 0 is the header: it stays, and no body row takes its place.
+    if (from < 1 || to < 1 || to >= rect.map.height) return null
+    return { from, to, pos: view.state.selection.from }
+  }, null)
+}
+
+function moveRow(delta: -1 | 1): void {
+  const move = rowMove(delta)
+  if (move) runCommand(moveRowCommand.key, move)
+}
+
 const selectionCommands: Command[] = [
   { id: 'edit.selectWord', enabled: hasEditor, run: () => withView(selectWord) },
   { id: 'edit.selectLine', enabled: hasEditor, run: () => withView(selectLine) },
@@ -110,13 +136,13 @@ const selectionCommands: Command[] = [
   // Table rows. The accelerators are Alt+Up/Down, which nothing else claims.
   {
     id: 'edit.moveRowUp',
-    enabled: canEdit,
-    run: () => runCommand(moveRowCommand.key, { pos: -1 }),
+    enabled: () => rowMove(-1) !== null,
+    run: () => moveRow(-1),
   },
   {
     id: 'edit.moveRowDown',
-    enabled: canEdit,
-    run: () => runCommand(moveRowCommand.key, { pos: 1 }),
+    enabled: () => rowMove(1) !== null,
+    run: () => moveRow(1),
   },
 
   { id: 'para.insertBefore', enabled: canEdit, run: insertParagraph('before') },

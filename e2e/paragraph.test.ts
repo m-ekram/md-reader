@@ -186,3 +186,49 @@ describe('code tools', () => {
     expect(pasted).toContain('const b = 2')
   })
 })
+
+describe('table rows', () => {
+  /** Opens a table of three body rows, with the caret in the named cell. */
+  async function tableWithCaretIn(cell: string): Promise<string> {
+    const file = join(ctx.workdir, `rows-${cell}.md`)
+    await writeFile(
+      file,
+      ['| name | n |', '| --- | --- |', '| alpha | 1 |', '| beta | 2 |', '| gamma | 3 |', ''].join(
+        '\n'
+      ),
+      'utf8'
+    )
+    await openFile(ctx, file)
+    await waitForText(ctx, 'gamma')
+    await ctx.page.locator('.ProseMirror td', { hasText: cell }).first().click()
+    return file
+  }
+
+  const order = (text: string) =>
+    ['alpha', 'beta', 'gamma'].sort((a, b) => text.indexOf(a) - text.indexOf(b))
+
+  it('moves the row with the caret up and down', async () => {
+    // The command was given a position where it takes row numbers, and moved
+    // nothing, or the header.
+    const file = await tableWithCaretIn('beta')
+    await ctx.page.keyboard.press('Alt+ArrowUp')
+    expect(order(await savedText(file))).toEqual(['beta', 'alpha', 'gamma'])
+    await ctx.page.keyboard.press('Alt+ArrowDown')
+    await ctx.page.keyboard.press('Alt+ArrowDown')
+    expect(order(await savedText(file))).toEqual(['alpha', 'gamma', 'beta'])
+  })
+
+  it('never moves a row into the header, or past the end', async () => {
+    const file = await tableWithCaretIn('alpha')
+    const before = await readFile(file, 'utf8')
+    expect(await (await menuItem(ctx, 'Edit', 'Move Row Up')).getAttribute('aria-disabled')).toBe(
+      'true'
+    )
+    await ctx.page.keyboard.press('Escape')
+    await ctx.page.locator('.ProseMirror td', { hasText: 'alpha' }).first().click()
+    await ctx.page.keyboard.press('Alt+ArrowUp')
+    await ctx.page.keyboard.press('Control+s')
+    await expect.poll(() => readFile(file, 'utf8')).toBe(before)
+    expect((await readFile(file, 'utf8')).startsWith('| name')).toBe(true)
+  })
+})
