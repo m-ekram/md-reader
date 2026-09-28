@@ -2,8 +2,8 @@
 
 Measured against Milkdown/Crepe 7.22.1 with the commonmark + gfm presets.
 
-- Lossless with Milkdown defaults: **25/43**
-- Lossless with a tuned serializer: **31/43**
+- Lossless with Milkdown defaults: **26/48**
+- Lossless with a tuned serializer: **32/48**
 - Closed by serializer configuration alone: **6**
 
 ## Per-construct
@@ -50,6 +50,11 @@ Measured against Milkdown/Crepe 7.22.1 with the commonmark + gfm presets.
 | github alert | lossy | lossy | Phase 3 custom node |
 | toc directive | lossy | lossy | Phase 3 custom node |
 | emoji shortcode | ok | ok |  |
+| wiki links | lossy | lossy | kept by the app, editor/wiki-links.ts |
+| wiki link in a heading and a list | lossy | lossy | kept by the app, editor/wiki-links.ts |
+| wiki link in a quote | lossy | lossy | kept by the app, editor/wiki-links.ts |
+| wiki link in a table | lossy | lossy | kept by the app, editor/wiki-links.ts |
+| escaped wiki link | ok | ok |  |
 | unicode + cjk | ok | ok |  |
 | indented code block | lossy | lossy | often normalized to fences |
 | long paragraph (no rewrap) | ok | ok |  |
@@ -170,6 +175,49 @@ Planned mitigation: Phase 3 custom node
 \[TOC]
 
 # Heading
+
+```
+
+### wiki links
+
+Planned mitigation: kept by the app, editor/wiki-links.ts
+
+```markdown
+See \[\[Note]], \[\[Note|alias]] and \[\[Note#Heading]].
+
+[[Start]] of a line, **\[\[bold link]]**, \[\[my\_note]] and \[\[a\*b]].
+
+```
+
+### wiki link in a heading and a list
+
+Planned mitigation: kept by the app, editor/wiki-links.ts
+
+```markdown
+# Heading with \[\[Link]]
+
+- item \[\[Link]]
+- [ ] task \[\[Link]]
+
+```
+
+### wiki link in a quote
+
+Planned mitigation: kept by the app, editor/wiki-links.ts
+
+```markdown
+> quote \[\[Link]]
+
+```
+
+### wiki link in a table
+
+Planned mitigation: kept by the app, editor/wiki-links.ts
+
+```markdown
+| a          | b |
+| ---------- | - |
+| \[\[N\|x]] | 2 |
 
 ```
 

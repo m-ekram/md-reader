@@ -118,6 +118,33 @@ export const fixtures: Fixture[] = [
   },
   { name: 'toc directive', expectedGap: 'Phase 3 custom node', md: '[TOC]\n\n# Heading' },
   { name: 'emoji shortcode', md: 'Ship it :rocket:' },
+  {
+    name: 'wiki links',
+    expectedGap: 'kept by the app, editor/wiki-links.ts',
+    md: 'See [[Note]], [[Note|alias]] and [[Note#Heading]].\n\n[[Start]] of a line, **[[bold link]]**, [[my_note]] and [[a*b]].',
+  },
+  {
+    name: 'wiki link in a heading and a list',
+    expectedGap: 'kept by the app, editor/wiki-links.ts',
+    md: '# Heading with [[Link]]\n\n- item [[Link]]\n- [ ] task [[Link]]',
+  },
+  {
+    name: 'wiki link in a quote',
+    expectedGap: 'kept by the app, editor/wiki-links.ts',
+    md: '> quote [[Link]]',
+  },
+  {
+    name: 'wiki link in a table',
+    expectedGap: 'kept by the app, editor/wiki-links.ts',
+    // Padded as the serializer pads a table, which is a separate matter
+    // (see "table (gfm)"): what is tested here is the link's `\|`.
+    md: '| a        | b |\n| -------- | - |\n| [[N\\|x]] | 2 |',
+  },
+  {
+    name: 'escaped wiki link',
+    expectedGap: 'parsed as the same text as a link, so written back as one',
+    md: 'Not a link: \\[\\[x]].',
+  },
   { name: 'unicode + cjk', md: 'Unicode: café, naïve, 日本語, emoji 🎉' },
   {
     name: 'indented code block',

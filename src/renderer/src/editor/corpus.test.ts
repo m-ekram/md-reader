@@ -58,6 +58,10 @@ const MUST_ROUND_TRIP = [
   'block math',
   'mermaid fence',
   'emoji shortcode',
+  'wiki links',
+  'wiki link in a heading and a list',
+  'wiki link in a quote',
+  'wiki link in a table',
   'unicode + cjk',
   'long paragraph (no rewrap)',
   'backslash break',
@@ -85,6 +89,7 @@ describe('round-trip corpus (shipping editor)', () => {
    * list owes an update. Both should fail loudly rather than pass quietly.
    */
   const KNOWN_LOSSY = [
+    'escaped wiki link', //   \[\[x]] reads as the text [[x]], and is kept as a link
     'hard line break', //      two-space becomes a backslash; renders identically
     'html entity', //          entities decode to characters; renders identically
     'indented code block', //  normalized to a fenced block

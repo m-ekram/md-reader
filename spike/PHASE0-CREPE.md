@@ -2,7 +2,7 @@
 
 Crepe 7.22.1, all features except AI and TopBar, tuned serializer.
 
-**Lossless: 31/43**
+**Lossless: 32/48**
 
 | construct | result | note |
 |---|---|---|
@@ -46,6 +46,11 @@ Crepe 7.22.1, all features except AI and TopBar, tuned serializer.
 | github alert | LOSSY | Phase 3 custom node |
 | toc directive | LOSSY | Phase 3 custom node |
 | emoji shortcode | ok |  |
+| wiki links | LOSSY | kept by the app, editor/wiki-links.ts |
+| wiki link in a heading and a list | LOSSY | kept by the app, editor/wiki-links.ts |
+| wiki link in a quote | LOSSY | kept by the app, editor/wiki-links.ts |
+| wiki link in a table | LOSSY | kept by the app, editor/wiki-links.ts |
+| escaped wiki link | ok |  |
 | unicode + cjk | ok |  |
 | indented code block | LOSSY | often normalized to fences |
 | long paragraph (no rewrap) | ok |  |
@@ -142,6 +147,41 @@ Body text.
 \[TOC]
 
 # Heading
+
+```
+
+### wiki links
+
+```markdown
+See \[\[Note]], \[\[Note|alias]] and \[\[Note#Heading]].
+
+[[Start]] of a line, **\[\[bold link]]**, \[\[my\_note]] and \[\[a\*b]].
+
+```
+
+### wiki link in a heading and a list
+
+```markdown
+# Heading with \[\[Link]]
+
+- item \[\[Link]]
+- [ ] task \[\[Link]]
+
+```
+
+### wiki link in a quote
+
+```markdown
+> quote \[\[Link]]
+
+```
+
+### wiki link in a table
+
+```markdown
+| a          | b |
+| ---------- | - |
+| \[\[N\|x]] | 2 |
 
 ```
 

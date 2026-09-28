@@ -38,6 +38,7 @@ import { whitespacePlugin } from './whitespace'
 import { mark } from '../utils/startup'
 import { codeTheme } from './code-theme'
 import { labelTopBar } from './toolbar'
+import { keepWikiLinks } from './wiki-links'
 import { historyClock } from './history-clock'
 
 /**
@@ -175,7 +176,12 @@ export async function createEditor(opts: {
   crepe.editor
     .config((ctx) => {
       const prev = ctx.get(remarkStringifyOptionsCtx)
-      ctx.set(remarkStringifyOptionsCtx, { ...prev, ...SERIALIZER_OPTIONS })
+      ctx.set(remarkStringifyOptionsCtx, {
+        ...prev,
+        ...SERIALIZER_OPTIONS,
+        // `[[Wiki links]]` are written back as they were read. See wiki-links.ts.
+        handlers: { ...prev.handlers, text: keepWikiLinks(prev.handlers?.text) },
+      })
       applyImageAltFix(ctx, documentDir)
       applyImageSrcResolution(ctx, documentDir)
       applyAlerts(ctx)
