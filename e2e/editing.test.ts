@@ -270,7 +270,11 @@ describe('copy as', () => {
 
   async function documentToCopy(): Promise<void> {
     const file = join(ctx.workdir, 'copy-as.md')
-    await writeFile(file, 'Plain **bold** end.\n\n```js\nconst code = 1\n```\n\nOther.\n', 'utf8')
+    await writeFile(
+      file,
+      'Plain **bold** end.\n\n**alone**\n\n```js\nconst code = 1\n```\n\nOther.\n',
+      'utf8'
+    )
     await openFile(ctx, file)
     await waitForText(ctx, 'Other.')
     await ctx.page.waitForSelector('.milkdown-code-block', { timeout: 15_000 })
@@ -288,19 +292,30 @@ describe('copy as', () => {
     expect(text).not.toContain('contenteditable')
   })
 
+  /**
+   * Selects the word that stands alone on its line. By keyboard, not by
+   * double-click: on Windows a double-click takes the space after the word.
+   */
+  async function selectAlone(): Promise<void> {
+    await ctx.page.locator('.ProseMirror p', { hasText: 'alone' }).click()
+    await ctx.page.keyboard.press('End')
+    await ctx.page.keyboard.press('Shift+Home')
+    await expect.poll(() => ctx.page.evaluate(() => String(getSelection()))).toBe('alone')
+  }
+
+  /** The clipboard's text, with Windows' line endings made plain. */
+  const clipboardText = async () => (await clipboard()).text.replace(/\r\n/g, '\n')
+
   it('copies just the selection as plain text', async () => {
-    await ctx.page.locator('.ProseMirror strong').dblclick()
+    await selectAlone()
     await chooseMenu(ctx, 'Edit', 'Copy as Plain Text')
-    await expect.poll(async () => (await clipboard()).text).toBe('bold')
+    await expect.poll(clipboardText).toBe('alone')
   })
 
   it('copies just the selection as markdown', async () => {
-    // Elsewhere first: straight after the last test's double-click on the same
-    // word, this one counts as a triple-click and selects the paragraph.
-    await ctx.page.locator('.ProseMirror p', { hasText: 'Other.' }).click()
-    await ctx.page.locator('.ProseMirror strong').dblclick()
+    await selectAlone()
     await chooseMenu(ctx, 'Edit', 'Copy as Markdown')
-    await expect.poll(async () => (await clipboard()).text).toBe('**bold**\n')
+    await expect.poll(clipboardText).toBe('**alone**\n')
   })
 
   it('copies formatted text without the theme, for pasting elsewhere', async () => {
