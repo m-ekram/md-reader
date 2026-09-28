@@ -19,6 +19,7 @@ const doc = (over: Partial<Doc> = {}): Doc => ({
   encoding: 'utf8',
   hasBom: false,
   eol: '\n',
+  savedEol: '\n',
   mtimeMs: 100,
   lossy: { lossy: false, note: '' },
   sourceMode: false,

@@ -16,6 +16,7 @@ import {
   closeDoc,
   isDirty,
   journalKey,
+  markSaved,
   newDoc,
   setActive,
   useDocuments,
@@ -99,6 +100,7 @@ export async function saveActive(saveAs = false): Promise<boolean> {
     path,
     name: path.split(/[\\/]/).pop() ?? path,
     savedContent: request.content,
+    savedEol: request.eol,
     mtimeMs: res.mtimeMs,
     // The file is now what the editor wrote, which it keeps exactly: the
     // warning about reformatting it has been acted on. Left in place, it also
@@ -117,16 +119,17 @@ export async function saveActive(saveAs = false): Promise<boolean> {
  */
 export async function saveInPlace(d: Doc & { path: string }): Promise<SaveResult> {
   const content = d.content
+  const eol = d.eol
   const res = await window.api.file.save({
     path: d.path,
     content,
     encoding: d.encoding,
     hasBom: d.hasBom,
-    eol: d.eol,
+    eol,
     expectedMtimeMs: d.mtimeMs,
   })
   if (res.ok) {
-    d.savedContent = content
+    markSaved(d, content, eol)
     d.mtimeMs = res.mtimeMs
     invalidateCommands()
   }

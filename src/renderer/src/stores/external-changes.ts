@@ -9,7 +9,7 @@
  */
 import type { WatchEvent } from '../../../main/watcher'
 import type { DocumentFile } from '../../../shared/ipc'
-import { isDirty, journalKey, useDocuments, type Doc } from './documents'
+import { isDirty, journalKey, markSaved, useDocuments, type Doc } from './documents'
 import { refreshArticles, useWorkspace } from './workspace'
 import { invalidateCommands } from '../commands/registry'
 import { flushAll } from '../editor/pool'
@@ -36,7 +36,7 @@ function nameOf(path: string): string {
  */
 export function adoptFromDisk(doc: Doc, file: DocumentFile): void {
   doc.content = file.content
-  doc.savedContent = file.content
+  markSaved(doc, file.content, file.eol)
   doc.mtimeMs = file.mtimeMs
   doc.encoding = file.encoding
   doc.hasBom = file.hasBom
@@ -64,7 +64,7 @@ async function handleChanged(path: string): Promise<void> {
 
   // Our own save produced this event: nothing to do.
   if (file.content === doc.content) {
-    doc.savedContent = file.content
+    markSaved(doc, file.content, file.eol)
     doc.mtimeMs = file.mtimeMs
     doc.detached = false
     invalidateCommands()

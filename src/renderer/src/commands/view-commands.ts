@@ -18,6 +18,8 @@ import { activeEditor, fromView, refreshDecorations, withView } from '../editor/
 const settings = useSettingsStore()
 
 const hasDocument = () => activeDoc.value !== null
+/** A document whose line endings may change: not a readonly one. */
+const hasWritableDocument = () => hasDocument() && activeDoc.value?.readonly !== true
 const hasSelectionOrDocument = hasDocument
 
 /** The document's markdown as it would be written to disk. */
@@ -94,7 +96,7 @@ const viewCommands: Command[] = [
    */
   {
     id: 'edit.eolCrlf',
-    enabled: hasDocument,
+    enabled: hasWritableDocument,
     checked: () => activeDoc.value?.eol === '\r\n',
     run: () => {
       const d = activeDoc.value
@@ -105,7 +107,7 @@ const viewCommands: Command[] = [
   },
   {
     id: 'edit.eolLf',
-    enabled: hasDocument,
+    enabled: hasWritableDocument,
     checked: () => activeDoc.value?.eol === '\n',
     run: () => {
       const d = activeDoc.value

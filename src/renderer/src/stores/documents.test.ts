@@ -51,6 +51,16 @@ describe('dirty tracking', () => {
     expect(docs.isDirty(d)).toBe(false)
   })
 
+  it('becomes dirty when its line endings change', () => {
+    // A change that is written on the next save. Not counted, closing the
+    // document dropped it without asking.
+    const d = docs.adoptFile(someFile({ eol: '\n' }))
+    d.eol = '\r\n'
+    expect(docs.isDirty(d)).toBe(true)
+    d.eol = '\n'
+    expect(docs.isDirty(d)).toBe(false)
+  })
+
   it('a new untitled document starts clean and empty', () => {
     const d = docs.newDoc()
     expect(d.content).toBe('')

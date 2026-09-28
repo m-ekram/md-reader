@@ -9,7 +9,7 @@
  * Each topic opens once: choosing it again brings its tab forward instead of
  * stacking up copies.
  */
-import { useDocuments, newDoc, setActive } from '../stores/documents'
+import { markSaved, useDocuments, newDoc, setActive } from '../stores/documents'
 import { showNotice } from '../stores/ui'
 import { invalidateCommands, registerAll, type Command } from './registry'
 
@@ -40,7 +40,7 @@ async function openTopic(id: string): Promise<void> {
   doc.name = topic.title
   doc.content = topic.content
   // Saved content matches, so the tab does not open already dirty.
-  doc.savedContent = topic.content
+  markSaved(doc, topic.content, doc.eol)
   doc.readonly = true
   doc.helpTopic = id
   invalidateCommands()

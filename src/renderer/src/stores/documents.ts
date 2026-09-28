@@ -28,6 +28,11 @@ export interface Doc {
   encoding: DocumentFile['encoding']
   hasBom: boolean
   eol: DocumentFile['eol']
+  /**
+   * Line endings as last read or written. A change of line endings is an
+   * edit: counted, closing the document no longer drops it without asking.
+   */
+  savedEol: DocumentFile['eol']
   mtimeMs: number
   /** Set when the round-trip guard finds constructs we cannot preserve. */
   lossy: { lossy: boolean; note: string } | null
@@ -75,7 +80,13 @@ export const activeDoc = computed<Doc | null>(() =>
 )
 
 export function isDirty(d: Doc): boolean {
-  return d.content !== d.savedContent
+  return d.content !== d.savedContent || d.eol !== d.savedEol
+}
+
+/** Records what is now on disk: the one way a document becomes clean. */
+export function markSaved(d: Doc, content: string, eol: Doc['eol']): void {
+  d.savedContent = content
+  d.savedEol = eol
 }
 
 export function anyDirty(): boolean {
@@ -97,6 +108,7 @@ export function newDoc(opts: { id?: string } = {}): Doc {
     encoding: 'utf8',
     hasBom: false,
     eol: '\r\n',
+    savedEol: '\r\n',
     mtimeMs: 0,
     lossy: null,
     sourceMode: false,
@@ -157,6 +169,7 @@ export function adoptFile(f: DocumentFile): Doc {
     encoding: f.encoding,
     hasBom: f.hasBom,
     eol: f.eol,
+    savedEol: f.eol,
     mtimeMs: f.mtimeMs,
     lossy: null,
     sourceMode: shouldForceSourceMode(f.content),

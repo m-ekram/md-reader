@@ -221,3 +221,22 @@ describe('dropping a markdown file onto the window', () => {
       .toContain('dropped.md')
   })
 })
+
+describe('changing line endings', () => {
+  it('is an edit: marked unsaved, and written on save', async () => {
+    // It changed what the next save would write while the document read as
+    // unchanged, so closing it dropped the change without asking.
+    const file = join(ctx.workdir, 'endings.md')
+    await writeFile(file, 'First line\n\nSecond line\n', 'utf8')
+    await openFile(ctx, file)
+    await waitForText(ctx, 'Second line')
+
+    await chooseMenu(ctx, 'Edit', 'Line Endings', 'Windows (CRLF)')
+    await expect.poll(() => ctx.page.locator('.titlebar__title').innerText()).toMatch(/^•/)
+
+    await ctx.page.locator('.ProseMirror').click()
+    await ctx.page.keyboard.press('Control+s')
+    await expect.poll(async () => (await readFile(file, 'utf8')).includes('\r\n')).toBe(true)
+    await expect.poll(() => ctx.page.locator('.titlebar__title').innerText()).not.toMatch(/^•/)
+  })
+})
