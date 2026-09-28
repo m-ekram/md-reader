@@ -23,6 +23,10 @@
   --doc-accent: #0366d6;
   --doc-rule: #e1e4e8;
   --doc-selection: rgba(3, 102, 214, 0.18);
+  /* Find's matches, and the one it is on. Translucent, so they read on light
+     and dark pages alike. */
+  --find-match: rgba(255, 208, 0, 0.4);
+  --find-match-current: rgba(255, 128, 0, 0.6);
 
   --code-bg: #f6f8fa;
   --code-fg: #24292e;

@@ -219,6 +219,18 @@
 }
 
 /*
+ * Find's matches. prosemirror-search marks them with these classes and ships
+ * its colours in a stylesheet of its own, which was never loaded: every match
+ * was marked, and none was visible.
+ */
+.milkdown .ProseMirror-search-match {
+  background-color: var(--find-match);
+}
+.milkdown .ProseMirror-active-search-match {
+  background-color: var(--find-match-current);
+}
+
+/*
  * Focus mode: everything except the block being edited recedes. A transition
  * rather than a hard switch, so moving between paragraphs does not flash.
  */

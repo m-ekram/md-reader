@@ -40,8 +40,14 @@ describe('find', () => {
   it('highlights the matches in the document', async () => {
     // The count could be right while nothing is visibly marked, which is the
     // failure mode worth guarding: the user looks at the text, not the counter.
-    const highlights = await ctx.page.locator('.ProseMirror .ProseMirror-search-match').count()
-    expect(highlights).toBeGreaterThan(0)
+    // By colour, not by class: the class was there all along, with no style
+    // behind it, so nothing on screen was marked.
+    const background = await ctx.page.evaluate(() => {
+      const match = document.querySelector('.ProseMirror .ProseMirror-search-match')
+      return match ? getComputedStyle(match).backgroundColor : null
+    })
+    expect(background, 'no match is marked').not.toBeNull()
+    expect(background, 'the match is marked with no colour').not.toBe('rgba(0, 0, 0, 0)')
   })
 
   it('says so when nothing matches', async () => {
