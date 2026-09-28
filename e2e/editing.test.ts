@@ -1,6 +1,8 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest'
-import { chooseMenu, menuItem, newDocument, useApp } from './helpers'
+import { writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
+import { chooseMenu, menuItem, newDocument, openFile, useApp, waitForText } from './helpers'
 
 /**
  * Editing behaviour: the keys the editor owns, and the menu items that drive it.
@@ -250,5 +252,66 @@ describe('smart punctuation substitutes while typing', () => {
 
     // Left on for anything that runs after this.
     await chooseMenu(ctx, 'Edit', 'Smart Punctuation', 'Smart Quotes')
+  })
+})
+
+describe('copy as', () => {
+  /** What the clipboard holds, as text and as HTML (empty when it has none). */
+  const clipboard = () =>
+    ctx.app.evaluate(async ({ clipboard: c }) => {
+      const text = await c.readText()
+      let html = ''
+      for (const item of await c.read()) {
+        if (item.types.includes('text/html'))
+          html = await ((await item.getType('text/html')) as Blob).text()
+      }
+      return { text, html }
+    })
+
+  async function documentToCopy(): Promise<void> {
+    const file = join(ctx.workdir, 'copy-as.md')
+    await writeFile(file, 'Plain **bold** end.\n\n```js\nconst code = 1\n```\n\nOther.\n', 'utf8')
+    await openFile(ctx, file)
+    await waitForText(ctx, 'Other.')
+    await ctx.page.waitForSelector('.milkdown-code-block', { timeout: 15_000 })
+  }
+
+  it('copies clean HTML code, not the editor’s own markup', async () => {
+    // It copied the editor's working DOM: node views, class names and all.
+    await documentToCopy()
+    await ctx.page.locator('.ProseMirror p', { hasText: 'Other.' }).click()
+    await chooseMenu(ctx, 'Edit', 'Copy as HTML Code')
+    await expect.poll(async () => (await clipboard()).text).toContain('<strong>bold</strong>')
+    const { text } = await clipboard()
+    expect(text).toContain('const code = 1')
+    expect(text).not.toContain('class="milkdown')
+    expect(text).not.toContain('contenteditable')
+  })
+
+  it('copies just the selection as plain text', async () => {
+    await ctx.page.locator('.ProseMirror strong').dblclick()
+    await chooseMenu(ctx, 'Edit', 'Copy as Plain Text')
+    await expect.poll(async () => (await clipboard()).text).toBe('bold')
+  })
+
+  it('copies just the selection as markdown', async () => {
+    // Elsewhere first: straight after the last test's double-click on the same
+    // word, this one counts as a triple-click and selects the paragraph.
+    await ctx.page.locator('.ProseMirror p', { hasText: 'Other.' }).click()
+    await ctx.page.locator('.ProseMirror strong').dblclick()
+    await chooseMenu(ctx, 'Edit', 'Copy as Markdown')
+    await expect.poll(async () => (await clipboard()).text).toBe('**bold**\n')
+  })
+
+  it('copies formatted text without the theme, for pasting elsewhere', async () => {
+    // It copied markup as text, the same as HTML Code: pasted into a mail it
+    // came out as tags.
+    await ctx.page.locator('.ProseMirror p', { hasText: 'Other.' }).click()
+    await chooseMenu(ctx, 'Edit', 'Copy without Theme Styling')
+    await expect.poll(async () => (await clipboard()).html).toContain('<strong>bold</strong>')
+    const { html, text } = await clipboard()
+    expect(html).not.toContain('class=')
+    expect(html).not.toContain('style=')
+    expect(text).toContain('Plain bold end.')
   })
 })

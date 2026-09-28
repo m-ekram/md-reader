@@ -14,6 +14,10 @@ import { uiState } from '../stores/ui'
 import { setPunctuation } from '../editor/punctuation'
 import { setShowWhitespace, stripTrailingWhitespace } from '../editor/whitespace'
 import { activeEditor, fromView, refreshDecorations, withView } from '../editor/view'
+import { cleanForExport } from '../export/clean'
+import { DOMSerializer, type Fragment } from '@milkdown/kit/prose/model'
+import type { EditorView } from '@milkdown/kit/prose/view'
+import { editorViewCtx, serializerCtx } from '@milkdown/kit/core'
 
 const settings = useSettingsStore()
 
@@ -30,25 +34,76 @@ function currentMarkdown(): string {
   return activeDoc.value?.content ?? ''
 }
 
-/** The rendered HTML, taken from the editor's own DOM. */
-function currentHtml(): string {
-  return fromView((view) => view.dom.innerHTML, '')
+/**
+ * What the copy-as commands copy: the selection, or the whole document when
+ * nothing is selected. They used to copy the whole document regardless.
+ */
+function copiedFragment(view: EditorView): Fragment {
+  const { selection, doc } = view.state
+  return selection.empty ? doc.content : selection.content().content
 }
 
-/** Markdown with the markup characters removed, for pasting into plain fields. */
-function currentPlainText(): string {
-  // The document's own text: exactly what is rendered, without any of the
-  // syntax that produced it. Source mode has no view, so it falls back to the
-  // markdown itself.
-  return fromView(
-    (view) => view.state.doc.textBetween(0, view.state.doc.content.size, '\n\n'),
-    currentMarkdown()
-  )
+/**
+ * The HTML of what is copied, built from the document itself. It used to be
+ * the editor's own working DOM, full of its node views and class names.
+ */
+function copiedHtml(unstyled: boolean): string {
+  return fromView((view) => {
+    const holder = document.createElement('div')
+    holder.appendChild(
+      DOMSerializer.fromSchema(view.state.schema).serializeFragment(copiedFragment(view))
+    )
+    const out = document.createElement('div')
+    out.innerHTML = cleanForExport(holder)
+    if (unstyled) {
+      for (const el of Array.from(out.querySelectorAll('[class], [style]'))) {
+        el.removeAttribute('class')
+        el.removeAttribute('style')
+      }
+    }
+    return out.innerHTML
+  }, '')
+}
+
+/** The text of what is copied, without the syntax that produced it. */
+function copiedText(): string {
+  // Source mode has no formatted view, so it falls back to the markdown.
+  return fromView((view) => {
+    const { selection, doc } = view.state
+    return selection.empty
+      ? doc.textBetween(0, doc.content.size, '\n\n')
+      : doc.textBetween(selection.from, selection.to, '\n\n')
+  }, currentMarkdown())
+}
+
+/** The selection as markdown, or the whole document. */
+function copiedMarkdown(): string {
+  const handle = activeEditor()
+  if (!handle) return currentMarkdown()
+  let out: string | null = null
+  handle.crepe.editor.action((ctx) => {
+    const view = ctx.get(editorViewCtx)
+    if (view.state.selection.empty) return
+    const doc = view.state.schema.topNodeType.createAndFill(null, copiedFragment(view))
+    if (doc) out = ctx.get(serializerCtx)(doc).trimEnd() + '\n'
+  })
+  return out ?? currentMarkdown()
 }
 
 async function copy(text: string): Promise<void> {
   if (text.length === 0) return
   await navigator.clipboard.writeText(text)
+}
+
+/** Formatted text for pasting into mail or a word processor, with plain text beside it. */
+async function copyFormatted(html: string, text: string): Promise<void> {
+  if (html.length === 0) return
+  await navigator.clipboard.write([
+    new ClipboardItem({
+      'text/html': new Blob([html], { type: 'text/html' }),
+      'text/plain': new Blob([text], { type: 'text/plain' }),
+    }),
+  ])
 }
 
 const viewCommands: Command[] = [
@@ -117,18 +172,19 @@ const viewCommands: Command[] = [
     },
   },
 
-  // The copy-as family. Markdown is what is on disk; HTML is what is rendered;
-  // plain text is the rendered text with the syntax removed.
-  { id: 'edit.copyMarkdown', enabled: hasSelectionOrDocument, run: () => copy(currentMarkdown()) },
-  { id: 'edit.copyHtml', enabled: hasSelectionOrDocument, run: () => copy(currentHtml()) },
-  { id: 'edit.copyPlain', enabled: hasSelectionOrDocument, run: () => copy(currentPlainText()) },
+  // The copy-as family, each of the selection or else the whole document.
+  // Markdown is what is on disk; HTML Code is clean markup, as text; Plain
+  // Text is the rendered text with the syntax removed; without theme styling
+  // is formatted text, for pasting into mail or a word processor.
+  { id: 'edit.copyMarkdown', enabled: hasSelectionOrDocument, run: () => copy(copiedMarkdown()) },
+  { id: 'edit.copyHtml', enabled: hasSelectionOrDocument, run: () => copy(copiedHtml(false)) },
+  { id: 'edit.copyPlain', enabled: hasSelectionOrDocument, run: () => copy(copiedText()) },
   {
     id: 'edit.copyUnstyled',
     enabled: hasSelectionOrDocument,
-    // "Without theme styling" means the markup without the theme's CSS, which
-    // for this application is the same as the rendered HTML: styling lives in
-    // the stylesheet, never inline.
-    run: () => copy(currentHtml()),
+    // It copied markup as text, the same as HTML Code: pasted into a mail, it
+    // came out as tags.
+    run: () => copyFormatted(copiedHtml(true), copiedText()),
   },
 
   /**
