@@ -285,7 +285,19 @@ const commands: Command[] = [
       if (!d?.path) return
       const deleted = await window.api.fileops.delete(d.path)
       if (!deleted) return
-      closeDoc(docs.activeIndex)
+      // Edits made since the last save were thrown away with the tab. They
+      // stay open instead, as a document whose file is gone, which Save puts
+      // back.
+      flushAll()
+      if (isDirty(d)) {
+        d.detached = true
+        showNotice(
+          `“${d.name}” was moved to the Recycle Bin. Its unsaved changes are still open here.`
+        )
+        invalidateCommands()
+      } else {
+        closeDoc(docs.docs.indexOf(d))
+      }
       await refreshArticles()
     },
   },

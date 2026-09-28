@@ -252,3 +252,34 @@ describe('a file that cannot be opened', () => {
     expect(await ctx.page.locator('.status').innerText()).toContain('no longer')
   })
 })
+
+describe('File > Delete with unsaved changes', () => {
+  it('keeps the unsaved changes open', async () => {
+    // It closed the tab outright: the file went to the Recycle Bin, and the
+    // edits typed since its last save went nowhere.
+    const file = join(ctx.workdir, 'binned.md')
+    await writeFile(file, 'Saved text.\n', 'utf8')
+    await openFile(ctx, file)
+    await waitForText(ctx, 'Saved text.')
+    await ctx.page.locator('.ProseMirror').click()
+    await ctx.page.keyboard.press('Control+End')
+    await ctx.page.keyboard.type(' Typed since.')
+    await waitForText(ctx, 'Typed since.')
+
+    await ctx.app.evaluate(({ dialog, shell }) => {
+      dialog.showMessageBox = (async () => ({
+        response: 0,
+        checkboxChecked: false,
+      })) as typeof dialog.showMessageBox
+      // No Recycle Bin here; what matters is that the file is gone.
+      const fs = process.mainModule!.require('node:fs') as typeof import('node:fs')
+      shell.trashItem = async (p: string) => fs.unlinkSync(p)
+    })
+    await chooseMenu(ctx, 'File', 'Delete')
+
+    await expect
+      .poll(() => ctx.page.locator('.status').innerText())
+      .toContain('unsaved changes are still open')
+    await waitForText(ctx, 'Typed since.')
+  })
+})
