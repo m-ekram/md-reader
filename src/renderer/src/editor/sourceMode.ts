@@ -10,7 +10,7 @@
  * The text is the document's own `content`, so switching modes is not a
  * conversion — both views edit the same string.
  */
-import { EditorState, type Extension } from '@codemirror/state'
+import { Compartment, EditorState, type Extension } from '@codemirror/state'
 import { EditorView, keymap, lineNumbers, highlightActiveLine } from '@codemirror/view'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { markdown } from '@codemirror/lang-markdown'
@@ -35,7 +35,14 @@ export interface SourceHandle {
   getContent(): string
   /** Find and replace, driven by the app's own find bar. */
   find: FindBackend
+  /** Readonly, as the formatted view is for the same document. */
+  setReadonly(readonly: boolean): void
   destroy(): void
+}
+
+/** Neither typing nor any other change: the document itself refuses them. */
+function readonlyExtensions(readonly: boolean): Extension {
+  return [EditorState.readOnly.of(readonly), EditorView.editable.of(!readonly)]
 }
 
 /**
@@ -141,8 +148,10 @@ export function createSourceEditor(opts: {
   root: HTMLElement
   value: string
   dark: boolean
+  readonly?: boolean
   onChange: (text: string) => void
 }): SourceHandle {
+  const readonlyCompartment = new Compartment()
   const view = new EditorView({
     parent: opts.root,
     state: EditorState.create({
@@ -157,6 +166,7 @@ export function createSourceEditor(opts: {
         keymap.of([...defaultKeymap, ...historyKeymap]),
         markdown(),
         hiddenSearchPanel,
+        readonlyCompartment.of(readonlyExtensions(opts.readonly === true)),
         EditorView.lineWrapping,
         appearance(opts.dark),
         EditorView.updateListener.of((update) => {
@@ -170,6 +180,8 @@ export function createSourceEditor(opts: {
     view,
     getContent: () => view.state.doc.toString(),
     find: sourceFind(view),
+    setReadonly: (readonly) =>
+      view.dispatch({ effects: readonlyCompartment.reconfigure(readonlyExtensions(readonly)) }),
     destroy: () => view.destroy(),
   }
 }

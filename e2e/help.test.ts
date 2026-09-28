@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest'
-import { useApp } from './helpers'
+import { nextFrames, useApp } from './helpers'
 
 /**
  * The Help menu.
@@ -50,6 +50,47 @@ describe('help topics', () => {
     await ctx.page.keyboard.type('XXXX')
     await ctx.page.waitForTimeout(500)
     expect(await body()).toBe(before)
+  })
+
+  it('cannot be changed by commands either', async () => {
+    // Readonly stopped typing, but not commands: they change the document
+    // directly, and a shortcut made the help page a heading or bold, and
+    // then asked whether to save it.
+    const before = await body()
+    const h1s = await ctx.page.locator('.ProseMirror h1').count()
+    await ctx.page.locator('.ProseMirror p').first().click()
+    await ctx.page.keyboard.press('Control+a')
+    await ctx.page.keyboard.press('Control+b')
+    await ctx.page.keyboard.press('Control+1')
+    await ctx.page.keyboard.press('Control+Shift+q')
+    await nextFrames(ctx)
+    expect(await body()).toBe(before)
+    expect(await ctx.page.locator('.ProseMirror h1').count()).toBe(h1s)
+    expect(await ctx.page.locator('.ProseMirror blockquote').count()).toBe(0)
+    // Nothing to save, because nothing changed.
+    expect(await ctx.page.locator('.titlebar__title').innerText()).not.toMatch(/^•/)
+
+    // And the menu says so, rather than offering what will not happen.
+    await ctx.page.keyboard.press('Escape')
+    await ctx.page.locator('.menubar__top', { hasText: /^Format$/ }).click()
+    await ctx.page.waitForSelector('.menu[role="menu"]', { state: 'visible' })
+    const strong = ctx.page.locator('.menu__item', { hasText: /^Strong/ }).first()
+    expect(await strong.getAttribute('aria-disabled')).toBe('true')
+    await ctx.page.keyboard.press('Escape')
+  })
+
+  it('stays readonly shown as source', async () => {
+    await ctx.page.locator('.ProseMirror').click()
+    await ctx.page.keyboard.press('Control+/')
+    await ctx.page.waitForSelector('.cm-content', { state: 'visible', timeout: 15_000 })
+    const before = await ctx.page.locator('.cm-content').innerText()
+    await ctx.page.locator('.cm-content').click()
+    await ctx.page.keyboard.type('XXXX')
+    await nextFrames(ctx)
+    expect(await ctx.page.locator('.cm-content').innerText()).toBe(before)
+
+    await ctx.page.keyboard.press('Control+/')
+    await ctx.page.waitForSelector('.ProseMirror', { state: 'visible', timeout: 15_000 })
   })
 
   it('brings the same tab forward rather than opening a second copy', async () => {

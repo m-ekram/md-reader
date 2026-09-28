@@ -61,6 +61,7 @@ async function showSource(doc: Doc, token: number): Promise<void> {
     root: container,
     value: doc.content,
     dark: isDarkTheme(),
+    readonly: doc.readonly,
     onChange: (text) => {
       const target = docs.docs.find((d) => d.id === doc.id)
       if (!target) return

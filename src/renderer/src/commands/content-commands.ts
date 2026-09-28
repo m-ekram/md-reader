@@ -17,7 +17,7 @@
 import { TextSelection, NodeSelection } from '@milkdown/kit/prose/state'
 import type { EditorView } from '@milkdown/kit/prose/view'
 import type { Node as ProseNode } from '@milkdown/kit/prose/model'
-import { ancestor, caretIn, fromView, hasEditor, withView } from '../editor/view'
+import { ancestor, canEdit, caretIn, fromView, withView } from '../editor/view'
 import { showNotice } from '../stores/ui'
 import { registerAll, invalidateCommands, type Command } from './registry'
 
@@ -295,8 +295,8 @@ const contentCommands: Command[] = [
     run: () => setChecked(false),
   },
 
-  { id: 'para.footnote', enabled: hasEditor, run: insertFootnote },
-  { id: 'para.frontMatter', enabled: hasEditor, checked: hasFrontMatter, run: toggleFrontMatter },
+  { id: 'para.footnote', enabled: canEdit, run: insertFootnote },
+  { id: 'para.frontMatter', enabled: canEdit, checked: hasFrontMatter, run: toggleFrontMatter },
 
   { id: 'para.copyCode', enabled: inCodeBlock, run: copyCode },
   { id: 'para.setLanguage', enabled: inCodeBlock, run: setLanguage },

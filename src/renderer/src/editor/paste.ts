@@ -32,7 +32,9 @@ function imageFilesFrom(data: DataTransfer | null | undefined): File[] {
  */
 async function insertImage(view: EditorView, file: File): Promise<boolean> {
   const doc = activeDoc.value
-  if (!doc) return false
+  // Before writing anything: the editor would refuse the insert into a
+  // readonly document, but only after the image had been saved beside it.
+  if (!doc || doc.readonly) return false
 
   const buffer = new Uint8Array(await file.arrayBuffer())
   const result = await window.api.images.save({

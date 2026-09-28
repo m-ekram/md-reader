@@ -9,6 +9,7 @@ import { activeDoc } from '../stores/documents'
 import { patchSettings, useSettingsStore } from '../stores/settings'
 import { registerAll, invalidateCommands, type Command } from './registry'
 import { flushAll } from '../editor/pool'
+import { shownSourceFor } from '../editor/source-registry'
 import { uiState } from '../stores/ui'
 import { setPunctuation } from '../editor/punctuation'
 import { setShowWhitespace, stripTrailingWhitespace } from '../editor/whitespace'
@@ -64,6 +65,7 @@ const viewCommands: Command[] = [
       if (!d) return
       d.readonly = !d.readonly
       activeEditor()?.setReadonly(d.readonly)
+      shownSourceFor(d.id)?.setReadonly(d.readonly)
       invalidateCommands()
     },
   },

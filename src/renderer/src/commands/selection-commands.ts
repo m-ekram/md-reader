@@ -9,7 +9,7 @@
 import { TextSelection, NodeSelection } from '@milkdown/kit/prose/state'
 import type { EditorView } from '@milkdown/kit/prose/view'
 import { moveRowCommand } from '@milkdown/kit/preset/gfm'
-import { hasEditor, runCommand, withView } from '../editor/view'
+import { canEdit, hasEditor, runCommand, withView } from '../editor/view'
 import { registerAll, type Command } from './registry'
 
 /** Word characters for selection purposes: letters, digits, and the joiners. */
@@ -103,27 +103,27 @@ const selectionCommands: Command[] = [
   { id: 'edit.selectLine', enabled: hasEditor, run: () => withView(selectLine) },
   { id: 'edit.selectBlock', enabled: hasEditor, run: () => withView(selectBlock) },
 
-  { id: 'edit.deleteWord', enabled: hasEditor, run: deleteWith(selectWord) },
-  { id: 'edit.deleteLine', enabled: hasEditor, run: deleteWith(selectLine) },
-  { id: 'edit.deleteBlock', enabled: hasEditor, run: deleteWith(selectBlock) },
+  { id: 'edit.deleteWord', enabled: canEdit, run: deleteWith(selectWord) },
+  { id: 'edit.deleteLine', enabled: canEdit, run: deleteWith(selectLine) },
+  { id: 'edit.deleteBlock', enabled: canEdit, run: deleteWith(selectBlock) },
 
   // Table rows. The accelerators are Alt+Up/Down, which nothing else claims.
   {
     id: 'edit.moveRowUp',
-    enabled: hasEditor,
+    enabled: canEdit,
     run: () => runCommand(moveRowCommand.key, { pos: -1 }),
   },
   {
     id: 'edit.moveRowDown',
-    enabled: hasEditor,
+    enabled: canEdit,
     run: () => runCommand(moveRowCommand.key, { pos: 1 }),
   },
 
-  { id: 'para.insertBefore', enabled: hasEditor, run: insertParagraph('before') },
-  { id: 'para.insertAfter', enabled: hasEditor, run: insertParagraph('after') },
+  { id: 'para.insertBefore', enabled: canEdit, run: insertParagraph('before') },
+  { id: 'para.insertAfter', enabled: canEdit, run: insertParagraph('after') },
 
   // Both exist as real nodes in the schema, so inserting them is direct.
-  { id: 'para.toc', enabled: hasEditor, run: insertAtomBlock('toc') },
+  { id: 'para.toc', enabled: canEdit, run: insertAtomBlock('toc') },
 
   /**
    * Inline math.
@@ -134,7 +134,7 @@ const selectionCommands: Command[] = [
    */
   {
     id: 'edit.mathInline',
-    enabled: hasEditor,
+    enabled: canEdit,
     run: () =>
       withView((view) => {
         const { state } = view
@@ -154,7 +154,7 @@ const selectionCommands: Command[] = [
    */
   {
     id: 'format.clear',
-    enabled: hasEditor,
+    enabled: canEdit,
     run: () =>
       withView((view) => {
         const { state } = view

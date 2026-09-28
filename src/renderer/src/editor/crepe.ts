@@ -150,6 +150,12 @@ export async function createEditor(opts: {
   /** What was last reported; to begin with, the document as opened. */
   let lastReported: string | null = null
   let openedDoc: ProseNode | null = null
+  /**
+   * Readonly, enforced on the document itself. Crepe's readonly only stops
+   * typing: commands change the document directly, so a shortcut could make a
+   * Help page bold and then ask whether to save it.
+   */
+  let readonly = opts.readonly === true
 
   const crepe = new Crepe({
     root: opts.root,
@@ -184,6 +190,8 @@ export async function createEditor(opts: {
     .use(whitespacePlugin)
     // Undo steps by the time that passed, not the wall clock. See history-clock.ts.
     .use($prose(() => historyClock()))
+    // Refuses any change to a readonly document, whoever asks for it.
+    .use($prose(() => new Plugin({ filterTransaction: (tr) => !(readonly && tr.docChanged) })))
     .use(
       // Marks unreported edits, and reports them once the user pauses.
       $prose(
@@ -293,7 +301,10 @@ export async function createEditor(opts: {
       })
       return out
     },
-    setReadonly: (v: boolean) => void crepe.setReadonly(v),
+    setReadonly: (v: boolean) => {
+      readonly = v
+      crepe.setReadonly(v)
+    },
     destroy: async () => {
       // Every way an editor goes away — eviction, a reload, leaving source
       // mode — passes through here, so this is the one place its unreported

@@ -32,6 +32,13 @@ export function activeEditor(): EditorHandle | null {
 export const hasEditor = (): boolean => activeEditor() !== null
 
 /**
+ * True when commands may change the active document: shown formatted, and not
+ * readonly. The editor itself refuses changes to a readonly document too;
+ * this is what greys the commands out.
+ */
+export const canEdit = (): boolean => hasEditor() && activeDoc.value?.readonly !== true
+
+/**
  * Runs `fn` against the view on screen, then returns focus to it.
  *
  * Focus matters because commands run from the menu, and a menu click leaves

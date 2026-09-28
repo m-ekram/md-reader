@@ -36,7 +36,7 @@ import {
   toggleStrikethroughCommand,
 } from '@milkdown/kit/preset/gfm'
 import { activeDoc } from '../stores/documents'
-import { caretIn, hasEditor, refreshDecorations, runCommand as run, withView } from '../editor/view'
+import { canEdit, caretIn, refreshDecorations, runCommand as run, withView } from '../editor/view'
 import { registerAll, type Command } from './registry'
 import { flushAll } from '../editor/pool'
 import { ALERT_KINDS } from '../editor/alerts'
@@ -89,16 +89,16 @@ const editorCommands: Command[] = [
   // --- Paragraph -----------------------------------------------------------
   ...[1, 2, 3, 4, 5, 6].map((level) => ({
     id: `para.h${level}`,
-    enabled: hasEditor,
+    enabled: canEdit,
     run: () => run(wrapInHeadingCommand.key, level),
   })),
-  { id: 'para.paragraph', enabled: hasEditor, run: () => run(turnIntoTextCommand.key) },
-  { id: 'para.increaseHeading', enabled: hasEditor, run: () => run(wrapInHeadingCommand.key) },
-  { id: 'para.decreaseHeading', enabled: hasEditor, run: () => run(downgradeHeadingCommand.key) },
+  { id: 'para.paragraph', enabled: canEdit, run: () => run(turnIntoTextCommand.key) },
+  { id: 'para.increaseHeading', enabled: canEdit, run: () => run(wrapInHeadingCommand.key) },
+  { id: 'para.decreaseHeading', enabled: canEdit, run: () => run(downgradeHeadingCommand.key) },
 
-  { id: 'para.quote', enabled: hasEditor, run: () => run(wrapInBlockquoteCommand.key) },
-  { id: 'para.orderedList', enabled: hasEditor, run: () => run(wrapInOrderedListCommand.key) },
-  { id: 'para.unorderedList', enabled: hasEditor, run: () => run(wrapInBulletListCommand.key) },
+  { id: 'para.quote', enabled: canEdit, run: () => run(wrapInBlockquoteCommand.key) },
+  { id: 'para.orderedList', enabled: canEdit, run: () => run(wrapInOrderedListCommand.key) },
+  { id: 'para.unorderedList', enabled: canEdit, run: () => run(wrapInBulletListCommand.key) },
   /**
    * List indentation.
    *
@@ -109,10 +109,10 @@ const editorCommands: Command[] = [
   { id: 'para.indent', enabled: inListItem, run: () => run(sinkListItemCommand.key) },
   { id: 'para.outdent', enabled: inListItem, run: () => run(liftListItemCommand.key) },
 
-  { id: 'para.codeFence', enabled: hasEditor, run: () => run(createCodeBlockCommand.key) },
-  { id: 'para.horizontalLine', enabled: hasEditor, run: () => run(insertHrCommand.key) },
+  { id: 'para.codeFence', enabled: canEdit, run: () => run(createCodeBlockCommand.key) },
+  { id: 'para.horizontalLine', enabled: canEdit, run: () => run(insertHrCommand.key) },
 
-  { id: 'para.insertTable', enabled: hasEditor, run: () => run(insertTableCommand.key) },
+  { id: 'para.insertTable', enabled: canEdit, run: () => run(insertTableCommand.key) },
   { id: 'para.addRowAbove', enabled: inTable, run: () => run(addRowBeforeCommand.key) },
   { id: 'para.addRowBelow', enabled: inTable, run: () => run(addRowAfterCommand.key) },
   { id: 'para.addColBefore', enabled: inTable, run: () => run(addColBeforeCommand.key) },
@@ -124,7 +124,7 @@ const editorCommands: Command[] = [
   // followed by setting that attribute.
   ...ALERT_KINDS.map((kind) => ({
     id: `para.alert${kind[0].toUpperCase()}${kind.slice(1)}`,
-    enabled: hasEditor,
+    enabled: canEdit,
     run: () => {
       run(wrapInBlockquoteCommand.key)
       withView((view) => {
@@ -214,20 +214,20 @@ const editorCommands: Command[] = [
   },
 
   // --- Format --------------------------------------------------------------
-  { id: 'format.strong', enabled: hasEditor, run: () => run(toggleStrongCommand.key) },
-  { id: 'format.emphasis', enabled: hasEditor, run: () => run(toggleEmphasisCommand.key) },
-  { id: 'format.code', enabled: hasEditor, run: () => run(toggleInlineCodeCommand.key) },
-  { id: 'format.strike', enabled: hasEditor, run: () => run(toggleStrikethroughCommand.key) },
-  { id: 'format.hyperlink', enabled: hasEditor, run: () => run(toggleLinkCommand.key) },
-  { id: 'format.insertImage', enabled: hasEditor, run: () => run(insertImageCommand.key) },
+  { id: 'format.strong', enabled: canEdit, run: () => run(toggleStrongCommand.key) },
+  { id: 'format.emphasis', enabled: canEdit, run: () => run(toggleEmphasisCommand.key) },
+  { id: 'format.code', enabled: canEdit, run: () => run(toggleInlineCodeCommand.key) },
+  { id: 'format.strike', enabled: canEdit, run: () => run(toggleStrikethroughCommand.key) },
+  { id: 'format.hyperlink', enabled: canEdit, run: () => run(toggleLinkCommand.key) },
+  { id: 'format.insertImage', enabled: canEdit, run: () => run(insertImageCommand.key) },
 
   /**
    * Underline and Comment have no markdown equivalent, so they emit HTML the
    * way the reference editor does. Kept deliberately: dropping them would lose
    * a formatting option people expect.
    */
-  { id: 'format.underline', enabled: hasEditor, run: () => wrapSelection('<u>', '</u>') },
-  { id: 'format.comment', enabled: hasEditor, run: () => wrapSelection('<!-- ', ' -->') },
+  { id: 'format.underline', enabled: canEdit, run: () => wrapSelection('<u>', '</u>') },
+  { id: 'format.comment', enabled: canEdit, run: () => wrapSelection('<!-- ', ' -->') },
 ]
 
 /** Wraps the selection in literal text, for the HTML-only formats. */
