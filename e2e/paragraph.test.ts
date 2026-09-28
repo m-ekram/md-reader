@@ -233,6 +233,46 @@ describe('table rows', () => {
   })
 })
 
+describe('deleting table rows and columns', () => {
+  it('deletes the row, or the column, with the caret', async () => {
+    // Both items ran one command that needs whole cells selected: with just
+    // a caret in the table, neither did anything.
+    const file = join(ctx.workdir, 'delete-rows.md')
+    await writeFile(
+      file,
+      [
+        '| name | n | note |',
+        '| --- | --- | --- |',
+        '| alpha | 1 | x |',
+        '| beta | 2 | y |',
+        '',
+      ].join('\n'),
+      'utf8'
+    )
+    await openFile(ctx, file)
+    await waitForText(ctx, 'beta')
+
+    await ctx.page.locator('.ProseMirror td', { hasText: 'beta' }).first().click()
+    await chooseNested('Paragraph', 'Table', 'Delete Row')
+    let text = await savedText(file)
+    expect(text).not.toContain('beta')
+    expect(text).toContain('alpha')
+
+    await ctx.page.locator('.ProseMirror td', { hasText: 'x' }).first().click()
+    await chooseNested('Paragraph', 'Table', 'Delete Column')
+    text = await savedText(file)
+    expect(text).not.toContain('note')
+    expect(text).toContain('alpha')
+  })
+
+  it('never deletes the header row', async () => {
+    await ctx.page.locator('.ProseMirror th', { hasText: 'name' }).first().click()
+    const item = await menuItem(ctx, 'Paragraph', 'Table', 'Delete Row')
+    expect(await item.getAttribute('aria-disabled')).toBe('true')
+    await ctx.page.keyboard.press('Escape')
+  })
+})
+
 describe('heading level', () => {
   it('steps one level at a time, from anywhere in the heading', async () => {
     // Increase made every block a level-1 heading; Decrease worked only with

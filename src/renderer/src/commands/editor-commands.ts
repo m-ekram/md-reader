@@ -30,7 +30,6 @@ import {
   addColBeforeCommand,
   addRowAfterCommand,
   addRowBeforeCommand,
-  deleteSelectedCellsCommand,
   insertTableCommand,
   toggleStrikethroughCommand,
 } from '@milkdown/kit/preset/gfm'
@@ -43,6 +42,9 @@ import {
   runCommand as run,
   withView,
 } from '../editor/view'
+import { deleteColumn, deleteRow, isInTable, selectedRect } from '@milkdown/kit/prose/tables'
+import type { EditorState } from '@milkdown/kit/prose/state'
+import type { EditorView } from '@milkdown/kit/prose/view'
 import { registerAll, type Command } from './registry'
 import { flushAll } from '../editor/pool'
 import { ALERT_KINDS } from '../editor/alerts'
@@ -135,6 +137,19 @@ function stepHeading(direction: 1 | -1): void {
   })
 }
 
+/** Runs a prosemirror-tables command against the view. */
+function tableEdit(command: (s: EditorState, d?: EditorView['dispatch']) => boolean) {
+  return (view: EditorView) => void command(view.state, view.dispatch)
+}
+
+/** Not the header row: a table keeps its header. */
+const canDeleteRow = (): boolean =>
+  canEdit() && fromView((v) => isInTable(v.state) && selectedRect(v.state).top >= 1, false)
+
+/** Not a table's only column. */
+const canDeleteColumn = (): boolean =>
+  canEdit() && fromView((v) => isInTable(v.state) && selectedRect(v.state).map.width > 1, false)
+
 const editorCommands: Command[] = [
   ...delegatedCommands,
   // --- Paragraph -----------------------------------------------------------
@@ -176,8 +191,14 @@ const editorCommands: Command[] = [
   { id: 'para.addRowBelow', enabled: inTable, run: () => run(addRowAfterCommand.key) },
   { id: 'para.addColBefore', enabled: inTable, run: () => run(addColBeforeCommand.key) },
   { id: 'para.addColAfter', enabled: inTable, run: () => run(addColAfterCommand.key) },
-  { id: 'para.deleteRow', enabled: inTable, run: () => run(deleteSelectedCellsCommand.key) },
-  { id: 'para.deleteCol', enabled: inTable, run: () => run(deleteSelectedCellsCommand.key) },
+  // The row or column with the caret. Both ran a command that needs whole
+  // cells selected, and with just a caret in the table did nothing.
+  { id: 'para.deleteRow', enabled: canDeleteRow, run: () => withView(tableEdit(deleteRow)) },
+  {
+    id: 'para.deleteCol',
+    enabled: canDeleteColumn,
+    run: () => withView(tableEdit(deleteColumn)),
+  },
 
   // Alerts are a blockquote with an attribute, so inserting one is a wrap
   // followed by setting that attribute.
