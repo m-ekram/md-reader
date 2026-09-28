@@ -64,6 +64,18 @@ when you hover over it.
   them without leaving the find box.
 - Export and print work from source view, and code blocks far down a long
   document are exported with their code.
+- `[[Wiki links]]` are saved exactly as you wrote them.
+
+### Commands that now do what they say
+
+- **Move Row Up / Down** (`Alt+↑` / `Alt+↓`) move the table row you are in.
+- **Delete Row** and **Delete Column** delete the one you are in.
+- `Ctrl+=` and `Ctrl+-` change a heading one level at a time, from anywhere in
+  it, and turn a paragraph into a heading and back.
+- `Ctrl+K` asks for the link's address.
+- **Math Block** (`Ctrl+Shift+M`) is available, in the menus and the toolbar.
+- **Copy as…** copies the selection. **Copy without Theme Styling** pastes into
+  mail or a word processor as formatted text.
 - Renaming an open file in Explorer moves its tab to the new name, instead of
   sometimes marking it as deleted.
 - A pasted image shows straight away. It showed as broken until the file was

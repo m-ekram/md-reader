@@ -60,6 +60,14 @@
   box moved focus into the document. Find and replace now work in source view.
 - Export and Print said "Nothing to export" in source view, and code blocks out
   of sight in a long document exported empty.
+- `[[Wiki links]]` were escaped on save as `\[\[Note]]`.
+- Move Row Up/Down moved nothing; Delete Row/Column needed whole cells
+  selected; Increase Heading always made level 1 and Decrease only worked at a
+  heading's start; Ctrl+K made a link with no address; Copy as HTML Code and
+  Copy without Theme Styling copied the editor's own markup, and every Copy As
+  ignored the selection.
+- Math Block, refused as "not modelled", inserts a LaTeX block (saved as
+  `$$…$$`); the toolbar's math button is back.
 
 - Opening a file by double-clicking it, or several at once, could leave the
   file unopened and show an empty Untitled instead.
