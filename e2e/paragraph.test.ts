@@ -162,17 +162,15 @@ describe('hyperlink actions', () => {
     // It toggled a link mark with no address at all, instead of opening the
     // editor that asks for one.
     const file = join(ctx.workdir, 'make-link.md')
-    await writeFile(file, 'Read the manual today.\n', 'utf8')
+    await writeFile(file, 'Read this.\n\nmanual\n', 'utf8')
     await openFile(ctx, file)
-    await waitForText(ctx, 'the manual')
-    await ctx.page
-      .locator('.ProseMirror p')
-      .first()
-      .dblclick({ position: { x: 5, y: 5 } })
-    // Select "manual" exactly, by keyboard from the start of the line.
-    await ctx.page.keyboard.press('Home')
-    for (let i = 0; i < 'Read the '.length; i++) await ctx.page.keyboard.press('ArrowRight')
-    for (let i = 0; i < 'manual'.length; i++) await ctx.page.keyboard.press('Shift+ArrowRight')
+    await waitForText(ctx, 'manual')
+    // The word alone on its line, so End then Shift+Home selects exactly it:
+    // a selection counted out in arrow presses lost one now and then.
+    await ctx.page.locator('.ProseMirror p', { hasText: 'manual' }).click()
+    await ctx.page.keyboard.press('End')
+    await ctx.page.keyboard.press('Shift+Home')
+    await expect.poll(() => ctx.page.evaluate(() => String(getSelection()))).toBe('manual')
 
     await ctx.page.keyboard.press('Control+k')
     const input = ctx.page.locator('.milkdown-link-edit input')
