@@ -337,7 +337,7 @@ describe('toolbar', () => {
     await expect.poll(() => bar().isVisible(), { timeout: 5000 }).toBe(false)
   })
 
-  it('formats with a labelled button, and offers no block math', async () => {
+  it('formats with a labelled button, block math included', async () => {
     await chooseMenu(ctx, 'View', 'Toolbar')
     await expect.poll(() => bar().isVisible(), { timeout: 5000 }).toBe(true)
 
@@ -357,6 +357,8 @@ describe('toolbar', () => {
       'Image',
       'Table',
       'Code block',
+      // Left out while the menus refused block math, which the editor models.
+      'Math',
       'Quote',
       'Horizontal rule',
     ])

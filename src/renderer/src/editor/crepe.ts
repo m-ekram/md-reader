@@ -37,7 +37,7 @@ import { punctuationPlugin } from './punctuation'
 import { whitespacePlugin } from './whitespace'
 import { mark } from '../utils/startup'
 import { codeTheme } from './code-theme'
-import { buildTopBar, labelTopBar } from './toolbar'
+import { labelTopBar } from './toolbar'
 import { historyClock } from './history-clock'
 
 /**
@@ -169,7 +169,6 @@ export async function createEditor(opts: {
     featureConfigs: {
       // Colours from the theme, not Crepe's fixed dark palette. See code-theme.ts.
       [CrepeFeature.CodeMirror]: { theme: codeTheme },
-      [CrepeFeature.TopBar]: { buildTopBar },
     },
   })
 
