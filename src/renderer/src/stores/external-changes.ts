@@ -130,11 +130,21 @@ function followRename(doc: Doc, newPath: string, mtimeMs: number): void {
  */
 async function resolveRenames(removed: string[], added: string[]): Promise<Set<string>> {
   const handled = new Set<string>()
-  if (removed.length === 0 || added.length === 0) return handled
+  if (added.length === 0) return handled
 
-  const candidates = removed
+  const removedNow = removed
     .map((path) => ({ path, doc: docFor(path) }))
     .filter((c): c is { path: string; doc: Doc } => c.doc !== undefined)
+  // Removed in an earlier batch. The watcher reports a new file only once its
+  // size has held still, which can be after it has sent the removal on its
+  // own: matched within one batch only, a rename on a busy machine detached
+  // the tab instead. Recently, so a file deleted long ago is not taken to be
+  // an unrelated copy made later.
+  const removedJustBefore = docs.docs
+    .filter((d) => d.detached && d.path !== null && !removedNow.some((c) => c.doc === d))
+    .filter((d) => performance.now() - (detachedAt.get(d) ?? -Infinity) < RENAME_WINDOW_MS)
+    .map((d) => ({ path: d.path!, doc: d }))
+  const candidates = [...removedNow, ...removedJustBefore]
   if (candidates.length === 0) return handled
 
   for (const addedPath of added) {
@@ -159,12 +169,19 @@ async function resolveRenames(removed: string[], added: string[]): Promise<Set<s
   return handled
 }
 
+/** How long after its file went a document may still turn out to be renamed. */
+const RENAME_WINDOW_MS = 5000
+
+/** When each document's file went, on a clock that only moves forward. */
+const detachedAt = new WeakMap<Doc, number>()
+
 function markDetached(path: string): void {
   const doc = docFor(path)
   if (!doc) return
   // The tab stays, with its content. Closing it here would destroy work every
   // time a sync client briefly removed a file.
   doc.detached = true
+  detachedAt.set(doc, performance.now())
   invalidateCommands()
 }
 

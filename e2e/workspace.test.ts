@@ -169,7 +169,10 @@ describe('a renamed file keeps its tab', () => {
     await rename(before, after)
 
     // The tab should move to the new name rather than detaching.
-    await ctx.page.waitForFunction(() => document.title.includes('after.md'), { timeout: 20_000 })
+    // Options third: second, they were taken for the page function's argument.
+    await ctx.page.waitForFunction(() => document.title.includes('after.md'), null, {
+      timeout: 20_000,
+    })
     expect(await ctx.page.title()).not.toContain('before.md')
 
     // And the content is still there, unsaved-work intact.
