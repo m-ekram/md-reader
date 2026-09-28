@@ -48,6 +48,22 @@ when you hover over it.
 - In a long document, Find shows you the match it moves to.
 - `Ctrl+Z` undoes one burst of typing at a time, even if Windows corrects the
   clock in between. It could take back two at once.
+- Pressing `Escape` on "Unsaved changes were recovered" keeps them for next
+  time. It used to throw them away. Several recovered documents are offered in
+  one question, with **Restore All**.
+- The folder you had open is open again when you start the app.
+- Commands only ever change the document in front of you. In source view,
+  `Ctrl+B` could change another tab.
+- Help pages stay as they are: no command, shortcut or paste changes them.
+- Changing the line endings counts as an edit, so closing asks before losing it.
+- **File ▸ Delete** keeps any unsaved changes open, rather than closing them
+  with the file.
+- When a file cannot be opened, you are told which one and why.
+- Find and replace work in source view, and find's matches are highlighted in
+  the formatted view (they were marked but not shown). `Enter` steps through
+  them without leaving the find box.
+- Export and print work from source view, and code blocks far down a long
+  document are exported with their code.
 - Renaming an open file in Explorer moves its tab to the new name, instead of
   sometimes marking it as deleted.
 - A pasted image shows straight away. It showed as broken until the file was

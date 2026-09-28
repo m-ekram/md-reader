@@ -43,6 +43,23 @@
   name, when the watcher reported the removal and the new file separately.
 - A pasted image showed broken until the file was reopened: images inside a line
   of text did not resolve their relative link for display.
+- Escape on the crash-recovery question discarded the recovered work. It is now
+  one question (Restore All / Not Now / Review), Not Now keeps the work, and
+  Discard asks twice. Restored Untitled work keeps its journal, so it is not
+  offered twice.
+- The open folder was forgotten at every launch: the settings merge dropped it.
+  A folder that has gone is closed with a notice.
+- In source view, formatting commands and Find acted on another tab's hidden
+  editor. Commands now reach only the active document's own editor.
+- Readonly documents (Help topics) could be changed by commands, typed into in
+  source view, and had pasted images saved beside them.
+- Changing line endings did not mark the document edited.
+- Opening from the sidebar, Open Quickly or Explorer failed silently.
+- File ▸ Delete closed the tab and lost unsaved changes.
+- Find's highlights in the formatted view were never styled; Enter in the find
+  box moved focus into the document. Find and replace now work in source view.
+- Export and Print said "Nothing to export" in source view, and code blocks out
+  of sight in a long document exported empty.
 
 - Opening a file by double-clicking it, or several at once, could leave the
   file unopened and show an empty Untitled instead.
