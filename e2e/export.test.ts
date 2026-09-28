@@ -148,6 +148,32 @@ describe('HTML export', () => {
   })
 })
 
+describe('export from the source view', () => {
+  it('exports the formatted document, not nothing', async () => {
+    // It read the formatted view off the screen, and the source view has
+    // none: "Nothing to export".
+    const target = join(ctx.workdir, 'from-source.html')
+    await openFixture()
+    await ctx.page.locator('.ProseMirror').click()
+    await ctx.page.keyboard.press('Control+/')
+    await ctx.page.waitForSelector('.cm-content', { state: 'visible', timeout: 15_000 })
+
+    await stubSaveDialog(target)
+    await chooseExport('HTML')
+    await expect.poll(() => existsSync(target), { timeout: 20_000 }).toBe(true)
+    const html = await readFile(target, 'utf8')
+    expect(html).toContain('Export Me')
+    expect(html).toContain('<strong>bold</strong>')
+    expect(html).toContain('const answer = 42')
+    expect(html).toContain('data-alert="note"')
+    expect(html).toContain('data:image/png;base64,')
+
+    await ctx.page.locator('.cm-content').click()
+    await ctx.page.keyboard.press('Control+/')
+    await ctx.page.waitForSelector('.ProseMirror', { state: 'visible', timeout: 15_000 })
+  })
+})
+
 describe('export of a long document', () => {
   it('keeps the code of blocks that were out of sight', async () => {
     // Code blocks start their editor only once scrolled into view. Until then

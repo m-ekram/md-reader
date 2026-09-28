@@ -21,7 +21,8 @@ import sepiaCss from '../themes/sepia.css?inline'
 import gruvboxDarkCss from '../themes/gruvbox-dark.css?inline'
 import katexCss from 'katex/dist/katex.min.css?inline'
 import { cleanForExport } from './clean'
-import { activeDoc } from '../stores/documents'
+import { activeDoc, type Doc } from '../stores/documents'
+import { createEditor } from '../editor/crepe'
 import { useThemeStore } from '../stores/theme'
 import type { ExportPayload } from '../../../main/export/html'
 
@@ -82,20 +83,62 @@ async function stylesheetFor(themeId: string, builtin: boolean): Promise<string>
   return [contractCss, themeCss, katexCss, editorCss].join('\n\n')
 }
 
+/** How long a hidden render may take to finish drawing its diagrams. */
+const RENDER_WAIT_MS = 5000
+
+/**
+ * The document formatted, for a document shown as source.
+ *
+ * The export reads the formatted view off the screen, and the source view has
+ * none: it said "Nothing to export". The markdown is rendered in a hidden
+ * editor instead, given the time the screen would have had for its diagrams,
+ * which draw after the text. Its HTML is taken, and the editor thrown away.
+ */
+async function renderHidden(doc: Doc): Promise<string | null> {
+  const host = document.createElement('div')
+  host.style.cssText = 'position:fixed;left:-10000px;top:0;width:900px;visibility:hidden'
+  host.setAttribute('aria-hidden', 'true')
+  document.body.appendChild(host)
+  const handle = await createEditor({
+    root: host,
+    value: doc.content,
+    documentPath: doc.path,
+    readonly: true,
+    onChange: () => {},
+  })
+  try {
+    const deadline = Date.now() + RENDER_WAIT_MS
+    while (host.querySelector('.mermaid-figure.is-pending') && Date.now() < deadline) {
+      await new Promise((r) => requestAnimationFrame(r))
+    }
+    const root = host.querySelector('.milkdown .ProseMirror')
+    return root instanceof HTMLElement ? cleanForExport(root) : null
+  } finally {
+    await handle.destroy()
+    host.remove()
+  }
+}
+
 /** Null when there is nothing open to export. */
 export async function collectExport(): Promise<ExportPayload | null> {
   const doc = activeDoc.value
   if (!doc) return null
 
-  const root = document.querySelector('.milkdown .ProseMirror')
-  if (!(root instanceof HTMLElement)) return null
+  let body: string | null
+  if (doc.sourceMode) {
+    body = await renderHidden(doc)
+  } else {
+    const root = document.querySelector('.milkdown .ProseMirror')
+    body = root instanceof HTMLElement ? cleanForExport(root) : null
+  }
+  if (body === null) return null
 
   const theme = useThemeStore()
   const info = theme.available.find((t) => t.id === theme.current)
 
   return {
     title: doc.name.replace(/\.[^.]+$/, ''),
-    bodyHtml: sanitize(cleanForExport(root)),
+    bodyHtml: sanitize(body),
     css: await stylesheetFor(theme.current, info?.builtin ?? true),
     themeId: theme.current,
     documentPath: doc.path,
