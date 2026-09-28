@@ -11,7 +11,6 @@
  */
 import {
   createCodeBlockCommand,
-  downgradeHeadingCommand,
   insertHrCommand,
   insertImageCommand,
   toggleEmphasisCommand,
@@ -36,7 +35,14 @@ import {
   toggleStrikethroughCommand,
 } from '@milkdown/kit/preset/gfm'
 import { activeDoc } from '../stores/documents'
-import { canEdit, caretIn, refreshDecorations, runCommand as run, withView } from '../editor/view'
+import {
+  canEdit,
+  caretIn,
+  fromView,
+  refreshDecorations,
+  runCommand as run,
+  withView,
+} from '../editor/view'
 import { registerAll, type Command } from './registry'
 import { flushAll } from '../editor/pool'
 import { ALERT_KINDS } from '../editor/alerts'
@@ -84,6 +90,51 @@ const delegatedCommands: Command[] = (
   },
 }))
 
+/**
+ * The level the block with the caret goes to, one step more prominent (+1) or
+ * less (-1): paragraph, then level 6 up to level 1. `7` stands for paragraph.
+ * Null when it cannot go further, or the block is neither.
+ *
+ * The editor's own commands did not do this: Increase made every block a
+ * level-1 heading, and Decrease worked only with the caret at the heading's
+ * very start.
+ */
+function headingStep(direction: 1 | -1): number | null {
+  if (!canEdit()) return null
+  return fromView((view) => {
+    const block = view.state.selection.$from.parent
+    const { heading, paragraph } = view.state.schema.nodes
+    const level =
+      block.type === heading ? (block.attrs.level as number) : block.type === paragraph ? 7 : null
+    if (level === null) return null
+    const next = level - direction
+    return next >= 1 && next <= 7 ? next : null
+  }, null)
+}
+
+function stepHeading(direction: 1 | -1): void {
+  const next = headingStep(direction)
+  if (next === null) return
+  withView((view) => {
+    const { $from } = view.state.selection
+    const block = $from.parent
+    const pos = $from.before($from.depth)
+    const { heading, paragraph } = view.state.schema.nodes
+    try {
+      view.dispatch(
+        next === 7
+          ? view.state.tr.setNodeMarkup(pos, paragraph)
+          : view.state.tr.setNodeMarkup(pos, heading, {
+              ...(block.type === heading ? block.attrs : {}),
+              level: next,
+            })
+      )
+    } catch {
+      // Where a heading may not stand, such as a list item's first line.
+    }
+  })
+}
+
 const editorCommands: Command[] = [
   ...delegatedCommands,
   // --- Paragraph -----------------------------------------------------------
@@ -93,8 +144,16 @@ const editorCommands: Command[] = [
     run: () => run(wrapInHeadingCommand.key, level),
   })),
   { id: 'para.paragraph', enabled: canEdit, run: () => run(turnIntoTextCommand.key) },
-  { id: 'para.increaseHeading', enabled: canEdit, run: () => run(wrapInHeadingCommand.key) },
-  { id: 'para.decreaseHeading', enabled: canEdit, run: () => run(downgradeHeadingCommand.key) },
+  {
+    id: 'para.increaseHeading',
+    enabled: () => headingStep(1) !== null,
+    run: () => stepHeading(1),
+  },
+  {
+    id: 'para.decreaseHeading',
+    enabled: () => headingStep(-1) !== null,
+    run: () => stepHeading(-1),
+  },
 
   { id: 'para.quote', enabled: canEdit, run: () => run(wrapInBlockquoteCommand.key) },
   { id: 'para.orderedList', enabled: canEdit, run: () => run(wrapInOrderedListCommand.key) },

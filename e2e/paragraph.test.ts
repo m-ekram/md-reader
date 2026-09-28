@@ -232,3 +232,40 @@ describe('table rows', () => {
     expect((await readFile(file, 'utf8')).startsWith('| name')).toBe(true)
   })
 })
+
+describe('heading level', () => {
+  it('steps one level at a time, from anywhere in the heading', async () => {
+    // Increase made every block a level-1 heading; Decrease worked only with
+    // the caret at the very start of the heading.
+    const file = join(ctx.workdir, 'levels.md')
+    await writeFile(file, '### Level three\n\nBody.\n', 'utf8')
+    await openFile(ctx, file)
+    await waitForText(ctx, 'Level three')
+    // In the middle of the word, not at its start.
+    await ctx.page.locator('.ProseMirror h3').click()
+    await ctx.page.keyboard.press('End')
+    await ctx.page.keyboard.press('ArrowLeft')
+    await ctx.page.keyboard.press('ArrowLeft')
+
+    await ctx.page.keyboard.press('Control+-')
+    expect(await savedText(file)).toMatch(/^#### Level three$/m)
+    await ctx.page.keyboard.press('Control+=')
+    await ctx.page.keyboard.press('Control+=')
+    expect(await savedText(file)).toMatch(/^## Level three$/m)
+  })
+
+  it('makes a paragraph the smallest heading, and the smallest heading a paragraph', async () => {
+    const file = join(ctx.workdir, 'para-levels.md')
+    await writeFile(file, '# Title\n\nPlain words.\n', 'utf8')
+    await openFile(ctx, file)
+    await waitForText(ctx, 'Plain words.')
+    await ctx.page.locator('.ProseMirror p', { hasText: 'Plain words.' }).click()
+
+    await ctx.page.keyboard.press('Control+=')
+    expect(await savedText(file)).toContain('###### Plain words.')
+    await ctx.page.keyboard.press('Control+-')
+    const text = await savedText(file)
+    expect(text).toContain('\nPlain words.')
+    expect(text).not.toContain('# Plain words.')
+  })
+})
