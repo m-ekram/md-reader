@@ -32,52 +32,16 @@ import { registerExportCommands } from './commands/export-commands'
 import { registerContentCommands } from './commands/content-commands'
 import { registerHelpCommands } from './commands/help-commands'
 import { registerUnavailableCommands } from './commands/unavailable-commands'
-import { adoptFile, newDoc } from './stores/documents'
+import { adoptFile } from './stores/documents'
 import { restoreSession, started, trackSession } from './stores/session'
 import { showNotice } from './stores/ui'
 import { logError } from './utils/report'
 import { initSearchListeners, initWorkspaceSync } from './stores/workspace'
+import { offerRecoveries } from './stores/recovery'
 import { initExternalChanges } from './stores/external-changes'
 import { setEditorModes } from './editor/typewriter'
 import { setPunctuation } from './editor/punctuation'
 import { setShowWhitespace } from './editor/whitespace'
-
-/**
- * Offers back anything a crash left behind, before the user starts typing.
- *
- * A journal key is either a real path or a synthetic `untitled:` id for a buffer
- * that was never saved, so the prompt describes both without showing the
- * synthetic key to the user.
- */
-async function offerRecoveries(): Promise<void> {
-  const pending = await window.api.file.pendingRecoveries()
-
-  // Prompting happens after the window is usable, never as a gate in front of
-  // it: a modal that appears before the first document exists leaves the app
-  // looking hung if anything goes wrong answering it.
-  for (const entry of pending) {
-    const untitled = entry.path.startsWith('untitled:')
-    const label = untitled ? 'An unsaved document' : entry.path
-
-    const restore = await window.api.app.confirm(
-      'Unsaved changes were recovered',
-      `${label}\n\nRestore the recovered version?`
-    )
-
-    if (!restore) {
-      await window.api.file.discardRecovery(entry.path)
-      continue
-    }
-
-    const file = untitled ? null : await window.api.file.read(entry.path).catch(() => null)
-    // The file may be open already, reopened with the last session: adoptFile
-    // then returns that tab, whose editor was built from the text on disk.
-    // The reload token has it rebuilt from the recovered text instead.
-    const doc = file ? adoptFile(file) : newDoc()
-    doc.content = entry.content
-    doc.reloadToken++
-  }
-}
 
 /**
  * Opens the files the window was launched with: a double-click in Explorer,

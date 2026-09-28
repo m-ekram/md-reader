@@ -284,18 +284,67 @@ function registerAppIpc(): void {
 
   // Native dialogs rather than window.confirm/alert: those block the renderer
   // and look nothing like the rest of the application.
-  ipcMain.handle('app:confirm', async (e, message: string, detail?: string) => {
-    const win = BrowserWindow.fromWebContents(e.sender)
-    const r = await dialog.showMessageBox(win ?? undefined!, {
-      type: 'question',
-      buttons: ['Restore', 'Discard'],
-      defaultId: 0,
-      cancelId: 1,
-      message,
-      detail,
-    })
-    return r.response === 0
-  })
+  // The second button is always the one Escape answers with, so it must be the
+  // choice that changes nothing.
+  ipcMain.handle(
+    'app:confirm',
+    async (e, message: string, detail?: string, ok = 'OK', cancel = 'Cancel') => {
+      const win = BrowserWindow.fromWebContents(e.sender)
+      const r = await dialog.showMessageBox(win ?? undefined!, {
+        type: 'question',
+        buttons: [String(ok), String(cancel)],
+        defaultId: 0,
+        cancelId: 1,
+        noLink: true,
+        message,
+        detail,
+      })
+      return r.response === 0
+    }
+  )
+
+  /**
+   * Unsaved work found after a crash: restore it, keep it for later, or, asked
+   * twice, throw it away.
+   *
+   * Escape answers a message box with its cancel button, and that used to be
+   * Discard, so dismissing the question deleted the work it was offering back.
+   * Dismissing now means Not Now: the work stays on disk and is offered again.
+   */
+  ipcMain.handle(
+    'recovery:prompt',
+    async (e, labels: string[]): Promise<'restore' | 'later' | 'review' | 'discard'> => {
+      const win = BrowserWindow.fromWebContents(e.sender) ?? undefined!
+      const several = labels.length > 1
+      const r = await dialog.showMessageBox(win, {
+        type: 'question',
+        message: 'Unsaved changes were recovered',
+        detail: several
+          ? `${labels.join('\n')}\n\nRestore them? Not Now keeps them, to be offered again.`
+          : `${labels[0]}\n\nRestore the recovered version? Not Now keeps it, to be offered again.`,
+        buttons: several
+          ? ['Restore All', 'Not Now', 'Review…']
+          : ['Restore', 'Not Now', 'Discard…'],
+        defaultId: 0,
+        cancelId: 1,
+        noLink: true,
+      })
+      if (r.response === 0) return 'restore'
+      if (r.response !== 2) return 'later'
+      if (several) return 'review'
+
+      const sure = await dialog.showMessageBox(win, {
+        type: 'warning',
+        message: 'Discard the recovered changes?',
+        detail: `${labels[0]}\n\nThey cannot be recovered again.`,
+        buttons: ['Keep Them', 'Discard'],
+        defaultId: 0,
+        cancelId: 0,
+        noLink: true,
+      })
+      return sure.response === 1 ? 'discard' : 'later'
+    }
+  )
 
   ipcMain.handle('app:info', async (e, message: string, detail?: string) => {
     const win = BrowserWindow.fromWebContents(e.sender)

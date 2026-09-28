@@ -397,7 +397,9 @@ A backup is written each time the file is saved, so there will be one after the 
         `Restore the previous version of ${d.name}?`,
         `Kept just before the save at ${when}.
 
-The version currently open will be replaced. It is not written to disk until you save, so you can undo this.`
+The version currently open will be replaced. It is not written to disk until you save, so you can undo this.`,
+        'Restore',
+        'Cancel'
       )
       if (!restore) return
 

@@ -38,6 +38,9 @@ const api = {
     backupInfo: (path: string): Promise<BackupInfo> => ipcRenderer.invoke('file:backup-info', path),
     discardRecovery: (path: string): Promise<void> =>
       ipcRenderer.invoke('file:discard-recovery', path),
+    /** Asks what to do with work recovered after a crash. */
+    recoveryPrompt: (labels: string[]): Promise<'restore' | 'later' | 'review' | 'discard'> =>
+      ipcRenderer.invoke('recovery:prompt', labels),
     onOpenPath: (fn: (path: string) => void) => subscribe('file:open-path', fn),
     /** Where a dropped file is on disk; empty when it has no path. */
     pathForFile: (file: File): string => webUtils.getPathForFile(file),
@@ -137,8 +140,9 @@ const api = {
   app: {
     openExternal: (url: string): Promise<void> => ipcRenderer.invoke('app:open-external', url),
     version: (): Promise<string> => ipcRenderer.invoke('app:version'),
-    confirm: (message: string, detail?: string): Promise<boolean> =>
-      ipcRenderer.invoke('app:confirm', message, detail),
+    /** A yes-or-no question; Escape answers with `cancel`. */
+    confirm: (message: string, detail?: string, ok?: string, cancel?: string): Promise<boolean> =>
+      ipcRenderer.invoke('app:confirm', message, detail, ok, cancel),
     info: (message: string, detail?: string): Promise<void> =>
       ipcRenderer.invoke('app:info', message, detail),
     /** Errors from the page, into main.log beside main's own. */
