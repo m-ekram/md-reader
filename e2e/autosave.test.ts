@@ -56,12 +56,19 @@ describe('auto-save', () => {
   })
 
   it('saves when the window loses focus, without waiting', async () => {
+    // Typed with auto-save off, and switched on only once the edit has reached
+    // the document (the title's unsaved marker): nothing changes after that, so
+    // the pause never starts, and only the blur can save it. Racing the pause
+    // instead failed on a slow Windows runner, whose save took longer than the
+    // margin allowed.
+    await setAutoSave(false)
     const file = join(ctx.workdir, 'blur.md')
     await openAndEdit(file, 'Before switching away.\n', ' Typed, then alt-tabbed.')
+    await expect.poll(() => ctx.page.locator('.titlebar__title').innerText()).toMatch(/^•/)
+    await setAutoSave(true)
     await ctx.page.evaluate(() => window.dispatchEvent(new Event('blur')))
 
-    // Well inside the pause: only the blur can have saved it this soon.
-    await expect.poll(() => onDisk(file), { timeout: 600 }).toContain('then alt-tabbed')
+    await expect.poll(() => onDisk(file), { timeout: 10_000 }).toContain('then alt-tabbed')
   })
 
   it('never overwrites a change another program made, and says so', async () => {
