@@ -19,6 +19,7 @@
  */
 import type { Ctx } from '@milkdown/kit/ctx'
 import { imageBlockConfig, imageBlockSchema } from '@milkdown/kit/component/image-block'
+import { inlineImageConfig } from '@milkdown/kit/component/image-inline'
 import { imageSchema } from '@milkdown/kit/preset/commonmark'
 import type { NodeSchema } from '@milkdown/transformer'
 import { resolveAssetSrc } from './assets'
@@ -37,6 +38,13 @@ export function applyImageSrcResolution(ctx: Ctx, documentDir: string | null): v
   // own hook for exactly this: it transforms the URL used for display and
   // leaves the stored attribute alone.
   ctx.update(imageBlockConfig.key, (prev) => ({
+    ...prev,
+    proxyDomURL: (url: string) => resolveAssetSrc(url, documentDir),
+  }))
+  // An image inside a line of text has its own view, and its own hook. A
+  // pasted image is one of these: without it, it showed broken until the file
+  // was opened again, when it became a block image.
+  ctx.update(inlineImageConfig.key, (prev) => ({
     ...prev,
     proxyDomURL: (url: string) => resolveAssetSrc(url, documentDir),
   }))

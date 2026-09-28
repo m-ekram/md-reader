@@ -95,6 +95,23 @@ describe('pasted images', () => {
     const assets = await readdir(join(dir, 'assets')).catch(() => [] as string[])
     expect(assets.some((f) => f.endsWith('.png'))).toBe(true)
 
+    // And the image must show. A pasted image is drawn by the inline image
+    // view, which was given the relative link as it stands: it resolved
+    // against the app, not the note, and showed broken until the file was
+    // opened again.
+    await expect
+      .poll(
+        () =>
+          ctx.page.evaluate(() => {
+            const img = [...document.querySelectorAll('.ProseMirror img')].find((i) =>
+              i.getAttribute('src')?.includes('pasted-shot')
+            ) as HTMLImageElement | undefined
+            return img?.naturalWidth ?? 0
+          }),
+        { timeout: 5000 }
+      )
+      .toBeGreaterThan(0)
+
     await ctx.page.keyboard.press('Control+s')
     await ctx.page.waitForTimeout(1200)
 
@@ -119,16 +136,19 @@ describe('relative images display', () => {
     await writeFile(file, '# Pic\n\n![a picture](assets/pic.png)\n', 'utf8')
 
     await openFile(ctx, file)
-    await ctx.page.waitForSelector('.ProseMirror img', { timeout: 15_000 })
+    // This document's image, by name: the previous test's document has one
+    // too, and is still on screen until this one opens.
+    await ctx.page.waitForSelector('.ProseMirror img[src*="pic.png"]', { timeout: 15_000 })
 
     // Writing the file and rendering it are different things: the earlier paste
     // test only checked the bytes landed, and the image still did not display.
-    const info = await ctx.page.evaluate(() => {
-      const img = document.querySelector('.ProseMirror img') as HTMLImageElement | null
-      return img ? { src: img.getAttribute('src'), loaded: img.naturalWidth > 0 } : null
-    })
-    expect(info?.loaded, `image did not load: ${JSON.stringify(info)}`).toBe(true)
-    expect(info?.src).toContain('file://')
+    const info = () =>
+      ctx.page.evaluate(() => {
+        const img = document.querySelector('.ProseMirror img[src*="pic.png"]') as HTMLImageElement
+        return { src: img.getAttribute('src'), loaded: img.naturalWidth > 0 }
+      })
+    await expect.poll(async () => (await info()).loaded, { timeout: 5000 }).toBe(true)
+    expect((await info()).src).toContain('file://')
 
     // The markdown itself must stay relative, or the folder stops being portable.
     await ctx.page.keyboard.press('Control+s')
