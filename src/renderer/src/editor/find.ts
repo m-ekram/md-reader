@@ -1,10 +1,12 @@
 /**
  * Find and replace inside the active document.
  *
- * Built on prosemirror-search, which owns the match highlighting and the
- * cursor-advancing commands. What is added here is the glue: a reactive state
- * the panel binds to, a match count, and the plumbing to run those commands
- * against whichever pooled editor is on screen.
+ * One find bar, two editors behind it. The formatted view's find is built on
+ * prosemirror-search, which owns the match highlighting and the
+ * cursor-advancing commands; the source view's is CodeMirror's search (see
+ * `sourceMode.ts`). What is here is the glue: a reactive state the bar binds
+ * to, a match count, and sending each action to whichever view shows the
+ * active document.
  *
  * Separate from the folder-wide Search panel, which looks across files on disk
  * and never touches the editor.
@@ -15,7 +17,6 @@ import {
   findNext,
   findPrev,
   replaceAll,
-  replaceCurrent,
   replaceNext,
   search,
   setSearchState,
@@ -25,7 +26,10 @@ import { editorViewCtx } from '@milkdown/kit/core'
 import type { MilkdownPlugin } from '@milkdown/kit/ctx'
 import type { EditorState } from '@milkdown/kit/prose/state'
 import type { EditorView } from '@milkdown/kit/prose/view'
+import { activeDoc } from '../stores/documents'
 import { activeEditor } from './view'
+import { shownSourceFor } from './source-registry'
+import type { FindAction, FindBackend, FindCounts, FindQuerySpec } from './find-types'
 
 export const findState = reactive({
   open: false,
@@ -43,7 +47,7 @@ export const findState = reactive({
 /** The highlighting plugin. Without it there is no visible match at all. */
 export const searchPlugin: MilkdownPlugin[] = [$prose(() => search())] as MilkdownPlugin[]
 
-function view(): EditorView | null {
+function formattedView(): EditorView | null {
   const handle = activeEditor()
   if (!handle) return null
   let v: EditorView | null = null
@@ -57,13 +61,8 @@ function view(): EditorView | null {
   return v
 }
 
-function buildQuery(): SearchQuery {
-  return new SearchQuery({
-    search: findState.query,
-    replace: findState.replacement,
-    caseSensitive: findState.caseSensitive,
-    wholeWord: findState.wholeWord,
-  })
+function toQuery(q: FindQuerySpec): SearchQuery {
+  return new SearchQuery({ ...q })
 }
 
 /**
@@ -72,7 +71,7 @@ function buildQuery(): SearchQuery {
  * prosemirror-search highlights matches but does not report a total, and "3 of
  * 12" is the part people actually read.
  */
-function countMatches(state: EditorState, query: SearchQuery): { total: number; current: number } {
+function countMatches(state: EditorState, query: SearchQuery): FindCounts {
   if (!query.valid) return { total: 0, current: 0 }
 
   let total = 0
@@ -93,23 +92,6 @@ function countMatches(state: EditorState, query: SearchQuery): { total: number; 
   return { total, current }
 }
 
-/** Pushes the current query into the editor and refreshes the counts. */
-export function applyQuery(): void {
-  const v = view()
-  if (!v) {
-    findState.matches = 0
-    findState.current = 0
-    return
-  }
-
-  const query = buildQuery()
-  v.dispatch(setSearchState(v.state.tr, query))
-
-  const { total, current } = countMatches(v.state, query)
-  findState.matches = total
-  findState.current = current
-}
-
 /**
  * Scrolls the match the selection sits on into the middle of the pane, when
  * it is off screen.
@@ -128,63 +110,121 @@ function revealSelection(v: EditorView): void {
   pane.scrollTop += match.top - box.top - box.height / 2
 }
 
-function runCommand(command: (s: EditorState, d?: EditorView['dispatch']) => boolean): void {
-  const v = view()
-  if (!v) return
-
-  // Push the current query first. The replace commands read the replacement
-  // out of the *editor's* stored query, and that was only being written when
-  // the search term changed — so typing a replacement and pressing Replace
-  // substituted an empty string, or did nothing at all.
-  v.dispatch(setSearchState(v.state.tr, buildQuery()))
-
-  command(v.state, v.dispatch)
-  v.focus()
-  revealSelection(v)
-
-  // The selection moved, so "3 of 12" needs recomputing.
-  const { total, current } = countMatches(v.state, buildQuery())
-  findState.matches = total
-  findState.current = current
-}
+const PM_COMMANDS = { next: findNext, previous: findPrev, replaceAll }
 
 /**
- * Replaces the match under the selection, or the next one if the selection is
- * not sitting on a match.
+ * Whether the action came from the find bar, which then keeps the focus.
  *
- * `replaceNext` on its own only *selects* the next match when nothing is
- * selected, so a single click of Replace appeared to do nothing and people
- * press it twice. Selecting first makes one press mean one replacement.
+ * Stepping used to move the focus into the document, so a second Enter in the
+ * find box split the paragraph at the match instead of going on to the next
+ * one. The current match has its own highlight, so the document does not need
+ * the focus for it to show. From anywhere else (F3 from a menu), the document
+ * gets it back.
  */
-function replaceOneAndAdvance(): void {
-  const v = view()
-  if (!v) return
+export function inFindBar(): boolean {
+  return document.activeElement?.closest('.find') != null
+}
 
-  const query = buildQuery()
-  if (!query.valid) return
+/** The formatted view's find. */
+function formattedFind(v: EditorView): FindBackend {
+  const run = (
+    command: (s: EditorState, d?: EditorView['dispatch']) => boolean,
+    q: FindQuerySpec
+  ) => {
+    // Push the current query first. The replace commands read the replacement
+    // out of the *editor's* stored query, and that was only being written when
+    // the search term changed — so typing a replacement and pressing Replace
+    // substituted an empty string, or did nothing at all.
+    v.dispatch(setSearchState(v.state.tr, toQuery(q)))
+    command(v.state, v.dispatch)
+    if (!inFindBar()) v.focus()
+    revealSelection(v)
+  }
 
-  const { current } = countMatches(v.state, query)
-  if (current === 0) runCommand(findNext)
-  runCommand(replaceNext)
+  return {
+    apply(q) {
+      const query = toQuery(q)
+      v.dispatch(setSearchState(v.state.tr, query))
+      return countMatches(v.state, query)
+    },
+    run(action: FindAction, q) {
+      if (action === 'replaceAndAdvance') {
+        // `replaceNext` on its own only *selects* the next match when nothing
+        // is selected, so a single click of Replace appeared to do nothing and
+        // people pressed it twice. Selecting first makes one press mean one
+        // replacement.
+        if (!toQuery(q).valid) return countMatches(v.state, toQuery(q))
+        if (countMatches(v.state, toQuery(q)).current === 0) run(findNext, q)
+        run(replaceNext, q)
+      } else {
+        run(PM_COMMANDS[action], q)
+      }
+      // The selection moved, so "3 of 12" needs recomputing.
+      return countMatches(v.state, toQuery(q))
+    },
+    selectedText() {
+      if (v.state.selection.empty) return ''
+      const text = v.state.doc.textBetween(v.state.selection.from, v.state.selection.to, ' ')
+      return text.includes('\n') ? '' : text
+    },
+    clear() {
+      // Clear the highlights, otherwise they linger over the document.
+      v.dispatch(setSearchState(v.state.tr, new SearchQuery({ search: '' })))
+      v.focus()
+    },
+  }
+}
+
+/** Find for the view showing the active document: formatted or source. */
+function backend(): FindBackend | null {
+  const doc = activeDoc.value
+  if (!doc) return null
+  if (doc.sourceMode) return shownSourceFor(doc.id)?.find ?? null
+  const v = formattedView()
+  return v ? formattedFind(v) : null
+}
+
+/** True when the active document is on screen in a view find can search. */
+export const canFind = (): boolean => backend() !== null
+
+function spec(): FindQuerySpec {
+  return {
+    search: findState.query,
+    replace: findState.replacement,
+    caseSensitive: findState.caseSensitive,
+    wholeWord: findState.wholeWord,
+  }
+}
+
+function show(counts: FindCounts): void {
+  findState.matches = counts.total
+  findState.current = counts.current
+}
+
+/** Pushes the current query into the editor and refreshes the counts. */
+export function applyQuery(): void {
+  const b = backend()
+  show(b ? b.apply(spec()) : { total: 0, current: 0 })
+}
+
+function act(action: FindAction): void {
+  const b = backend()
+  if (b) show(b.run(action, spec()))
 }
 
 export const find = {
-  next: () => runCommand(findNext),
-  previous: () => runCommand(findPrev),
-  replaceOne: () => runCommand(replaceCurrent),
-  replaceAndAdvance: replaceOneAndAdvance,
-  replaceEverything: () => runCommand(replaceAll),
+  next: () => act('next'),
+  previous: () => act('previous'),
+  replaceAndAdvance: () => act('replaceAndAdvance'),
+  replaceEverything: () => act('replaceAll'),
 }
 
 /** Opens the panel, seeding it from the selection when there is one. */
 export function openFind(replaceMode: boolean): void {
-  const v = view()
-  if (v && !v.state.selection.empty) {
-    const selected = v.state.doc.textBetween(v.state.selection.from, v.state.selection.to, ' ')
-    // Only a single line: a multi-line selection is a range to search within,
-    // not a term to search for.
-    if (selected.length > 0 && !selected.includes('\n')) findState.query = selected
-  }
+  // Only a single line: a multi-line selection is a range to search within,
+  // not a term to search for.
+  const selected = backend()?.selectedText() ?? ''
+  if (selected.length > 0) findState.query = selected
 
   findState.open = true
   findState.replaceMode = replaceMode
@@ -193,9 +233,5 @@ export function openFind(replaceMode: boolean): void {
 
 export function closeFind(): void {
   findState.open = false
-  const v = view()
-  if (!v) return
-  // Clear the highlights, otherwise they linger over the document.
-  v.dispatch(setSearchState(v.state.tr, new SearchQuery({ search: '' })))
-  v.focus()
+  backend()?.clear()
 }

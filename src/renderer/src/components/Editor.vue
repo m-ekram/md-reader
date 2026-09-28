@@ -13,6 +13,8 @@ import type { SourceHandle } from '../editor/sourceMode'
 import { checkRoundTrip } from '../editor/roundtrip'
 import { activeDoc, journalKey, useDocuments, type Doc } from '../stores/documents'
 import { isDarkTheme } from '../utils/dark'
+import { clearShownSource, setShownSource } from '../editor/source-registry'
+import { invalidateCommands } from '../commands/registry'
 import { started } from '../stores/session'
 import Welcome from './Welcome.vue'
 
@@ -30,8 +32,10 @@ let source: SourceHandle | null = null
 const builtAt = new Map<string, number>()
 
 function teardownSource(): void {
+  clearShownSource(source)
   source?.destroy()
   source = null
+  invalidateCommands()
 }
 
 /**
@@ -64,6 +68,9 @@ async function showSource(doc: Doc, token: number): Promise<void> {
       window.api.file.journal(journalKey(target), text)
     },
   })
+  // Find and the other commands reach it through the registry, by document.
+  setShownSource(doc.id, source)
+  invalidateCommands()
   source.view.focus()
 }
 

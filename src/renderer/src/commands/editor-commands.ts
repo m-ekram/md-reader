@@ -40,7 +40,7 @@ import { caretIn, hasEditor, refreshDecorations, runCommand as run, withView } f
 import { registerAll, type Command } from './registry'
 import { flushAll } from '../editor/pool'
 import { ALERT_KINDS } from '../editor/alerts'
-import { find, findState, openFind } from '../editor/find'
+import { canFind, find, findState, openFind } from '../editor/find'
 import { setEditorModes } from '../editor/typewriter'
 import { patchSettings, useSettingsStore } from '../stores/settings'
 
@@ -199,17 +199,17 @@ const editorCommands: Command[] = [
   },
 
   // --- Find and replace ----------------------------------------------------
-  { id: 'edit.find', enabled: hasEditor, run: () => openFind(false) },
-  { id: 'edit.replace', enabled: hasEditor, run: () => openFind(true) },
+  { id: 'edit.find', enabled: canFind, run: () => openFind(false) },
+  { id: 'edit.replace', enabled: canFind, run: () => openFind(true) },
   {
     id: 'edit.findNext',
     // Only meaningful once there is something to look for.
-    enabled: () => hasEditor() && findState.query.length > 0,
+    enabled: () => canFind() && findState.query.length > 0,
     run: () => find.next(),
   },
   {
     id: 'edit.findPrevious',
-    enabled: () => hasEditor() && findState.query.length > 0,
+    enabled: () => canFind() && findState.query.length > 0,
     run: () => find.previous(),
   },
 

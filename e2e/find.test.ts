@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest'
-import { writeFile } from 'node:fs/promises'
+import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { newDocument, openFile, useApp, waitForText } from './helpers'
 
@@ -48,6 +48,22 @@ describe('find', () => {
     })
     expect(background, 'no match is marked').not.toBeNull()
     expect(background, 'the match is marked with no colour').not.toBe('rgba(0, 0, 0, 0)')
+  })
+
+  it('steps through matches with Enter, leaving the document alone', async () => {
+    // Stepping moved the focus into the document, so the next Enter split
+    // the paragraph at the match instead of going on to the next one.
+    await ctx.page.locator('.find__input').first().fill('needle')
+    await expect.poll(() => ctx.page.locator('.find__count').first().innerText()).toContain('of 2')
+    const count = () => ctx.page.locator('.find__count').first().innerText()
+    await ctx.page.locator('.find__input').first().press('Enter')
+    await expect.poll(count).toMatch(/^[12] of 2$/)
+    const first = await count()
+    // Where the caret was decides which match comes first; the second Enter
+    // must go on to the other one.
+    await ctx.page.keyboard.press('Enter')
+    await expect.poll(count).toBe(first === '1 of 2' ? '2 of 2' : '1 of 2')
+    expect(await ctx.page.locator('.ProseMirror p').count()).toBe(3)
   })
 
   it('says so when nothing matches', async () => {
@@ -159,5 +175,54 @@ describe('match case', () => {
       { timeout: 10_000 }
     )
     expect(await ctx.page.locator('.find__count').first().innerText()).toContain('1')
+  })
+})
+
+describe('find in the source view', () => {
+  /** Opens a file and shows it as source. */
+  async function sourceDocument(body: string, name: string): Promise<string> {
+    const file = await documentWith(body, name)
+    await waitForText(ctx, body.split(' ')[0])
+    await ctx.page.locator('.ProseMirror').click()
+    await ctx.page.keyboard.press('Control+/')
+    await ctx.page.waitForSelector('.cm-content', { state: 'visible', timeout: 15_000 })
+    await ctx.page.locator('.cm-content').click()
+    return file
+  }
+
+  const count = () => ctx.page.locator('.find__count').first().innerText()
+
+  it('finds, counts and highlights matches in the markdown', async () => {
+    // It had no find of its own, and Ctrl+F searched a formatted editor out
+    // of sight instead.
+    await sourceDocument('Alpha beta gamma beta.\n', 'source-find.md')
+    await ctx.page.keyboard.press('Control+f')
+    await ctx.page.waitForSelector('.find__input', { state: 'visible', timeout: 10_000 })
+    await ctx.page.locator('.find__input').first().fill('beta')
+    await expect.poll(count, { timeout: 10_000 }).toContain('of 2')
+    await expect.poll(() => ctx.page.locator('.cm-content .cm-searchMatch').count()).toBe(2)
+
+    await ctx.page.locator('.find__input').first().press('Enter')
+    await expect.poll(count).toBe('1 of 2')
+    await ctx.page.keyboard.press('Escape')
+    await expect.poll(() => ctx.page.locator('.cm-content .cm-searchMatch').count()).toBe(0)
+  })
+
+  it('replaces every match, in what is saved', async () => {
+    const file = await sourceDocument('Alpha beta gamma beta.\n', 'source-replace.md')
+    await ctx.page.keyboard.press('Control+h')
+    await ctx.page.waitForSelector('.find__input', { state: 'visible', timeout: 10_000 })
+    const inputs = ctx.page.locator('.find__input')
+    await inputs.nth(0).fill('beta')
+    await inputs.nth(1).fill('delta')
+    await expect.poll(count, { timeout: 10_000 }).toContain('of 2')
+    await ctx.page.locator('.find__wide', { hasText: 'All' }).click()
+    await expect
+      .poll(() => ctx.page.locator('.cm-content').innerText())
+      .toContain('delta gamma delta')
+
+    await ctx.page.keyboard.press('Escape')
+    await ctx.page.keyboard.press('Control+s')
+    await expect.poll(() => readFile(file, 'utf8')).toBe('Alpha delta gamma delta.\n')
   })
 })
