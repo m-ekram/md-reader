@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, afterEach } from 'vitest'
 import { _electron as electron, type ElectronApplication, type Page } from 'playwright'
-import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -206,5 +206,47 @@ describe('the next launch', () => {
     const next = await relaunch()
     await next.locator('.welcome').waitFor({ state: 'visible', timeout: 15_000 })
     expect(await next.locator('.tab__name').count()).toBe(0)
+  }, 120_000)
+})
+
+describe('the folder that was open', () => {
+  /** Makes a folder of notes beside the profile and opens it, as File ▸ Open Folder does. */
+  async function openNotesFolder(page: Page): Promise<string> {
+    const notes = join(workdir!, 'notes')
+    await mkdir(notes, { recursive: true })
+    await writeFile(join(notes, 'kept.md'), '# Kept\n', 'utf8')
+    await page.evaluate((root) => window.api.workspace.set(root), notes)
+    await page.evaluate(() =>
+      window.api.settings.patch({ sidebar: { visible: true, width: 260, panel: 'files' } })
+    )
+    await page.locator('.tree__name', { hasText: 'kept.md' }).waitFor({ timeout: 15_000 })
+    return notes
+  }
+
+  it('is open again at the next launch', async () => {
+    // It was saved, and then dropped as the settings were read back: the app
+    // forgot the folder every time it started.
+    const page = await launchWith([])
+    await openNotesFolder(page)
+
+    const next = await relaunch()
+    await next.locator('.tree__name', { hasText: 'kept.md' }).waitFor({ timeout: 15_000 })
+  }, 120_000)
+
+  it('is forgotten, with a word, when it no longer exists', async () => {
+    const page = await launchWith([])
+    const notes = await openNotesFolder(page)
+    await app!.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].close())
+    await new Promise<void>((resolve) => app!.once('close', () => resolve()))
+    app = undefined
+    await rm(notes, { recursive: true, force: true })
+
+    const next = await start([])
+    await expect
+      .poll(() => next.locator('.status').innerText(), { timeout: 15_000 })
+      .toContain('could not be opened')
+    await expect
+      .poll(() => next.evaluate(() => window.api.workspace.current()), { timeout: 5000 })
+      .toBeNull()
   }, 120_000)
 })

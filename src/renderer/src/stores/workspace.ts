@@ -8,6 +8,7 @@ import type { SearchHit } from '../../../main/search-worker'
 import { watch } from 'vue'
 import { invalidateCommands } from '../commands/registry'
 import { useSettingsStore } from './settings'
+import { showNotice } from './ui'
 
 export interface TreeNode {
   entry: DirEntry
@@ -48,7 +49,19 @@ export async function setRoot(root: string | null): Promise<void> {
   invalidateCommands()
   if (!root) return
 
-  state.tree = toNodes(await window.api.workspace.readDir(root))
+  let entries: DirEntry[]
+  try {
+    entries = await window.api.workspace.readDir(root)
+  } catch {
+    // Moved, deleted, or on a drive that is not there today. Said once, and
+    // forgotten, rather than failing out of sight at every launch.
+    if (state.root !== root) return
+    showNotice(`The folder ${root} could not be opened, so it was closed.`, 'error')
+    await window.api.workspace.set(null)
+    return
+  }
+  if (state.root !== root) return
+  state.tree = toNodes(entries)
   void refreshArticles()
 }
 

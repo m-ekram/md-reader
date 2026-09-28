@@ -98,7 +98,16 @@ export function mergeSettings(stored: unknown): Settings {
     const v = s[key]
     if (v === undefined || v === null) continue
     const d = out[key]
-    if (typeof d === 'object' && !Array.isArray(d) && typeof v === 'object' && !Array.isArray(v)) {
+    if (d === null) {
+      // Empty by default, and a string when set: the open folder. `typeof null`
+      // is 'object', so the checks below dropped every saved folder.
+      if (typeof v === 'string') (out as unknown as Record<string, unknown>)[key] = v
+    } else if (
+      typeof d === 'object' &&
+      !Array.isArray(d) &&
+      typeof v === 'object' &&
+      !Array.isArray(v)
+    ) {
       Object.assign(d as object, v)
     } else if (typeof v === typeof d) {
       ;(out as unknown as Record<string, unknown>)[key] = v

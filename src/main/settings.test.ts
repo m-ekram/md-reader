@@ -35,6 +35,19 @@ describe('readSettingsFile', () => {
     expect(existsSync(path)).toBe(true)
   })
 
+  it('keeps the folder that was open', () => {
+    // Its default is "none", null, which the merge took as the type a stored
+    // value had to match: every saved folder was dropped, and the app forgot
+    // the open folder at every launch.
+    writeFileSync(path, JSON.stringify({ workspace: 'C:\\notes' }))
+    expect(readSettingsFile(path).workspace).toBe('C:\\notes')
+  })
+
+  it('does not take a value of the wrong kind for a setting that may be empty', () => {
+    writeFileSync(path, JSON.stringify({ workspace: 42 }))
+    expect(readSettingsFile(path).workspace).toBeNull()
+  })
+
   it('keeps a corrupt file aside instead of losing it', () => {
     // A trailing comma: the kind of damage a hand edit leaves.
     const broken = '{ "theme": "newsprint", }'
