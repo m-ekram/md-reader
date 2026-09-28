@@ -148,6 +148,28 @@ describe('HTML export', () => {
   })
 })
 
+describe('export of a long document', () => {
+  it('keeps the code of blocks that were out of sight', async () => {
+    // Code blocks start their editor only once scrolled into view. Until then
+    // they hold the text in a placeholder, which the export did not read: a
+    // block below the fold exported empty.
+    const file = join(ctx.workdir, 'long-code.md')
+    const filler = Array.from({ length: 150 }, (_, i) => `Paragraph ${i + 1}.`)
+    const markdown = ['# Long', '', ...filler, '', '```js', "const far = 'below'", '```', ''].join(
+      '\n\n'
+    )
+    await writeFile(file, markdown, 'utf8')
+    await openFile(ctx, file)
+    await waitForText(ctx, 'Paragraph 150.')
+
+    const target = join(ctx.workdir, 'long-code.html')
+    await stubSaveDialog(target)
+    await chooseExport('HTML')
+    await expect.poll(() => existsSync(target), { timeout: 20_000 }).toBe(true)
+    expect(await readFile(target, 'utf8')).toContain('const far')
+  })
+})
+
 describe('PDF export', () => {
   it('writes a real PDF', async () => {
     const target = join(ctx.workdir, 'out.pdf')

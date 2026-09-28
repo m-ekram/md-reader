@@ -37,6 +37,18 @@ describe('cleanForExport', () => {
     expect(code?.className).toBe('language-javascript')
   })
 
+  it('keeps the code of a block that was out of sight', () => {
+    // A code block starts CodeMirror only once it scrolls into view, and
+    // until then holds a placeholder with the text. Read from CodeMirror
+    // alone, every block below the fold exported empty.
+    const root = document.createElement('div')
+    root.innerHTML =
+      '<div class="milkdown-code-block"><pre class="milkdown-code-block-placeholder"><code>const y = 2\nreturn y</code></pre></div>'
+    const exported = document.createElement('div')
+    exported.innerHTML = cleanForExport(root)
+    expect(exported.querySelector('pre > code')?.textContent).toBe('const y = 2\nreturn y')
+  })
+
   it('removes the code block toolbar along with it', () => {
     expect(cleaned).not.toContain('copy-button')
     expect(cleaned).not.toContain('language-picker')

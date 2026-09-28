@@ -86,7 +86,12 @@ function normalizeCodeBlocks(root: HTMLElement): void {
     const lines = Array.from(content?.querySelectorAll('.cm-line') ?? []).map(
       (line) => line.textContent ?? ''
     )
-    const text = lines.length > 0 ? lines.join('\n') : (content?.textContent ?? '')
+    // A block out of sight has no CodeMirror yet: it starts one only once it
+    // scrolls into view, and until then holds a placeholder with the text.
+    // Read from CodeMirror alone, every block below the fold exported empty.
+    const placeholder = block.querySelector('.milkdown-code-block-placeholder code')
+    const text =
+      lines.length > 0 ? lines.join('\n') : (content?.textContent ?? placeholder?.textContent ?? '')
     const language = content?.getAttribute('data-language') ?? ''
 
     const pre = root.ownerDocument.createElement('pre')
@@ -138,7 +143,6 @@ function normalizeListItems(root: HTMLElement): void {
     if (item) wrapper.replaceWith(item)
     else wrapper.remove()
   }
-
 }
 
 /**
