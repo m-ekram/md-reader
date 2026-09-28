@@ -184,6 +184,10 @@ const editorCommands: Command[] = [
   { id: 'para.outdent', enabled: inListItem, run: () => run(liftListItemCommand.key) },
 
   { id: 'para.codeFence', enabled: canEdit, run: () => run(createCodeBlockCommand.key) },
+  // A code block whose language is LaTeX is a math block: the editor renders
+  // it, and saves it as $$ … $$. It was refused as "not modelled".
+  { id: 'para.mathBlock', enabled: canEdit, run: () => run(createCodeBlockCommand.key, 'LaTeX') },
+  { id: 'edit.mathBlock', enabled: canEdit, run: () => run(createCodeBlockCommand.key, 'LaTeX') },
   { id: 'para.horizontalLine', enabled: canEdit, run: () => run(insertHrCommand.key) },
 
   { id: 'para.insertTable', enabled: canEdit, run: () => run(insertTableCommand.key) },

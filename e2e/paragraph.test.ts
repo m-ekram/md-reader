@@ -332,3 +332,23 @@ describe('heading level', () => {
     expect(text).not.toContain('# Plain words.')
   })
 })
+
+describe('math block', () => {
+  it('turns the paragraph into a math block, saved as $$', async () => {
+    // Refused as "not modelled by this editor", though the editor models it
+    // and saves it as $$ … $$.
+    const file = join(ctx.workdir, 'math.md')
+    await writeFile(file, 'Intro.\n\nE=mc^2\n', 'utf8')
+    await openFile(ctx, file)
+    await waitForText(ctx, 'E=mc^2')
+    await ctx.page.locator('.ProseMirror p', { hasText: 'E=mc^2' }).click()
+    await ctx.page.keyboard.press('Control+Shift+m')
+    expect(await savedText(file)).toContain('$$\nE=mc^2\n$$')
+  })
+
+  it('is offered in the Edit menu too', async () => {
+    const item = await menuItem(ctx, 'Edit', 'Math Tools', 'Math Block')
+    expect(await item.getAttribute('aria-disabled')).not.toBe('true')
+    await ctx.page.keyboard.press('Escape')
+  })
+})

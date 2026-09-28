@@ -139,21 +139,6 @@ describe('items that are greyed on purpose', () => {
     await ctx.page.keyboard.press('Escape')
   })
 
-  it('says why Math Block is not offered', async () => {
-    await ctx.page.keyboard.press('Escape')
-    await ctx.page.locator('.menubar__top', { hasText: /^Paragraph$/ }).click()
-    await ctx.page.waitForSelector('.menu[role="menu"]', { state: 'visible' })
-
-    const item = ctx.page
-      .locator('.menu[role="menu"] .menu__item')
-      .filter({ has: ctx.page.locator('.menu__label', { hasText: /^Math Block$/ }) })
-      .first()
-
-    expect(await item.getAttribute('aria-disabled')).toBe('true')
-    expect(await item.getAttribute('title')).toContain('not modelled')
-    await ctx.page.keyboard.press('Escape')
-  })
-
   it('leaves no item saying "Not available yet"', async () => {
     // Every menu item is now either implemented or greyed with a stated
     // reason. The placeholder tooltip means one was missed.

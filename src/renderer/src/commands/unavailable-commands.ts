@@ -10,30 +10,11 @@
  * They are gathered here rather than registered alongside working commands so
  * the coverage script can count them separately: a command that exists and
  * refuses to run is not an implemented menu item, and a report claiming
- * 140 of 140 would be worth less than one claiming 135.
+ * 140 of 140 would be worth less than one claiming the true count.
  */
 import { registerAll, type Command } from './registry'
 
 const unavailable: Command[] = [
-  /**
-   * Block math.
-   *
-   * The editor's schema has `math_inline` and no block equivalent. Inserting
-   * one would produce a node nothing renders and nothing serializes.
-   */
-  {
-    id: 'para.mathBlock',
-    enabled: () => false,
-    disabledReason: 'Block math is not modelled by this editor; inline math is.',
-    run: () => {},
-  },
-  {
-    id: 'edit.mathBlock',
-    enabled: () => false,
-    disabledReason: 'Block math is not modelled by this editor; inline math is.',
-    run: () => {},
-  },
-
   /**
    * Toggle Math Preview.
    *
