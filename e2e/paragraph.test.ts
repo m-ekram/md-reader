@@ -158,6 +158,31 @@ describe('hyperlink actions', () => {
     expect(text).not.toContain('https://example.com')
   })
 
+  it('makes a link with Ctrl+K, asking for the address', async () => {
+    // It toggled a link mark with no address at all, instead of opening the
+    // editor that asks for one.
+    const file = join(ctx.workdir, 'make-link.md')
+    await writeFile(file, 'Read the manual today.\n', 'utf8')
+    await openFile(ctx, file)
+    await waitForText(ctx, 'the manual')
+    await ctx.page
+      .locator('.ProseMirror p')
+      .first()
+      .dblclick({ position: { x: 5, y: 5 } })
+    // Select "manual" exactly, by keyboard from the start of the line.
+    await ctx.page.keyboard.press('Home')
+    for (let i = 0; i < 'Read the '.length; i++) await ctx.page.keyboard.press('ArrowRight')
+    for (let i = 0; i < 'manual'.length; i++) await ctx.page.keyboard.press('Shift+ArrowRight')
+
+    await ctx.page.keyboard.press('Control+k')
+    const input = ctx.page.locator('.milkdown-link-edit input')
+    await expect.poll(() => input.evaluate((el) => el === document.activeElement)).toBe(true)
+    await ctx.page.keyboard.type('https://example.com/manual')
+    await ctx.page.keyboard.press('Enter')
+
+    expect(await savedText(file)).toContain('[manual](https://example.com/manual)')
+  })
+
   it('greys the actions out when the caret is not on a link', async () => {
     await ctx.page.locator('.ProseMirror p').first().click()
     const open = await menuItem(ctx, 'Format', 'Hyperlink Actions', 'Open Link')

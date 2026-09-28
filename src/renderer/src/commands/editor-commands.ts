@@ -15,7 +15,6 @@ import {
   insertImageCommand,
   toggleEmphasisCommand,
   toggleInlineCodeCommand,
-  toggleLinkCommand,
   turnIntoTextCommand,
   toggleStrongCommand,
   wrapInBlockquoteCommand,
@@ -42,6 +41,7 @@ import {
   runCommand as run,
   withView,
 } from '../editor/view'
+import { toggleLinkCommand as editLinkCommand } from '@milkdown/kit/component/link-tooltip'
 import { deleteColumn, deleteRow, isInTable, selectedRect } from '@milkdown/kit/prose/tables'
 import type { EditorState } from '@milkdown/kit/prose/state'
 import type { EditorView } from '@milkdown/kit/prose/view'
@@ -298,7 +298,9 @@ const editorCommands: Command[] = [
   { id: 'format.emphasis', enabled: canEdit, run: () => run(toggleEmphasisCommand.key) },
   { id: 'format.code', enabled: canEdit, run: () => run(toggleInlineCodeCommand.key) },
   { id: 'format.strike', enabled: canEdit, run: () => run(toggleStrikethroughCommand.key) },
-  { id: 'format.hyperlink', enabled: canEdit, run: () => run(toggleLinkCommand.key) },
+  // The link editor's command, which asks for the address. The mark's own
+  // toggle, used before, made a link with none.
+  { id: 'format.hyperlink', enabled: canEdit, run: () => run(editLinkCommand.key) },
   { id: 'format.insertImage', enabled: canEdit, run: () => run(insertImageCommand.key) },
 
   /**
