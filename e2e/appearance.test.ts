@@ -274,6 +274,19 @@ describe('code blocks', () => {
     await writeFile(file, '```js\nconst answer = 42\n```\n', 'utf8')
     await openFile(ctx, file)
     await ctx.page.waitForSelector('.milkdown-code-block .cm-content', { timeout: 15_000 })
+    // Highlighting arrives after the text: the language is loaded on demand.
+    // Read before it, the keyword's span did not exist yet.
+    await ctx.page.waitForFunction(
+      () => {
+        const block = document.querySelector('.milkdown-code-block')
+        return (
+          !!block?.querySelector('.cm-activeLineGutter') &&
+          [...block.querySelectorAll('.cm-line span')].some((s) => s.textContent === 'const')
+        )
+      },
+      null,
+      { timeout: 15_000 }
+    )
 
     const seen = await ctx.page.evaluate(() => {
       // What a token resolves to under the theme in force.
