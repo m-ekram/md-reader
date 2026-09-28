@@ -38,6 +38,7 @@ import { whitespacePlugin } from './whitespace'
 import { mark } from '../utils/startup'
 import { codeTheme } from './code-theme'
 import { buildTopBar, labelTopBar } from './toolbar'
+import { historyClock } from './history-clock'
 
 /**
  * Drops the newline the trailing plugin's empty paragraph adds.
@@ -181,6 +182,8 @@ export async function createEditor(opts: {
     .use(typewriterPlugin)
     .use(punctuationPlugin)
     .use(whitespacePlugin)
+    // Undo steps by the time that passed, not the wall clock. See history-clock.ts.
+    .use($prose(() => historyClock()))
     .use(
       // Marks unreported edits, and reports them once the user pauses.
       $prose(
