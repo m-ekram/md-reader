@@ -8,6 +8,7 @@
 import { reactive } from 'vue'
 import { invalidateCommands } from '../commands/registry'
 import { resetMermaid } from '../editor/mermaid'
+import { isDarkTheme } from '../utils/dark'
 
 export interface ThemeInfo {
   id: string
@@ -69,6 +70,10 @@ export async function applyTheme(id: string): Promise<void> {
   } else if (userStyleEl) {
     userStyleEl.textContent = ''
   }
+  // Scrollbars, drop-down lists and checkboxes are drawn by the browser, in
+  // colours that follow `color-scheme`. Never set, dark themes had light ones.
+  // Measured from the page, after a user theme's stylesheet is in.
+  document.documentElement.style.colorScheme = isDarkTheme() ? 'dark' : 'light'
   // Mermaid bakes colours into the SVG it produces, so a theme change means
   // the cached diagrams and the initialized instance are both stale.
   resetMermaid()

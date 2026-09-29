@@ -68,6 +68,30 @@ async function useTheme(id: string): Promise<void> {
     .toBe(id)
 }
 
+describe('native controls', () => {
+  it('are dark in dark themes and light in light ones', async () => {
+    // Scrollbars, drop-down lists and checkboxes are drawn by the browser in
+    // the system colours, which follow `color-scheme`. It was never set, so
+    // dark themes had light scrollbars and light drop-down lists.
+    const failures: string[] = []
+    for (const theme of THEMES) {
+      await useTheme(theme)
+      const { canvas, page } = await ctx.page.evaluate(() => {
+        const probe = document.createElement('div')
+        probe.style.cssText = 'background: Canvas; color: var(--doc-bg)'
+        document.body.appendChild(probe)
+        const s = getComputedStyle(probe)
+        const out = { canvas: s.backgroundColor, page: s.color }
+        probe.remove()
+        return out
+      })
+      const dark = (c: string) => luminance(parse(c)) < 0.18
+      if (dark(canvas) !== dark(page)) failures.push(`${theme}: page ${page}, controls ${canvas}`)
+    }
+    expect(failures, 'native controls do not match the page').toEqual([])
+  })
+})
+
 describe('the sidebar', () => {
   it('shows where the pointer is, in every theme', async () => {
     await ctx.page.evaluate(() =>
