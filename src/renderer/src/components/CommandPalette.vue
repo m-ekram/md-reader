@@ -10,6 +10,7 @@
  */
 import { computed, nextTick, ref, watch } from 'vue'
 import { flattenMenu, type FlatMenuItem } from '../commands/menus'
+import { resolvedMenus } from '../commands/dynamic-menu'
 import { commandEpoch, getCommand, isEnabled, isRegistered, run } from '../commands/registry'
 import { fuzzyScore } from '../utils/fuzzy'
 
@@ -41,7 +42,8 @@ watch(
  */
 const available = computed<FlatMenuItem[]>(() => {
   void commandEpoch.value
-  return flattenMenu()
+  // With the themes and recent files filled in, so they can be found by name.
+  return flattenMenu(resolvedMenus())
     .filter((entry) => isRegistered(entry.id))
     .map((entry) => ({ ...entry, label: getCommand(entry.id)?.label ?? entry.label }))
 })

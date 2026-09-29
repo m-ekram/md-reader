@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { createApp, nextTick, type App } from 'vue'
 import CommandPalette from './CommandPalette.vue'
 import { register } from '../commands/registry'
+import { useThemeStore } from '../stores/theme'
+import { useSettingsStore } from '../stores/settings'
 
 /**
  * Mounted directly rather than driven through the end-to-end suite.
@@ -100,5 +102,23 @@ describe('CommandPalette selection', () => {
     input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }))
     await nextTick()
     expect(selectedIndex()).toBe(0)
+  })
+})
+
+describe('CommandPalette reach', () => {
+  it('finds a theme and a recent file by name', async () => {
+    // Built from the fixed menu specification, it skipped the generated parts
+    // of the menus: no theme and no recent file could be found by name.
+    useThemeStore().available = [{ id: 'nord', name: 'Nord', builtin: true }]
+    useSettingsStore().value.recentFiles = ['C:\notes\holiday-plan.md']
+    register({ id: 'theme.nord', run: vi.fn() })
+    register({ id: 'file.recent.0', run: vi.fn() })
+
+    await search('nord')
+    expect(rows().map((r) => r.textContent)).toContainEqual(expect.stringContaining('Nord'))
+
+    await search('holiday')
+    expect(rows()[0]?.textContent).toContain('holiday-plan.md')
+    expect(rows()[0]?.textContent).toContain('Open Recent')
   })
 })

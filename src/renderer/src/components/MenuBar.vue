@@ -8,7 +8,8 @@
  * "looks" like it should be.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { MENUS, type MenuNode } from '../commands/menus'
+import { type MenuNode } from '../commands/menus'
+import { resolvedMenus as resolveMenus } from '../commands/dynamic-menu'
 import {
   commandEpoch,
   disabledReason,
@@ -17,57 +18,18 @@ import {
   isRegistered,
   run,
 } from '../commands/registry'
-import { useThemeStore } from '../stores/theme'
-import { useSettingsStore } from '../stores/settings'
 
 const openIndex = ref<number | null>(null)
 const activePath = ref<number[]>([])
 const bar = ref<HTMLElement | null>(null)
-const theme = useThemeStore()
-const settings = useSettingsStore()
 
 let typeAhead = ''
 let typeAheadTimer: number | undefined
 
-/** Resolves dynamic sections into concrete items at render time. */
-function resolve(node: MenuNode): MenuNode[] {
-  if (node.kind !== 'dynamic') return [node]
-
-  if (node.source === 'themes') {
-    return theme.available.map((t) => ({
-      kind: 'item' as const,
-      id: `theme.${t.id}`,
-      label: t.name,
-    }))
-  }
-
-  const recent = settings.value.recentFiles
-  if (recent.length === 0) {
-    return [
-      {
-        kind: 'submenu',
-        label: node.label,
-        items: [{ kind: 'item', id: 'file.noRecent', label: 'No Recent Files' }],
-      },
-    ]
-  }
-  return [
-    {
-      kind: 'submenu',
-      label: node.label,
-      items: recent.map((p, i) => ({
-        kind: 'item' as const,
-        id: `file.recent.${i}`,
-        label: p.split(/[\\/]/).pop() ?? p,
-      })),
-    },
-  ]
-}
-
 const resolvedMenus = computed(() => {
   // Touch the epoch so enabled/checked re-evaluate when app state changes.
   void commandEpoch.value
-  return MENUS.map((m) => ({ label: m.label, items: m.items.flatMap(resolve) }))
+  return resolveMenus()
 })
 
 function itemState(id: string) {
