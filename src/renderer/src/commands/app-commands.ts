@@ -31,6 +31,7 @@ import { validFontSize } from '../stores/appearance'
 import { refreshArticles, revealPath, setRoot, useWorkspace } from '../stores/workspace'
 import { commandPalette, preferences, quickOpen, showNotice } from '../stores/ui'
 import { notify } from '../stores/notifications'
+import { suggestSavePath } from '../utils/save-name'
 import { flushAll } from '../editor/pool'
 
 const docs = useDocuments()
@@ -64,7 +65,7 @@ export async function saveActive(saveAs = false): Promise<boolean> {
   const previousJournalKey = journalKey(d)
   let path = d.path
   if (!path || saveAs) {
-    path = await window.api.file.saveAsDialog(path ?? `${d.name}.md`)
+    path = await window.api.file.saveAsDialog(suggestSavePath(d, ws.root))
     if (!path) return false
   }
 

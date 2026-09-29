@@ -2,7 +2,15 @@
 import { describe, it, expect } from 'vitest'
 import { writeFile, readFile, unlink } from 'node:fs/promises'
 import { join } from 'node:path'
-import { chooseMenu, menuItem, noticeTexts, openFile, useApp, waitForText } from './helpers'
+import {
+  chooseMenu,
+  menuItem,
+  newDocument,
+  noticeTexts,
+  openFile,
+  useApp,
+  waitForText,
+} from './helpers'
 
 /**
  * Opening, saving and recovering files.
@@ -297,5 +305,29 @@ describe('two files with the same name', () => {
     const names = await ctx.page.locator('.tab__name', { hasText: 'README.md' }).allInnerTexts()
     expect(names).toHaveLength(2)
     expect(new Set(names).size, `tabs read ${JSON.stringify(names)}`).toBe(2)
+  })
+})
+
+describe('Save As for a document never saved', () => {
+  it('suggests a name from its first heading', async () => {
+    // It suggested "Untitled.md", so every new note began with a rename.
+    await ctx.app.evaluate(({ dialog }) => {
+      const g = globalThis as unknown as { suggested: string[] }
+      g.suggested = []
+      dialog.showSaveDialog = (async (_w: unknown, opts: { defaultPath?: string }) => {
+        g.suggested.push(opts.defaultPath ?? '')
+        return { canceled: true, filePath: '' }
+      }) as unknown as typeof dialog.showSaveDialog
+    })
+    await newDocument(ctx)
+    await ctx.page.keyboard.type('# Trip to Lisbon: day 1')
+    await waitForText(ctx, 'Trip to Lisbon')
+    await ctx.page.keyboard.press('Control+Shift+s')
+
+    await expect
+      .poll(() =>
+        ctx.app.evaluate(() => (globalThis as unknown as { suggested: string[] }).suggested)
+      )
+      .toEqual(['Trip to Lisbon day 1.md'])
   })
 })
