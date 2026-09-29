@@ -60,7 +60,8 @@ export interface Settings {
 export const DEFAULT_SETTINGS: Settings = {
   theme: 'github',
   window: { width: 1200, height: 820, maximized: false },
-  sidebar: { visible: true, width: 260, panel: 'files' },
+  // Hidden until a folder is opened: with none, it only said "No folder open".
+  sidebar: { visible: false, width: 260, panel: 'files' },
   workspace: null,
   editor: {
     sourceModeOfferLines: 5000,

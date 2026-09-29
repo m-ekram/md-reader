@@ -193,6 +193,29 @@ describe('the next launch', () => {
     await page.locator('.ProseMirror').waitFor({ state: 'visible', timeout: 15_000 })
   }, 90_000)
 
+  it('shows no sidebar until a folder is opened, then shows its files', async () => {
+    // A first launch showed a sidebar reading "No folder open" beside every
+    // document, a quarter of the window given to nothing.
+    const page = await launchWith([])
+    await page.locator('.welcome').waitFor({ state: 'visible', timeout: 15_000 })
+    expect(await page.locator('.sidebar').count()).toBe(0)
+
+    const folder = join(workdir!, 'first-folder')
+    await mkdir(folder, { recursive: true })
+    await writeFile(join(folder, 'inside.md'), '# Inside\n', 'utf8')
+    await app!.evaluate(({ dialog }, path) => {
+      dialog.showOpenDialog = (async () => ({
+        canceled: false,
+        filePaths: [path],
+      })) as unknown as typeof dialog.showOpenDialog
+    }, folder)
+    await page.locator('.welcome__action', { hasText: 'Open folder' }).click()
+
+    await page
+      .locator('.sidebar .tree__name', { hasText: 'inside.md' })
+      .waitFor({ timeout: 15_000 })
+  }, 90_000)
+
   it('does not reopen them when that is switched off', async () => {
     const page = await launchWith([{ name: 'gamma.md', text: '# Gamma\n' }])
     await page.waitForFunction(() =>

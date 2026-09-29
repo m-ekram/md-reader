@@ -42,7 +42,8 @@ export function registerWorkspaceIpc(): void {
     })
     if (r.canceled || r.filePaths.length === 0) return null
     const root = r.filePaths[0]
-    patchSettings({ workspace: root })
+    // The sidebar is hidden until there is a folder to show, then shows it.
+    patchSettings({ workspace: root, sidebar: { visible: true, panel: 'files' } })
     watchRoot(root)
     return root
   })
