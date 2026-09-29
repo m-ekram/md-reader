@@ -189,15 +189,20 @@ async function toggleReplace(): Promise<void> {
 .find__toggle {
   width: 20px;
 }
-.find__opt.is-on {
-  background: var(--doc-accent);
-  color: #fff;
-}
 .find__opt:hover,
 .find__btn:hover,
 .find__wide:hover,
 .find__toggle:hover {
   background: var(--menu-hover);
+}
+/* After the hover rule, so an option that is on stays marked under the
+   pointer. Marked with a tint and an outline in the accent, keeping the bar's
+   own lettering: white on the accent was as low as 2:1 in dark themes, where
+   the accent is light. */
+.find__opt.is-on {
+  background: color-mix(in srgb, var(--doc-accent) 22%, transparent);
+  box-shadow: inset 0 0 0 1px var(--doc-accent);
+  color: inherit;
 }
 .find__wide {
   border: 1px solid var(--menu-border);

@@ -99,7 +99,12 @@ const docs = useDocuments()
 .tab:hover:not(.is-active) {
   background: var(--chrome-hover);
 }
+/* The strip's accent on the strip, the page's on the tab that shows the
+   page: the page's accent alone was as low as 1.7:1 on the strip. */
 .tab__dot {
+  color: var(--chrome-accent);
+}
+.tab.is-active .tab__dot {
   color: var(--doc-accent);
 }
 .tab__close {

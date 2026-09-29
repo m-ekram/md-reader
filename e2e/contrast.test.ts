@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest'
-import { useApp } from './helpers'
+import { newDocument, useApp } from './helpers'
 
 /**
  * Colours as they reach the screen, in every built-in theme.
@@ -115,6 +115,54 @@ describe('menus', () => {
       await ctx.page.keyboard.press('Escape')
     }
     expect(failures, 'shortcut text below 4.5:1').toEqual([])
+  })
+})
+
+describe('marks that carry meaning', () => {
+  it('show an unsaved tab, in every theme', async () => {
+    // The dot was the document's accent colour, which suits the page, not the
+    // tab strip: at 1.7:1 on Newsprint's.
+    await newDocument(ctx)
+    await ctx.page.keyboard.type('Unsaved words.')
+    await newDocument(ctx)
+    const dot = ctx.page.locator('.tab:not(.is-active) .tab__dot').first()
+    await dot.waitFor()
+    const failures: string[] = []
+    for (const theme of THEMES) {
+      await useTheme(theme)
+      const { fg, bg } = await dot.evaluate((el) => ({
+        fg: getComputedStyle(el).color,
+        bg: getComputedStyle(el.closest('.tabs')!).backgroundColor,
+      }))
+      const ratio = contrast(parse(fg), parse(bg))
+      if (ratio < 3) failures.push(`${theme}: ${fg} on ${bg} = ${ratio.toFixed(2)}`)
+    }
+    expect(failures, 'unsaved dot below 3:1').toEqual([])
+  })
+
+  it('show which find options are on, in every theme', async () => {
+    // White on the accent: in dark themes the accent is light, and the
+    // lettering all but vanished.
+    await ctx.page.keyboard.press('Control+f')
+    await ctx.page.locator('.find__opt', { hasText: 'Aa' }).click()
+    const on = ctx.page.locator('.find__opt.is-on').first()
+    await on.waitFor()
+    const failures: string[] = []
+    for (const theme of THEMES) {
+      await useTheme(theme)
+      const { fg, bg, bar } = await on.evaluate((el) => ({
+        fg: getComputedStyle(el).color,
+        bg: getComputedStyle(el).backgroundColor,
+        bar: getComputedStyle(el.closest('.find')!).backgroundColor,
+      }))
+      // The option's tint is painted over the find bar.
+      const ground = over(parse(bg), parse(bar))
+      const ratio = contrast(over(parse(fg), ground), ground)
+      if (ratio < 4.5) failures.push(`${theme}: ${fg} on ${bg} over ${bar} = ${ratio.toFixed(2)}`)
+    }
+    await ctx.page.locator('.find__opt', { hasText: 'Aa' }).click()
+    await ctx.page.keyboard.press('Escape')
+    expect(failures, 'toggle lettering below 4.5:1').toEqual([])
   })
 })
 
