@@ -74,7 +74,7 @@ const grouped = computed(() => {
 <style scoped>
 .search__box {
   padding: 6px;
-  border-bottom: 1px solid var(--chrome-border);
+  border-bottom: 1px solid var(--sidebar-border);
 }
 .search__input {
   width: 100%;
@@ -115,7 +115,7 @@ const grouped = computed(() => {
   cursor: default;
 }
 .results__hit:hover {
-  background: var(--chrome-hover);
+  background: var(--sidebar-hover);
 }
 .results__line {
   flex: none;

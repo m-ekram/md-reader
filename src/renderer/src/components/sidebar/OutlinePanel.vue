@@ -77,7 +77,7 @@ function occurrenceOf(index: number): number {
   white-space: nowrap;
 }
 .outline__item:hover {
-  background: var(--chrome-hover);
+  background: var(--sidebar-hover);
 }
 .outline__item--h1 {
   font-weight: 600;

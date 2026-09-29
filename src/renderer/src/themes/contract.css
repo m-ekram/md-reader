@@ -68,6 +68,11 @@
 
   --sidebar-bg: #f6f8fa;
   --sidebar-fg: #24292e;
+  /* Derived from the sidebar's own colours, so every theme gets a hover and a
+     divider that show on its sidebar. They used the title bar's, which are
+     white at 10% and 8%: invisible on the five light themes' sidebars. */
+  --sidebar-hover: color-mix(in srgb, var(--sidebar-fg) 8%, transparent);
+  --sidebar-border: color-mix(in srgb, var(--sidebar-fg) 12%, transparent);
 
   --status-bg: #f6f8fa;
   --status-fg: #57606a;

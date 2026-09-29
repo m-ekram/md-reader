@@ -54,7 +54,7 @@ const isActive = (path: string): boolean =>
   overflow: hidden;
 }
 .articles__item:hover {
-  background: var(--chrome-hover);
+  background: var(--sidebar-hover);
 }
 .articles__item.is-active {
   background: var(--doc-selection);

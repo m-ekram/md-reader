@@ -52,10 +52,12 @@ suit a light page; a dark theme should set all seven.
 `--chrome-bg` `--chrome-fg` `--chrome-fg-dim` `--chrome-hover` `--chrome-active`
 `--chrome-border` `--chrome-accent` `--menu-bg` `--menu-fg` `--menu-fg-disabled`
 `--menu-hover` `--menu-border` `--menu-shadow` `--sidebar-bg` `--sidebar-fg`
-`--status-bg` `--status-fg`
+`--sidebar-hover` `--sidebar-border` `--status-bg` `--status-fg`
 
 A dark theme needs to set the chrome group too. Darkening only the document
-leaves the title bar, menus and sidebar bright against it.
+leaves the title bar, menus and sidebar bright against it. The sidebar's hover
+and dividers are worked out from `--sidebar-fg`, so they usually need no
+setting of their own.
 
 ## Beyond the properties
 

@@ -57,7 +57,7 @@ const isActive = (path: string): boolean =>
   cursor: default;
 }
 .tree__item:hover {
-  background: var(--chrome-hover);
+  background: var(--sidebar-hover);
 }
 .tree__item.is-active {
   background: var(--doc-selection);

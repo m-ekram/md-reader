@@ -129,7 +129,7 @@ onBeforeUnmount(() => window.removeEventListener('pointermove', onDrag))
   opacity: 0.65;
 }
 .sidebar__tab:hover {
-  background: var(--chrome-hover);
+  background: var(--sidebar-hover);
 }
 .sidebar__tab.is-active {
   opacity: 1;
