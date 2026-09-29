@@ -243,7 +243,7 @@ describe('the folder that was open', () => {
 
     const next = await start([])
     await expect
-      .poll(() => next.locator('.status').innerText(), { timeout: 15_000 })
+      .poll(() => next.locator('.notes').innerText(), { timeout: 15_000 })
       .toContain('could not be opened')
     await expect
       .poll(() => next.evaluate(() => window.api.workspace.current()), { timeout: 5000 })

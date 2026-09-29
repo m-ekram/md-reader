@@ -7,7 +7,6 @@
 import { computed, ref, watch, onBeforeUnmount } from 'vue'
 import { activeDoc, isDirty } from '../stores/documents'
 import { setFontSize, stepFontSize, useSettingsStore } from '../stores/settings'
-import { notice } from '../stores/ui'
 import { useThemeStore } from '../stores/theme'
 import { FONT_MAX, FONT_MIN, effectiveFontSize } from '../stores/appearance'
 
@@ -58,16 +57,13 @@ const eolLabel = computed(() => (activeDoc.value?.eol === '\r\n' ? 'CRLF' : 'LF'
 <template>
   <footer v-if="settings.statusBar" class="status">
     <div class="status__left">
-      <span v-if="notice.text" class="notice" :class="{ warn: notice.kind === 'error' }">
-        {{ notice.text }}
-      </span>
       <!--
         The file was deleted, or moved outside anything we could follow, while
         its tab was open. The tab keeps its content — closing it would destroy
         work every time a sync client briefly removed a file — so this line is
         the only way the user learns the file on disk is gone.
       -->
-      <span v-else-if="activeDoc?.detached" class="warn detached">
+      <span v-if="activeDoc?.detached" class="warn detached">
         ⚠ This file was deleted from disk. Saving will create it again.
       </span>
       <span v-else-if="activeDoc?.lossy?.lossy" class="warn" :title="activeDoc.lossy.note">
@@ -172,9 +168,6 @@ const eolLabel = computed(() => (activeDoc.value?.eol === '\r\n' ? 'CRLF' : 'LF'
 }
 .size__btn:disabled {
   opacity: 0.4;
-}
-.notice {
-  color: var(--doc-accent);
 }
 .warn {
   color: var(--warning);

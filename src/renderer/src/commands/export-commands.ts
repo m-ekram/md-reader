@@ -13,6 +13,7 @@ import { activeDoc } from '../stores/documents'
 // needs.
 import type { collectExport } from '../export/payload'
 import { showNotice } from '../stores/ui'
+import { dismiss, notify } from '../stores/notifications'
 import { registerAll, type Command } from './registry'
 
 const hasDocument = (): boolean => activeDoc.value !== null
@@ -38,20 +39,21 @@ async function runExport(verb: string, exporter: Exporter): Promise<void> {
     return
   }
 
-  showNotice(`${verb}…`)
+  // One message, replaced as the export goes on.
+  const progress = notify(`${verb}…`, { key: 'export', timeoutMs: 0 })
   const result = await exporter(payload)
 
   // A cancelled dialog is the user changing their mind, not a failure worth
   // reporting back to them.
   if (result.cancelled) {
-    showNotice('')
+    dismiss(progress)
     return
   }
   if (!result.ok) {
-    showNotice(`${verb} failed: ${result.error ?? 'unknown error'}`, 'error')
+    notify(`${verb} failed: ${result.error ?? 'unknown error'}`, { kind: 'error', key: 'export' })
     return
   }
-  showNotice(`${verb} complete — ${result.path}`)
+  notify(`${verb} complete — ${result.path}`, { key: 'export' })
 }
 
 const exportCommands: Command[] = [

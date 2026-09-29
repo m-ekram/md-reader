@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest'
 import { readFile, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { openFile, useApp, waitForText } from './helpers'
+import { noticeTexts, openFile, useApp, waitForText } from './helpers'
 
 /**
  * Export, asserted on the file that lands on disk.
@@ -126,16 +126,7 @@ describe('HTML export', () => {
 
   it('reports where it went', async () => {
     await expect
-      .poll(
-        () =>
-          ctx.page
-            .locator('.status .notice')
-            .innerText()
-            .catch(() => ''),
-        {
-          timeout: 10_000,
-        }
-      )
+      .poll(async () => (await noticeTexts(ctx)).join(' '), { timeout: 10_000 })
       .toContain('out.html')
   })
 

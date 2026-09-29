@@ -1,6 +1,15 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest'
-import { chooseMenu, newDocument, nextFrames, useApp, waitForText } from './helpers'
+import { join } from 'node:path'
+import {
+  chooseMenu,
+  newDocument,
+  nextFrames,
+  noticeTexts,
+  openFile,
+  useApp,
+  waitForText,
+} from './helpers'
 
 /**
  * The application shell: window chrome, status bar, and a usable document on launch.
@@ -312,5 +321,29 @@ describe('many tabs', () => {
     await ctx.page.keyboard.press('Control+Shift+Tab')
     await expect.poll(activeIndex).toBe(count - 1)
     await expect.poll(inView, { message: 'the last tab is out of sight' }).toBe(true)
+  })
+})
+
+describe('brief messages', () => {
+  it('stack above the status bar without hiding it, and can be dismissed', async () => {
+    // They shared the status bar's one slot with its lasting warnings: a second
+    // message replaced the first before it could be read.
+    await openFile(ctx, join(ctx.workdir, 'first-missing.md'))
+    await openFile(ctx, join(ctx.workdir, 'second-missing.md'))
+    await expect
+      .poll(async () => (await noticeTexts(ctx)).join(' '), { timeout: 10_000 })
+      .toMatch(/first-missing\.md[\s\S]*second-missing\.md/)
+
+    const status = (await ctx.page.locator('.status').boundingBox())!
+    const notes = ctx.page.locator('.note')
+    for (let i = 0; i < (await notes.count()); i++) {
+      const box = (await notes.nth(i).boundingBox())!
+      expect(box.y + box.height).toBeLessThanOrEqual(status.y)
+      expect(box.x + box.width).toBeLessThanOrEqual(status.x + status.width)
+    }
+
+    await ctx.page.locator('.note').first().locator('.note__close').click()
+    await expect.poll(async () => (await noticeTexts(ctx)).join(' ')).not.toContain('first-missing')
+    expect((await noticeTexts(ctx)).join(' ')).toContain('second-missing')
   })
 })

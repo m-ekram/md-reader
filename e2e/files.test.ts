@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest'
 import { writeFile, readFile, unlink } from 'node:fs/promises'
 import { join } from 'node:path'
-import { chooseMenu, menuItem, openFile, useApp, waitForText } from './helpers'
+import { chooseMenu, menuItem, noticeTexts, openFile, useApp, waitForText } from './helpers'
 
 /**
  * Opening, saving and recovering files.
@@ -187,7 +187,7 @@ describe('a recent file that is gone', () => {
     // entry stayed in the list to fail again.
     await chooseMenu(ctx, 'File', 'Open Recent', 'gone.md')
     await expect
-      .poll(() => ctx.page.locator('.status .notice').textContent(), { timeout: 5000 })
+      .poll(async () => (await noticeTexts(ctx)).join(' '), { timeout: 5000 })
       .toContain('gone.md')
 
     await (await menuItem(ctx, 'File', 'Open Recent')).click()
@@ -247,9 +247,9 @@ describe('a file that cannot be opened', () => {
     // log and nowhere else: the click simply did nothing.
     await openFile(ctx, join(ctx.workdir, 'moved-away.md'))
     await expect
-      .poll(() => ctx.page.locator('.status').innerText(), { timeout: 10_000 })
+      .poll(async () => (await noticeTexts(ctx)).join(' '), { timeout: 10_000 })
       .toContain('moved-away.md')
-    expect(await ctx.page.locator('.status').innerText()).toContain('no longer')
+    expect((await noticeTexts(ctx)).join(' ')).toContain('no longer')
   })
 })
 
@@ -278,7 +278,7 @@ describe('File > Delete with unsaved changes', () => {
     await chooseMenu(ctx, 'File', 'Delete')
 
     await expect
-      .poll(() => ctx.page.locator('.status').innerText())
+      .poll(async () => (await noticeTexts(ctx)).join(' '))
       .toContain('unsaved changes are still open')
     await waitForText(ctx, 'Typed since.')
   })

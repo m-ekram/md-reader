@@ -233,6 +233,11 @@ export async function nextFrames(ctx: AppContext): Promise<void> {
   )
 }
 
+/** The brief messages showing, oldest first. */
+export async function noticeTexts(ctx: AppContext): Promise<string[]> {
+  return ctx.page.locator('.notes .note__text').allInnerTexts()
+}
+
 /** Escapes text for use inside a regular expression. */
 function literal(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')

@@ -10,6 +10,7 @@ import CommandPalette from './components/CommandPalette.vue'
 import PreferencesDialog from './components/PreferencesDialog.vue'
 import FindReplace from './components/FindReplace.vue'
 import WordCountPopover from './components/WordCountPopover.vue'
+import Notifications from './components/Notifications.vue'
 import { commandPalette, preferences, quickOpen } from './stores/ui'
 import { commandForAccel, isEnabled, isRegistered, run } from './commands/registry'
 import { anyDirty, openPath, useDocuments, isDirty, journalKey } from './stores/documents'
@@ -140,6 +141,7 @@ onBeforeUnmount(() => {
           <FindReplace />
           <Editor />
           <WordCountPopover />
+          <Notifications />
         </div>
       </div>
     </main>

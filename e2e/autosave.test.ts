@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFile, utimes, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { newDocument, openFile, useApp, waitForText } from './helpers'
+import { newDocument, noticeTexts, openFile, useApp, waitForText } from './helpers'
 
 /**
  * Saving automatically: off unless switched on, and never at the cost of
@@ -88,8 +88,8 @@ describe('auto-save', () => {
     await ctx.page.keyboard.type(' Mine.')
 
     await expect
-      .poll(() => ctx.page.locator('.status .notice').allInnerTexts(), { timeout: 10_000 })
-      .toEqual([expect.stringContaining('changed by another program')])
+      .poll(() => noticeTexts(ctx), { timeout: 10_000 })
+      .toContainEqual(expect.stringContaining('changed by another program'))
     expect(await onDisk(file)).toBe('Rewritten by another program.\n')
   })
 
@@ -154,9 +154,7 @@ describe('auto-save', () => {
     // Waiting for nothing to happen, as above.
     await ctx.page.waitForTimeout(PAST_THE_PAUSE_MS)
     expect(await asked(), 'auto-save asked for a file name').toBe(0)
-    expect((await ctx.page.locator('.status .notice').allInnerTexts()).join(' ')).not.toContain(
-      name.trim()
-    )
+    expect((await noticeTexts(ctx)).join(' ')).not.toContain(name.trim())
     await setAutoSave(false)
   })
 })

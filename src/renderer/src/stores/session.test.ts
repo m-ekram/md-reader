@@ -120,11 +120,11 @@ describe('reopening it', () => {
   it('skips files that have gone, and says so', async () => {
     onDisk.set('C:\\b.md', 'B')
     lastSession({ files: ['C:\\gone.md', 'C:\\b.md'], active: 'C:\\gone.md' })
-    const { notice } = await import('./ui')
+    const { notes } = await import('./notifications')
 
     expect(await session.restoreSession()).toBe(true)
     expect(docs.useDocuments().docs.map((d) => d.path)).toEqual(['C:\\b.md'])
-    expect(notice.text).toContain('could not be found')
+    expect(notes.map((n) => n.text).join(' ')).toContain('could not be found')
   })
 
   it('opens nothing when switched off', async () => {
