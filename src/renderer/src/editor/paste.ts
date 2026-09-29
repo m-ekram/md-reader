@@ -16,6 +16,8 @@ import type { EditorView } from '@milkdown/kit/prose/view'
 import { Selection } from '@milkdown/kit/prose/state'
 import { activeDoc } from '../stores/documents'
 import { useSettingsStore } from '../stores/settings'
+import { notify } from '../stores/notifications'
+import { fromView } from './view'
 
 const settings = useSettingsStore()
 
@@ -67,6 +69,11 @@ async function insertImage(view: EditorView, file: File): Promise<boolean> {
 }
 
 async function insertAll(view: EditorView, files: File[]): Promise<void> {
+  const doc = activeDoc.value
+  if (doc && !doc.readonly && doc.path === null) {
+    offerSaveFirst(doc.id, files)
+    return
+  }
   try {
     for (const file of files) {
       if (!(await insertImage(view, file))) return
@@ -76,6 +83,32 @@ async function insertAll(view: EditorView, files: File[]): Promise<void> {
     // vanish and the failure would surface only as an unhandled rejection.
     await window.api.app.info('Could not add image', String(err))
   }
+}
+
+/**
+ * An Untitled document has no folder for its images to go in.
+ *
+ * That used to be a dialog saying so, and the image was lost: pasting it again
+ * after saving meant finding it again. The images are held instead, and the
+ * message offers Save As; once saved, they go in where the caret is.
+ */
+function offerSaveFirst(docId: string, files: File[]): void {
+  const what = files.length === 1 ? 'The image' : `The ${files.length} images`
+  notify(`${what} will be added once this document is saved: they go in a folder beside it.`, {
+    key: 'paste-image',
+    actions: [
+      {
+        label: 'Save As…',
+        run: async () => {
+          // Loaded here: the commands import the editor, which imports this.
+          const { saveActive } = await import('../commands/app-commands')
+          if (activeDoc.value?.id !== docId || !(await saveActive(true))) return
+          const view = fromView((v) => v, null)
+          if (view && activeDoc.value?.id === docId) await insertAll(view, files)
+        },
+      },
+    ],
+  })
 }
 
 /**

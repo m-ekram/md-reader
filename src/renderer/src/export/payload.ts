@@ -102,7 +102,7 @@ async function renderHidden(doc: Doc): Promise<string | null> {
   const handle = await createEditor({
     root: host,
     value: doc.content,
-    documentPath: doc.path,
+    documentPath: () => doc.path,
     readonly: true,
     onChange: () => {},
   })

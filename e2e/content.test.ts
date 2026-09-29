@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest'
 import { writeFile, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { openFile, useApp } from './helpers'
+import { newDocument, openFile, useApp } from './helpers'
 
 /**
  * Rich content: diagrams and images.
@@ -121,6 +121,54 @@ describe('pasted images', () => {
     expect(saved).not.toContain('base64')
   })
 })
+describe('an image pasted into a document never saved', () => {
+  it('is kept, and added once Save As gives it a folder', async () => {
+    // It used to be a dialog saying the document had to be saved first, and
+    // the image was gone: it had to be found and pasted again.
+    const { mkdir, readdir } = await import('node:fs/promises')
+    const dir = join(ctx.workdir, 'untitled-paste')
+    await mkdir(dir, { recursive: true })
+    const target = join(dir, 'saved-later.md')
+    await newDocument(ctx)
+    await ctx.page.keyboard.type('Before the picture.')
+    await ctx.page.evaluate(() => {
+      const b64 =
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+      const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))
+      const dt = new DataTransfer()
+      dt.items.add(new File([bytes], 'held-shot.png', { type: 'image/png' }))
+      document
+        .querySelector('.ProseMirror')!
+        .dispatchEvent(
+          new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true })
+        )
+    })
+
+    const offer = ctx.page.locator('.note', { hasText: 'once this document is saved' })
+    await offer.waitFor({ timeout: 5000 })
+    await ctx.app.evaluate(async ({ dialog }, filePath) => {
+      dialog.showSaveDialog = async () => ({ canceled: false, filePath })
+    }, target)
+    await offer.getByRole('button', { name: 'Save As…' }).click()
+
+    await expect
+      .poll(() => readdir(join(dir, 'assets')).catch(() => [] as string[]), { timeout: 10_000 })
+      .toContainEqual(expect.stringMatching(/\.png$/))
+    // And it shows: the editor was built with no folder to resolve it against,
+    // and used that even after Save As gave it one.
+    await expect
+      .poll(() =>
+        ctx.page.evaluate(() => {
+          const img = [...document.querySelectorAll('.ProseMirror img')].find((i) =>
+            i.getAttribute('src')?.includes('held-shot')
+          ) as HTMLImageElement | undefined
+          return img?.naturalWidth ?? 0
+        })
+      )
+      .toBeGreaterThan(0)
+  })
+})
+
 describe('relative images display', () => {
   it('loads an image linked relatively to the document', async () => {
     const { mkdir } = await import('node:fs/promises')

@@ -130,11 +130,14 @@ export async function createEditor(opts: {
   root: HTMLElement
   value: string
   readonly?: boolean
-  /** The document's path, so relative image links can be displayed. */
-  documentPath?: string | null
+  /**
+   * The document's path, so relative image links can be displayed. Read as
+   * each image is drawn: Save As gives an Untitled document its first folder.
+   */
+  documentPath?: () => string | null
   onChange(markdown: string): void
 }): Promise<EditorHandle> {
-  const documentDir = directoryOf(opts.documentPath ?? null)
+  const documentDir = (): string | null => directoryOf(opts.documentPath?.() ?? null)
 
   /**
    * True while the document holds edits not yet reported to the store.
