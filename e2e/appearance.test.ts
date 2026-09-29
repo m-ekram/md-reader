@@ -157,6 +157,13 @@ describe('content width', () => {
   })
 
   it('takes a width in pixels from the slider', async () => {
+    // Room for 700 px of text and its gutters: on a small screen (the Windows
+    // runner's) the sidebar left too little, and the column shrank to fit.
+    const sidebar = await ctx.page.evaluate(async () => (await window.api.settings.get()).sidebar)
+    await ctx.page.evaluate(
+      (s) => window.api.settings.patch({ sidebar: { ...s, visible: false } }),
+      sidebar
+    )
     await openPreferences()
     await ctx.page.getByRole('combobox', { name: 'Content width' }).selectOption('custom')
     await ctx.page.getByRole('slider', { name: 'Content width in pixels' }).fill('700')
@@ -198,6 +205,7 @@ describe('content width', () => {
     await ctx.page.getByRole('combobox', { name: 'Content width' }).selectOption('theme')
     await expect.poll(textWidth, { timeout: 5000 }).not.toBeCloseTo(700, 0)
     await ctx.page.keyboard.press('Escape')
+    await ctx.page.evaluate((s) => window.api.settings.patch({ sidebar: s }), sidebar)
   })
 })
 
