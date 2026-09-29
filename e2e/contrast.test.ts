@@ -198,6 +198,36 @@ describe('alerts', () => {
   })
 })
 
+describe('the application’s own text', () => {
+  it('keeps its own font, whatever the document’s', async () => {
+    // Everything inherited the document's font, so menus, tabs and the status
+    // bar turned serif in Sepia, Newsprint and Pixyll.
+    const file = join(ctx.workdir, 'fonts.md')
+    await writeFile(file, 'Body text.\n', 'utf8')
+    await openFile(ctx, file)
+    await ctx.page.locator('.ProseMirror p', { hasText: 'Body text.' }).waitFor()
+    const failures: string[] = []
+    for (const theme of ['sepia', 'newsprint', 'pixyll']) {
+      await useTheme(theme)
+      const fonts = await ctx.page.evaluate(() => ({
+        menu: getComputedStyle(document.querySelector('.menubar__top')!).fontFamily,
+        status: getComputedStyle(document.querySelector('.status')!).fontFamily,
+        page: getComputedStyle(document.querySelector('.ProseMirror p')!).fontFamily,
+      }))
+      if (!/\bserif\b/.test(fonts.page.replace(/sans-serif/g, '')))
+        failures.push(`${theme}: the document lost its serif (${fonts.page})`)
+      for (const [where, family] of [
+        ['menu', fonts.menu],
+        ['status', fonts.status],
+      ] as const) {
+        if (family === fonts.page)
+          failures.push(`${theme}: the ${where} uses the document's font (${family})`)
+      }
+    }
+    expect(failures).toEqual([])
+  })
+})
+
 describe('the sidebar', () => {
   it('shows where the pointer is, in every theme', async () => {
     await ctx.page.evaluate(() =>

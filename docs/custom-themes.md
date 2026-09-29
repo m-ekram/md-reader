@@ -53,6 +53,9 @@ should set brighter ones.
 
 ### Application chrome
 
+`--ui-font` is the application's own text: menus, tabs, sidebar and dialogs.
+The document keeps `--doc-font`.
+
 `--chrome-bg` `--chrome-fg` `--chrome-fg-dim` `--chrome-hover` `--chrome-active`
 `--chrome-border` `--chrome-accent` `--menu-bg` `--menu-fg` `--menu-fg-muted` `--menu-fg-disabled`
 `--menu-hover` `--menu-border` `--menu-shadow` `--sidebar-bg` `--sidebar-fg`

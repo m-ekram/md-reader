@@ -147,8 +147,11 @@ onBeforeUnmount(() => {
 </template>
 
 <style>
+/* The application's own font. The document sets its theme's (editor.css):
+   inheriting that, menus, tabs and the status bar turned serif in the serif
+   themes. */
 :root {
-  font-family: var(--doc-font);
+  font-family: var(--ui-font);
 }
 html,
 body,

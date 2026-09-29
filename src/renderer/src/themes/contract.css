@@ -14,6 +14,8 @@
   --doc-bg: #ffffff;
   --doc-fg: #24292e;
   --doc-font: -apple-system, 'Segoe UI', system-ui, sans-serif;
+  /* The application's own text: menus, tabs, sidebar, status bar, dialogs. */
+  --ui-font: 'Segoe UI', -apple-system, system-ui, sans-serif;
   --doc-font-size: 16px;
   --doc-line-height: 1.7;
   --doc-measure: 860px;
