@@ -372,6 +372,11 @@ const commands: Command[] = [
     enabled: () => docs.docs.length > 1,
     run: () => setActive((docs.activeIndex + 1) % docs.docs.length),
   },
+  {
+    id: 'view.switchDocsBack',
+    enabled: () => docs.docs.length > 1,
+    run: () => setActive((docs.activeIndex - 1 + docs.docs.length) % docs.docs.length),
+  },
 
   /**
    * Restores the copy taken immediately before the last save.

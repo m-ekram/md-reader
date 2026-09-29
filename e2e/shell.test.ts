@@ -301,5 +301,16 @@ describe('many tabs', () => {
     // Round to the first.
     await ctx.page.keyboard.press('Control+Tab')
     await expect.poll(inView, { message: 'the first tab is out of sight' }).toBe(true)
+
+    // And back the other way, round to the last: Ctrl+Tab only went forward.
+    const activeIndex = () =>
+      ctx.page.evaluate(() =>
+        [...document.querySelectorAll('.tab')].findIndex((t) => t.classList.contains('is-active'))
+      )
+    const count = await ctx.page.locator('.tab').count()
+    expect(await activeIndex()).toBe(0)
+    await ctx.page.keyboard.press('Control+Shift+Tab')
+    await expect.poll(activeIndex).toBe(count - 1)
+    await expect.poll(inView, { message: 'the last tab is out of sight' }).toBe(true)
   })
 })

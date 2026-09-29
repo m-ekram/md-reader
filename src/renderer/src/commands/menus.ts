@@ -336,6 +336,8 @@ export function allMenuCommandIds(nodes: MenuNode[] = MENUS.flatMap((m) => m.ite
  */
 export const EXTRA_ACCELERATORS: Array<{ id: string; accel: string }> = [
   { id: 'app.commandPalette', accel: 'Ctrl+Shift+P' },
+  // The way back through the documents Ctrl+Tab goes forward through.
+  { id: 'view.switchDocsBack', accel: 'Ctrl+Shift+Tab' },
 ]
 
 export interface FlatMenuItem {
