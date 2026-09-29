@@ -227,3 +227,57 @@ describe('the right-click menu', () => {
       .toEqual(expect.arrayContaining(['cut', 'copy', 'paste', 'selectall']))
   })
 })
+
+describe('menus in a short window', () => {
+  it('fit the window, scroll to their last item, and open submenus inside it', async () => {
+    // A menu had no height limit: the Paragraph menu, some 890 px tall, ran
+    // off the bottom of a smaller window, and its last items could not be
+    // reached.
+    await ctx.app.evaluate(({ BrowserWindow }) => {
+      const w = BrowserWindow.getAllWindows()[0]
+      w.unmaximize()
+      w.setSize(900, 400)
+    })
+    await expect.poll(() => ctx.page.evaluate(() => window.innerHeight)).toBeLessThan(420)
+
+    await ctx.page.keyboard.press('Escape')
+    await ctx.page.locator('.menubar__top', { hasText: /^Paragraph$/ }).click()
+    const menu = ctx.page.locator('.menu[role="menu"]').first()
+    await menu.waitFor()
+    const inside = (box: { y: number; height: number } | null) =>
+      ctx.page.evaluate(
+        (b) => b !== null && b.y >= 0 && b.y + b.height <= window.innerHeight + 0.5,
+        box
+      )
+    expect(await inside(await menu.boundingBox()), 'the menu runs off the window').toBe(true)
+
+    const last = menu.locator(':scope > .menu__item').last()
+    await last.scrollIntoViewIfNeeded()
+    expect(await inside(await last.boundingBox()), 'the last item cannot be reached').toBe(true)
+
+    await menu
+      .locator('.menu__row--sub', { hasText: 'Table' })
+      .locator('.menu__item')
+      .first()
+      .hover()
+    const nested = ctx.page.locator('.menu--nested').first()
+    await nested.waitFor()
+    const box = await nested.boundingBox()
+    expect(await inside(box), 'the submenu runs off the window').toBe(true)
+    // Drawn where it is, not clipped away by the scrolling menu around it.
+    const hit = await ctx.page.evaluate(
+      (b) =>
+        document
+          .elementFromPoint(b!.x + b!.width / 2, b!.y + b!.height / 2)
+          ?.closest('.menu--nested') !== null,
+      box
+    )
+    expect(hit, 'the submenu is hidden behind or clipped by its menu').toBe(true)
+
+    await ctx.page.keyboard.press('Escape')
+    await ctx.page.keyboard.press('Escape')
+    await ctx.app.evaluate(({ BrowserWindow }) =>
+      BrowserWindow.getAllWindows()[0].setSize(1200, 820)
+    )
+  })
+})

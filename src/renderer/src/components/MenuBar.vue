@@ -260,9 +260,35 @@ onBeforeUnmount(() => {
   document.removeEventListener('pointerdown', onDocumentPointerDown, true)
 })
 
+/**
+ * Places an open submenu beside its row, inside the window.
+ *
+ * A menu scrolls when it is taller than the window, and a scrolling element
+ * clips what hangs out of it, so a submenu is positioned against the window
+ * instead: beside its row, flipped to the left when there is no room on the
+ * right, and moved up when it would run off the bottom.
+ */
+function placeSubmenu(): void {
+  const nested = bar.value?.querySelector<HTMLElement>('.menu--nested')
+  const row = nested?.parentElement?.getBoundingClientRect()
+  if (!nested || !row) return
+  const { offsetWidth: w, offsetHeight: h } = nested
+  let left = row.right - 2
+  if (left + w > window.innerWidth - 4) left = Math.max(4, row.left - w + 2)
+  const top = Math.max(4, Math.min(row.top - 7, window.innerHeight - h - 4))
+  nested.style.left = `${left}px`
+  nested.style.top = `${top}px`
+}
+
+/** A submenu is placed against its row, so it follows the row as the menu scrolls. */
+function onMenuScroll(): void {
+  placeSubmenu()
+}
+
 // Keep DOM focus on the active item so screen readers follow the selection.
 watch([openIndex, activePath], async () => {
   await nextTick()
+  placeSubmenu()
   const active = bar.value?.querySelector('[data-active="true"]') as HTMLElement | null
   if (active) {
     active.focus()
@@ -302,7 +328,13 @@ function isActive(path: number[]): boolean {
         {{ menu.label }}
       </button>
 
-      <div v-if="openIndex === i" class="menu" role="menu" :aria-label="menu.label">
+      <div
+        v-if="openIndex === i"
+        class="menu"
+        role="menu"
+        :aria-label="menu.label"
+        @scroll.self="onMenuScroll"
+      >
         <template v-for="(node, j) in menu.items" :key="j">
           <div v-if="node.kind === 'separator'" class="menu__sep" role="separator" />
 
@@ -414,15 +446,24 @@ function isActive(path: number[]): boolean {
   left: 0;
   z-index: 100;
   min-width: 232px;
+  /* So a maximum height includes the padding and border. */
+  box-sizing: border-box;
   padding: 6px 0;
   background: var(--menu-bg);
   border: 1px solid var(--menu-border);
   border-radius: 6px;
   box-shadow: var(--menu-shadow);
 }
+/* Never taller than the window below the menu bar: it scrolls instead. */
+.menu:not(.menu--nested) {
+  max-height: calc(100vh - 34px);
+  overflow-y: auto;
+}
+/* Placed against the window by placeSubmenu(): a scrolling menu would clip it. */
 .menu--nested {
-  top: -7px;
-  left: 100%;
+  position: fixed;
+  max-height: calc(100vh - 8px);
+  overflow-y: auto;
 }
 .menu__row--sub {
   position: relative;
