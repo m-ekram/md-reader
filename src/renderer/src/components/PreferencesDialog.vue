@@ -11,6 +11,7 @@
  * The dialog is a view over the settings store, so anything changed elsewhere
  * — the Themes menu, a View toggle — is reflected here without wiring.
  */
+import IconClose from './IconClose.vue'
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { patchSettings, setContentWidth, setFontSize, useSettingsStore } from '../stores/settings'
 import { useThemeStore } from '../stores/theme'
@@ -213,7 +214,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
     >
       <header class="prefs__head">
         <h2>Preferences</h2>
-        <button class="prefs__close" aria-label="Close" @click="emit('close')">✕</button>
+        <button class="prefs__close" aria-label="Close" @click="emit('close')">
+          <IconClose />
+        </button>
       </header>
 
       <div class="prefs__body">
@@ -546,11 +549,18 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
   font-weight: 600;
 }
 .prefs__close {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
   border: 0;
+  border-radius: 4px;
   background: transparent;
   color: inherit;
-  font: inherit;
   cursor: default;
+}
+.prefs__close:hover {
+  background: var(--menu-hover);
 }
 .prefs__body {
   overflow: auto;

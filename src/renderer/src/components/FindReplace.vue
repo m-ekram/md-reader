@@ -5,6 +5,7 @@
  * Deliberately not a modal: you need to see the matches highlighted in the text
  * while typing the query.
  */
+import IconClose from './IconClose.vue'
 import { nextTick, ref, watch } from 'vue'
 import { applyQuery, closeFind, find, findState } from '../editor/find'
 
@@ -111,7 +112,9 @@ async function toggleReplace(): Promise<void> {
 
       <button class="find__btn" title="Previous (Shift+Enter)" @click="find.previous()">↑</button>
       <button class="find__btn" title="Next (Enter)" @click="find.next()">↓</button>
-      <button class="find__btn" title="Close (Escape)" @click="closeFind()">✕</button>
+      <button class="find__btn" title="Close (Escape)" aria-label="Close" @click="closeFind()">
+        <IconClose />
+      </button>
     </div>
 
     <div v-if="findState.replaceMode" class="find__row">

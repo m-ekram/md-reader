@@ -6,6 +6,7 @@
  * is open rarely, and the status bar deliberately keeps its own work minimal to
  * stay off the typing path.
  */
+import IconClose from './IconClose.vue'
 import { computed } from 'vue'
 import { activeDoc } from '../stores/documents'
 import { uiState } from '../stores/ui'
@@ -44,7 +45,7 @@ const stats = computed(() => {
   >
     <div class="wordcount__head">
       <span>{{ activeDoc?.name ?? 'No document' }}</span>
-      <button aria-label="Close" @click="uiState.wordCountOpen = false">✕</button>
+      <button aria-label="Close" @click="uiState.wordCountOpen = false"><IconClose /></button>
     </div>
     <dl class="wordcount__grid">
       <dt>Words</dt>
@@ -89,11 +90,18 @@ const stats = computed(() => {
   font-weight: 600;
 }
 .wordcount__head button {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
   border: 0;
+  border-radius: 4px;
   background: transparent;
   color: inherit;
-  font: inherit;
   cursor: default;
+}
+.wordcount__head button:hover {
+  background: var(--menu-hover);
 }
 .wordcount__grid {
   display: grid;

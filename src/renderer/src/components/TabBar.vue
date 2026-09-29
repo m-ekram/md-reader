@@ -5,6 +5,7 @@
  * Tabs are compact: each is capped in width and shrinks as more open, with the
  * name ellipsized and given in full, with its folder, in the tooltip.
  */
+import IconClose from './IconClose.vue'
 import { isDirty, setActive, useDocuments } from '../stores/documents'
 // Not the store's closeDoc, which removes a document without asking: this is
 // the prompting path, the same one Ctrl+W takes.
@@ -33,7 +34,7 @@ const docs = useDocuments()
         <span v-if="isDirty(d)" class="tab__dot" aria-label="Unsaved changes">•</span>
       </button>
       <button class="tab__close" :aria-label="`Close ${d.name}`" @click.stop="requestClose(i)">
-        ×
+        <IconClose :size="8" />
       </button>
     </div>
   </nav>
@@ -83,6 +84,8 @@ const docs = useDocuments()
   text-overflow: ellipsis;
 }
 .tab__close {
+  display: grid;
+  place-items: center;
   flex: none;
   height: 100%;
   padding: 0 8px 0 4px;
