@@ -2,7 +2,15 @@
 import { describe, it, expect } from 'vitest'
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { chooseMenu, menuItem, newDocument, openFile, useApp, waitForText } from './helpers'
+import {
+  chooseMenu,
+  menuItem,
+  newDocument,
+  nextFrames,
+  openFile,
+  useApp,
+  waitForText,
+} from './helpers'
 
 /**
  * Editing behaviour: the keys the editor owns, and the menu items that drive it.
@@ -328,5 +336,27 @@ describe('copy as', () => {
     expect(html).not.toContain('class=')
     expect(html).not.toContain('style=')
     expect(text).toContain('Plain bold end.')
+  })
+})
+
+describe('the placeholder', () => {
+  it('invites writing in an empty document, and nowhere else', async () => {
+    // Crepe's own "Please enter..." showed in every empty line the caret
+    // reached, in the middle of documents too.
+    await newDocument(ctx)
+    await expect
+      .poll(() =>
+        ctx.page
+          .locator('.ProseMirror .crepe-placeholder')
+          .first()
+          .getAttribute('data-placeholder')
+          .catch(() => null)
+      )
+      .toBe('Start writing, or type / for blocks')
+
+    await ctx.page.keyboard.type('Some text.')
+    await ctx.page.keyboard.press('Enter')
+    await nextFrames(ctx)
+    expect(await ctx.page.locator('.ProseMirror .crepe-placeholder').count()).toBe(0)
   })
 })

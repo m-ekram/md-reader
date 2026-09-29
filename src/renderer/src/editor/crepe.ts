@@ -170,6 +170,9 @@ export async function createEditor(opts: {
     featureConfigs: {
       // Colours from the theme, not Crepe's fixed dark palette. See code-theme.ts.
       [CrepeFeature.CodeMirror]: { theme: codeTheme },
+      // Crepe's own was "Please enter...", in every empty line the caret
+      // reached. Only an empty document is invited to begin.
+      [CrepeFeature.Placeholder]: { text: 'Start writing, or type / for blocks', mode: 'doc' },
     },
   })
 
