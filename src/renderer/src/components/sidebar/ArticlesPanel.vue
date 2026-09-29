@@ -1,5 +1,6 @@
 <script setup lang="ts">
 /** Every markdown file in the workspace, flat. The "all my notes" list. */
+import NoFolder from './NoFolder.vue'
 import { computed } from 'vue'
 import { useWorkspace } from '../../stores/workspace'
 import { activeDoc, openPath } from '../../stores/documents'
@@ -13,7 +14,7 @@ const isActive = (path: string): boolean =>
 
 <template>
   <div class="panel">
-    <p v-if="!ws.root" class="panel__empty">No folder open</p>
+    <NoFolder v-if="!ws.root" />
     <p v-else-if="ws.loadingArticles" class="panel__empty">Scanning…</p>
     <p v-else-if="files.length === 0" class="panel__empty">No markdown files</p>
     <ul v-else class="articles">

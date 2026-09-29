@@ -1,5 +1,6 @@
 <script setup lang="ts">
 /** Lazy folder tree: children are read when a folder is first expanded. */
+import NoFolder from './NoFolder.vue'
 import { useWorkspace } from '../../stores/workspace'
 import TreeItem from './TreeItem.vue'
 
@@ -8,7 +9,7 @@ const ws = useWorkspace()
 
 <template>
   <div class="panel">
-    <p v-if="!ws.root" class="panel__empty">No folder open</p>
+    <NoFolder v-if="!ws.root" />
     <p v-else-if="ws.tree.length === 0" class="panel__empty">Empty folder</p>
     <ul v-else class="tree">
       <TreeItem v-for="node in ws.tree" :key="node.entry.path" :node="node" :depth="0" />

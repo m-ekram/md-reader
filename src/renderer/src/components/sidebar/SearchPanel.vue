@@ -3,6 +3,7 @@
  * Folder-wide search. Results stream in from the worker as they are found, so
  * a large folder fills progressively rather than freezing until it finishes.
  */
+import NoFolder from './NoFolder.vue'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { cancelSearch, runSearch, useWorkspace } from '../../stores/workspace'
 import { openPath } from '../../stores/documents'
@@ -44,10 +45,11 @@ const grouped = computed(() => {
         type="search"
         placeholder="Search folder…"
         aria-label="Search folder"
+        :disabled="!ws.root"
       />
     </div>
 
-    <p v-if="!ws.root" class="panel__empty">No folder open</p>
+    <NoFolder v-if="!ws.root" />
     <p v-else-if="query.trim().length < 2" class="panel__empty">Type at least two characters</p>
     <p v-else-if="ws.search.running && grouped.length === 0" class="panel__empty">Searching…</p>
     <p v-else-if="grouped.length === 0" class="panel__empty">No matches</p>
@@ -85,6 +87,9 @@ const grouped = computed(() => {
   color: var(--doc-fg);
   font: inherit;
   font-size: 12px;
+}
+.search__input:disabled {
+  opacity: 0.6;
 }
 .results {
   list-style: none;
