@@ -31,7 +31,11 @@ type Exporter = (payload: Awaited<ReturnType<typeof collectExport>> & object) =>
  * `verb` is used in the message, so the user is told which of three similar
  * actions succeeded or failed rather than a generic "done".
  */
-async function runExport(verb: string, exporter: Exporter): Promise<void> {
+async function runExport(
+  verb: string,
+  exporter: Exporter,
+  opts: { offerOpen: boolean }
+): Promise<void> {
   const { collectExport } = await import('../export/payload')
   const payload = await collectExport()
   if (!payload) {
@@ -53,26 +57,40 @@ async function runExport(verb: string, exporter: Exporter): Promise<void> {
     notify(`${verb} failed: ${result.error ?? 'unknown error'}`, { kind: 'error', key: 'export' })
     return
   }
-  notify(`${verb} complete — ${result.path}`, { key: 'export' })
+  const path = result.path!
+  // The next thing wanted after an export is usually to look at it.
+  const actions = opts.offerOpen
+    ? [
+        { label: 'Open', run: () => openExport(path) },
+        { label: 'Show in Folder', run: () => window.api.file.showInFolder(path) },
+      ]
+    : []
+  notify(`${verb} complete — ${path}`, { key: 'export', actions })
+}
+
+async function openExport(path: string): Promise<void> {
+  const error = await window.api.export.open(path)
+  if (error) showNotice(`Could not open ${path}: ${error}`, 'error')
 }
 
 const exportCommands: Command[] = [
   {
     id: 'file.exportHtml',
     enabled: hasDocument,
-    run: () => runExport('Export HTML', (p) => window.api.export.html(p)),
+    run: () => runExport('Export HTML', (p) => window.api.export.html(p), { offerOpen: true }),
   },
   {
     id: 'file.exportPdf',
     enabled: hasDocument,
-    run: () => runExport('Export PDF', (p) => window.api.export.pdf(p)),
+    run: () => runExport('Export PDF', (p) => window.api.export.pdf(p), { offerOpen: true }),
   },
   {
     id: 'file.print',
     enabled: hasDocument,
     // Printing goes through the same render as PDF and opens the result in the
     // system viewer, which is where the print dialog lives.
-    run: () => runExport('Print', (p) => window.api.export.print(p)),
+    // It is open already.
+    run: () => runExport('Print', (p) => window.api.export.print(p), { offerOpen: false }),
   },
 ]
 

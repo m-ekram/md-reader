@@ -13,6 +13,7 @@ import { basename, dirname, join } from 'node:path'
 import { buildHtml, type ExportPayload } from '../export/html'
 import { exportPdf, renderPdf } from '../export/pdf'
 import { log } from '../log'
+import { mayOpenExport, rememberExport } from '../export/exported'
 
 export interface ExportResult {
   ok: boolean
@@ -29,27 +30,25 @@ function suggestedPath(payload: ExportPayload, extension: string): string {
 }
 
 export function registerExportIpc(): void {
-  ipcMain.handle(
-    'export:html',
-    async (e, payload: ExportPayload): Promise<ExportResult> => {
-      const win = BrowserWindow.fromWebContents(e.sender)
-      try {
-        const r = await dialog.showSaveDialog(win!, {
-          title: 'Export HTML',
-          defaultPath: suggestedPath(payload, 'html'),
-          filters: [{ name: 'HTML', extensions: ['html', 'htm'] }],
-        })
-        if (r.canceled || !r.filePath) return { ok: false, cancelled: true }
+  ipcMain.handle('export:html', async (e, payload: ExportPayload): Promise<ExportResult> => {
+    const win = BrowserWindow.fromWebContents(e.sender)
+    try {
+      const r = await dialog.showSaveDialog(win!, {
+        title: 'Export HTML',
+        defaultPath: suggestedPath(payload, 'html'),
+        filters: [{ name: 'HTML', extensions: ['html', 'htm'] }],
+      })
+      if (r.canceled || !r.filePath) return { ok: false, cancelled: true }
 
-        await writeFileAtomic(r.filePath, await buildHtml(payload))
-        log.info('exported html', { path: r.filePath })
-        return { ok: true, path: r.filePath }
-      } catch (err) {
-        log.error('html export failed', { err: String(err) })
-        return { ok: false, error: String(err) }
-      }
+      await writeFileAtomic(r.filePath, await buildHtml(payload))
+      rememberExport(r.filePath)
+      log.info('exported html', { path: r.filePath })
+      return { ok: true, path: r.filePath }
+    } catch (err) {
+      log.error('html export failed', { err: String(err) })
+      return { ok: false, error: String(err) }
     }
-  )
+  })
 
   ipcMain.handle('export:pdf', async (e, payload: ExportPayload): Promise<ExportResult> => {
     const win = BrowserWindow.fromWebContents(e.sender)
@@ -62,11 +61,21 @@ export function registerExportIpc(): void {
       if (r.canceled || !r.filePath) return { ok: false, cancelled: true }
 
       await exportPdf(await buildHtml(payload), r.filePath)
+      rememberExport(r.filePath)
       return { ok: true, path: r.filePath }
     } catch (err) {
       log.error('pdf export failed', { err: String(err) })
       return { ok: false, error: String(err) }
     }
+  })
+
+  /**
+   * Opens an export in its program, from the message saying where it went.
+   * Only a file this session exported: see `export/exported.ts`.
+   */
+  ipcMain.handle('export:open', async (_e, path: string): Promise<string> => {
+    if (!mayOpenExport(path)) return 'Only a file exported in this session can be opened from here.'
+    return shell.openPath(path)
   })
 
   /**

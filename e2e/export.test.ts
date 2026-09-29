@@ -130,6 +130,35 @@ describe('HTML export', () => {
       .toContain('out.html')
   })
 
+  it('offers to open it, and opens nothing else', async () => {
+    await ctx.app.evaluate(({ shell }) => {
+      const g = globalThis as unknown as { opened: string[] }
+      g.opened = []
+      shell.openPath = async (p: string) => {
+        g.opened.push(p)
+        return ''
+      }
+    })
+    const opened = () =>
+      ctx.app.evaluate(() => (globalThis as unknown as { opened: string[] }).opened)
+
+    await ctx.page
+      .locator('.note', { hasText: 'out.html' })
+      .getByRole('button', { name: 'Open' })
+      .click()
+    await expect.poll(opened).toEqual([target()])
+    // The message has done its job.
+    expect((await noticeTexts(ctx)).join(' ')).not.toContain('out.html')
+
+    // The page cannot use the same door for a file it did not export.
+    const refused = await ctx.page.evaluate(
+      (p) => window.api.export.open(p),
+      join(ctx.workdir, 'export-me.md')
+    )
+    expect(refused).not.toBe('')
+    expect(await opened()).toEqual([target()])
+  })
+
   it('writes nothing when the dialog is cancelled', async () => {
     const cancelled = join(ctx.workdir, 'never-written.html')
     await cancelNextSaveDialog()

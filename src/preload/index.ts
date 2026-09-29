@@ -93,6 +93,8 @@ const api = {
       ipcRenderer.invoke('export:pdf', payload),
     print: (payload: ExportPayload): Promise<ExportResult> =>
       ipcRenderer.invoke('export:print', payload),
+    /** Opens a file this session exported; resolves to an error message, or ''. */
+    open: (path: string): Promise<string> => ipcRenderer.invoke('export:open', path),
   },
 
   fileops: {
