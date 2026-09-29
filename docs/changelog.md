@@ -31,6 +31,21 @@
 - On Windows the caption buttons are the system's, so Maximize offers Snap
   Layouts; they take the theme's title bar colours.
 
+### Readability
+
+- The sidebar's hover and dividers used the title bar's colours and were
+  invisible in five light themes; the sidebar now has its own tokens
+  (`--sidebar-hover`, `--sidebar-border`, `--sidebar-muted`), and no longer
+  dims text with opacity.
+- `color-scheme` follows the theme, so dark themes get dark native controls.
+- Menu shortcuts were drawn in the disabled colour (about 2:1); tab names,
+  window title, status bar, the unsaved dot, find's on options and alert labels
+  fell under 4.5:1 in some themes. All now reach it in every built-in theme,
+  checked by a contrast suite. Alert colours are tokens (`--alert-*`).
+- The application's text has its own font (`--ui-font`); it followed the
+  document's, and turned serif in the serif themes.
+- Windows open in the theme's colours, not a fixed dark one.
+
 ### Fixes
 
 - A file changed on disk while its tab was in the background came back showing

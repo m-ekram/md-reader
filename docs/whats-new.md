@@ -66,6 +66,16 @@ when you hover over it.
   document are exported with their code.
 - `[[Wiki links]]` are saved exactly as you wrote them.
 
+### Easier to read, in every theme
+
+- The sidebar shows where the pointer is in the light themes, and its
+  secondary text (folders, line numbers) is no longer faint.
+- Dark themes have dark scrollbars, drop-down lists and checkboxes.
+- Menu shortcuts, tab names, the window title, the status bar and alert labels
+  are all readable against their background, in every theme.
+- Menus, tabs and the status bar keep their own font in the serif themes.
+- A window opens in its theme's colours, instead of flashing dark first.
+
 ### Commands that now do what they say
 
 - **Move Row Up / Down** (`Alt+↑` / `Alt+↓`) move the table row you are in.
