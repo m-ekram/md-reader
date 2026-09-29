@@ -10,7 +10,7 @@
  */
 import { computed, onMounted, ref } from 'vue'
 import { run } from '../commands/registry'
-import { flattenMenu } from '../commands/menus'
+import { EXTRA_ACCELERATORS, flattenMenu } from '../commands/menus'
 import { useSettingsStore } from '../stores/settings'
 import logoMark from '../assets/logo-mark.png'
 
@@ -20,13 +20,22 @@ const SHOWN_RECENT = 8
 const settings = useSettingsStore()
 const actionsEl = ref<HTMLElement | null>(null)
 
-const accels = new Map(flattenMenu().map((i) => [i.id, i.accel]))
+const accels = new Map([
+  ...flattenMenu().map((i) => [i.id, i.accel] as const),
+  ...EXTRA_ACCELERATORS.map((e) => [e.id, e.accel] as const),
+])
 
 const actions = [
   { id: 'file.new', label: 'New document' },
   { id: 'file.open', label: 'Open file…' },
   { id: 'file.openFolder', label: 'Open folder…' },
 ].map((a) => ({ ...a, accel: accels.get(a.id) }))
+
+/**
+ * Where to go next. A first launch offered New, Open and Open Folder, and
+ * nothing about finding the rest.
+ */
+const paletteAccel = accels.get('app.commandPalette')
 
 const recent = computed(() =>
   settings.value.recentFiles.slice(0, SHOWN_RECENT).map((path, i) => {
@@ -57,6 +66,21 @@ onMounted(() => actionsEl.value?.querySelector('button')?.focus())
           <kbd v-if="a.accel" class="welcome__accel">{{ a.accel }}</kbd>
         </button>
       </div>
+
+      <ul class="welcome__tips" aria-label="Tips">
+        <li>
+          <button class="welcome__tip" @click="run('app.commandPalette')">
+            Find any command
+            <kbd v-if="paletteAccel" class="welcome__accel">{{ paletteAccel }}</kbd>
+          </button>
+        </li>
+        <li class="welcome__tip welcome__tip--text">
+          Type <kbd class="welcome__key">/</kbd> on an empty line for headings, tables and more
+        </li>
+        <li>
+          <button class="welcome__tip" @click="run('help.quickStart')">Quick Start guide</button>
+        </li>
+      </ul>
 
       <div v-if="recent.length > 0" class="welcome__recent">
         <h2 class="welcome__heading">Recent</h2>
@@ -141,6 +165,46 @@ onMounted(() => actionsEl.value?.querySelector('button')?.focus())
   font-family: inherit;
   font-size: 12px;
   color: var(--doc-muted);
+}
+.welcome__tips {
+  display: grid;
+  gap: 2px;
+  margin: 16px 0 0;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--doc-rule);
+  list-style: none;
+}
+.welcome__tip {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  width: 100%;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--doc-muted);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+button.welcome__tip:hover,
+button.welcome__tip:focus-visible {
+  background: color-mix(in srgb, var(--doc-fg) 8%, transparent);
+  color: var(--doc-fg);
+  outline: none;
+}
+.welcome__tip--text {
+  display: block;
+  cursor: default;
+}
+.welcome__key {
+  padding: 0 5px;
+  border: 1px solid var(--doc-rule);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 12px;
 }
 .welcome__recent {
   margin-top: 28px;

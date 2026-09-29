@@ -19,8 +19,6 @@ import { useSettingsStore } from '../stores/settings'
 import { notify } from '../stores/notifications'
 import { fromView } from './view'
 
-const settings = useSettingsStore()
-
 function imageFilesFrom(data: DataTransfer | null | undefined): File[] {
   if (!data) return []
   return [...data.files].filter((f) => f.type.startsWith('image/'))
@@ -41,7 +39,8 @@ async function insertImage(view: EditorView, file: File): Promise<boolean> {
   const buffer = new Uint8Array(await file.arrayBuffer())
   const result = await window.api.images.save({
     documentPath: doc.path,
-    assetsFolder: settings.value.editor.assetsFolder,
+    // Read when used: the settings store and the editor import each other.
+    assetsFolder: useSettingsStore().value.editor.assetsFolder,
     suggestedName: file.name || undefined,
     data: buffer,
     mimeType: file.type,
