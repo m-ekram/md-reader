@@ -48,6 +48,8 @@ when you hover over it.
 - In a long document, Find shows you the match it moves to.
 - `Ctrl+Z` undoes one burst of typing at a time, even if Windows corrects the
   clock in between. It could take back two at once.
+- Unsaved work found after a crash is never thrown away because a clock or a
+  file's date is off.
 - Pressing `Escape` on "Unsaved changes were recovered" keeps them for next
   time. It used to throw them away. Several recovered documents are offered in
   one question, with **Restore All**.

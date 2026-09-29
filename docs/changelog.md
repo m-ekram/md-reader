@@ -58,6 +58,9 @@
   name, when the watcher reported the removal and the new file separately.
 - A pasted image showed broken until the file was reopened: images inside a line
   of text did not resolve their relative link for display.
+- Recovered work was deleted unasked when its file's date looked newer than
+  the work, which a clock set back or a file dated in the future could cause.
+  It is now discarded only when the file already holds it.
 - Escape on the crash-recovery question discarded the recovered work. It is now
   one question (Restore All / Not Now / Review), Not Now keeps the work, and
   Discard asks twice. Restored Untitled work keeps its journal, so it is not
