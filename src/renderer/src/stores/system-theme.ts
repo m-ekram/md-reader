@@ -6,17 +6,11 @@
  * dark theme at night does not also take over the day.
  */
 import { watch } from 'vue'
-import type { Settings } from '../../../shared/settings'
+import { themeFor } from '../../../shared/theme-choice'
 import { patchSettings, useSettingsStore } from './settings'
 import { applyTheme, useThemeStore } from './theme'
 
 let systemDark = false
-
-/** The theme a window should show. Pure, for testing. */
-export function themeFor(s: Settings, dark: boolean): string {
-  if (!s.followSystem.enabled) return s.theme
-  return dark ? s.followSystem.dark : s.followSystem.light
-}
 
 /** Shows the theme the settings and Windows' mode call for, if not already. */
 async function sync(): Promise<void> {

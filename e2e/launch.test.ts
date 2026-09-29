@@ -250,3 +250,17 @@ describe('the folder that was open', () => {
       .toBeNull()
   }, 120_000)
 })
+
+describe('the window before its page paints', () => {
+  it('is the theme’s colour, not a fixed dark one', async () => {
+    // It opened dark whatever the theme, and a light theme flashed dark first.
+    const page = await launchWith([])
+    await page.evaluate(() => window.api.settings.patch({ theme: 'sepia' }))
+    const next = await relaunch()
+    await next.waitForSelector('.app')
+    const colour = await app!.evaluate(({ BrowserWindow }) =>
+      BrowserWindow.getAllWindows()[0].getBackgroundColor()
+    )
+    expect(colour.toLowerCase()).toBe('#f4ecd8')
+  }, 120_000)
+})

@@ -7,8 +7,10 @@
  * pushed to every window. Building the registry now costs little; retrofitting it
  * later would mean touching every store.
  */
-import { BrowserWindow, Menu, clipboard, dialog, shell } from 'electron'
+import { BrowserWindow, Menu, clipboard, dialog, nativeTheme, shell } from 'electron'
 import { buildContextMenu } from './context-menu'
+import { startupColours } from './theme-colours'
+import { readUserTheme } from './themes'
 import { join } from 'node:path'
 import { getSettings, patchSettings } from './settings'
 import { flushJournals } from './recovery'
@@ -88,6 +90,9 @@ export function takePendingPaths(win: BrowserWindow): {
 
 export function createWindow(openAtStart: string[] = []): BrowserWindow {
   const saved = getSettings().window
+  // The theme's own colours from the first frame, not fixed dark ones that the
+  // page then repainted. See theme-colours.ts.
+  const colours = startupColours(getSettings(), nativeTheme.shouldUseDarkColors, readUserTheme)
 
   const { dx, dy } = cascadeOffset()
   const win = new BrowserWindow({
@@ -105,9 +110,15 @@ export function createWindow(openAtStart: string[] = []): BrowserWindow {
     // The page repaints them in the theme's colours. Elsewhere the page draws
     // its own, on a frameless window.
     ...(OVERLAY_CAPTIONS
-      ? { titleBarOverlay: { color: '#24292e', symbolColor: '#e1e4e8', height: 26 } }
+      ? {
+          titleBarOverlay: {
+            color: colours.chromeBg,
+            symbolColor: colours.chromeFg,
+            height: 26,
+          },
+        }
       : { frame: false }),
-    backgroundColor: '#1f2430',
+    backgroundColor: colours.bg,
     // A packaged Windows build takes its icon from the exe; a development run
     // and a Linux run have no exe to take it from.
     icon,
