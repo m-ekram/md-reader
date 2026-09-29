@@ -5,8 +5,9 @@
  * Tabs are compact: each is capped in width and shrinks as more open, with the
  * name ellipsized and given in full, with its folder, in the tooltip.
  */
-import { nextTick, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import IconClose from './IconClose.vue'
+import { tabLabels } from '../utils/tab-labels'
 import { isDirty, setActive, useDocuments } from '../stores/documents'
 // Not the store's closeDoc, which removes a document without asking: this is
 // the prompting path, the same one Ctrl+W takes.
@@ -14,6 +15,8 @@ import { requestClose } from '../commands/app-commands'
 
 const docs = useDocuments()
 const strip = ref<HTMLElement | null>(null)
+/** File names, with folders added where two open files share one. */
+const labels = computed(() => tabLabels(docs.docs))
 
 /**
  * Keeps the active tab in view. The strip scrolls sideways once it overflows,
@@ -52,7 +55,7 @@ watch(
         @click="setActive(i)"
         @auxclick.middle="requestClose(i)"
       >
-        <span class="tab__name">{{ d.name }}</span>
+        <span class="tab__name">{{ labels[i] }}</span>
         <span v-if="isDirty(d)" class="tab__dot" aria-label="Unsaved changes">•</span>
       </button>
       <button class="tab__close" :aria-label="`Close ${d.name}`" @click.stop="requestClose(i)">

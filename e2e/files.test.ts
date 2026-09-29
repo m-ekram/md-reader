@@ -283,3 +283,19 @@ describe('File > Delete with unsaved changes', () => {
     await waitForText(ctx, 'Typed since.')
   })
 })
+
+describe('two files with the same name', () => {
+  it('have tabs that tell them apart', async () => {
+    // Two README.md files made two identical tabs.
+    const { mkdir } = await import('node:fs/promises')
+    for (const folder of ['app', 'lib']) {
+      await mkdir(join(ctx.workdir, folder), { recursive: true })
+      await writeFile(join(ctx.workdir, folder, 'README.md'), `# ${folder}\n`, 'utf8')
+      await openFile(ctx, join(ctx.workdir, folder, 'README.md'))
+      await waitForText(ctx, folder)
+    }
+    const names = await ctx.page.locator('.tab__name', { hasText: 'README.md' }).allInnerTexts()
+    expect(names).toHaveLength(2)
+    expect(new Set(names).size, `tabs read ${JSON.stringify(names)}`).toBe(2)
+  })
+})
