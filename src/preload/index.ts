@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { DocumentFile, SaveRequest, SaveResult, WindowState } from '../shared/ipc'
-import type { Settings } from '../shared/settings'
+import type { SettingsPatch, SettingsState } from '../shared/settings'
 import type { BackupInfo, JournalEntry } from '../main/recovery'
 import type { DirEntry, MarkdownFile } from '../main/workspace'
 import type { FileProperties } from '../main/ipc/workspace'
@@ -104,10 +104,10 @@ const api = {
   },
 
   settings: {
-    get: (): Promise<Settings> => ipcRenderer.invoke('settings:get'),
-    patch: (patch: Partial<Settings>): Promise<Settings> =>
+    get: (): Promise<SettingsState> => ipcRenderer.invoke('settings:get'),
+    patch: (patch: SettingsPatch): Promise<SettingsState> =>
       ipcRenderer.invoke('settings:patch', patch),
-    onChanged: (fn: (s: Settings) => void) => subscribe('settings:changed', fn),
+    onChanged: (fn: (s: SettingsState) => void) => subscribe('settings:changed', fn),
   },
 
   themes: {

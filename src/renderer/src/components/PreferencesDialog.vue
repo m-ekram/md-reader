@@ -52,7 +52,7 @@ const editor = computed(() => settings.value.editor)
 
 /** Patches one editor field, keeping the rest of the group intact. */
 async function patchEditor(patch: Partial<typeof settings.value.editor>): Promise<void> {
-  await patchSettings({ editor: { ...settings.value.editor, ...patch } })
+  await patchSettings({ editor: patch })
   invalidateCommands()
 }
 
@@ -247,10 +247,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
                 :value="settings.followSystem[mode]"
                 @change="
                   patchSettings({
-                    followSystem: {
-                      ...settings.followSystem,
-                      [mode]: ($event.target as HTMLSelectElement).value,
-                    },
+                    followSystem: { [mode]: ($event.target as HTMLSelectElement).value },
                   })
                 "
               >
@@ -267,10 +264,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
               :checked="settings.followSystem.enabled"
               @change="
                 patchSettings({
-                  followSystem: {
-                    ...settings.followSystem,
-                    enabled: ($event.target as HTMLInputElement).checked,
-                  },
+                  followSystem: { enabled: ($event.target as HTMLInputElement).checked },
                 })
               "
             />
@@ -358,10 +352,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
               :checked="settings.session.restore"
               @change="
                 patchSettings({
-                  session: {
-                    ...settings.session,
-                    restore: ($event.target as HTMLInputElement).checked,
-                  },
+                  session: { restore: ($event.target as HTMLInputElement).checked },
                 })
               "
             />

@@ -41,7 +41,7 @@ type PanelId = 'outline' | 'articles' | 'files' | 'search'
 
 /** Shows a sidebar panel, revealing the sidebar if it is hidden. */
 async function showPanel(panel: PanelId): Promise<void> {
-  await patchSettings({ sidebar: { ...settings.value.sidebar, panel, visible: true } })
+  await patchSettings({ sidebar: { panel, visible: true } })
 }
 
 const panelIsActive = (panel: PanelId) => () =>
@@ -241,7 +241,7 @@ const commands: Command[] = [
     run: async () => {
       const path = activeDoc.value?.path
       if (!path) return
-      await patchSettings({ sidebar: { ...settings.value.sidebar, panel: 'files', visible: true } })
+      await patchSettings({ sidebar: { panel: 'files', visible: true } })
       await revealPath(path)
     },
   },
@@ -333,10 +333,7 @@ const commands: Command[] = [
   {
     id: 'view.toggleSidebar',
     checked: () => settings.value.sidebar.visible,
-    run: () =>
-      void patchSettings({
-        sidebar: { ...settings.value.sidebar, visible: !settings.value.sidebar.visible },
-      }),
+    run: () => void patchSettings({ sidebar: { visible: !settings.value.sidebar.visible } }),
   },
   { id: 'view.outline', checked: panelIsActive('outline'), run: () => showPanel('outline') },
   { id: 'view.articles', checked: panelIsActive('articles'), run: () => showPanel('articles') },

@@ -200,7 +200,7 @@ const viewCommands: Command[] = [
       const next = !settings.value.editor.showWhitespace
       setShowWhitespace(next)
       refreshDecorations()
-      await patchSettings({ editor: { ...settings.value.editor, showWhitespace: next } })
+      await patchSettings({ editor: { showWhitespace: next } })
     },
   },
   {
@@ -228,7 +228,7 @@ const viewCommands: Command[] = [
     run: async () => {
       const next = !settings.value.editor[key]
       setPunctuation({ [key.replace('smart', '').toLowerCase()]: next })
-      await patchSettings({ editor: { ...settings.value.editor, [key]: next } })
+      await patchSettings({ editor: { [key]: next } })
     },
   })),
 
@@ -238,7 +238,7 @@ const viewCommands: Command[] = [
     run: async () => {
       const next = !settings.value.editor.spellcheck
       window.api.window.setSpellcheck(next)
-      await patchSettings({ editor: { ...settings.value.editor, spellcheck: next } })
+      await patchSettings({ editor: { spellcheck: next } })
     },
   },
 ]

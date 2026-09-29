@@ -45,7 +45,7 @@ async function write(): Promise<void> {
   if (!pending) return
   const next = pending
   pending = null
-  await patchSettings({ session: { ...useSettingsStore().value.session, ...next } })
+  await patchSettings({ session: next })
 }
 
 /**

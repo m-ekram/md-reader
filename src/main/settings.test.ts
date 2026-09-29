@@ -10,7 +10,7 @@ vi.mock('electron', () => ({
 vi.mock('./log', () => ({ log: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } }))
 
 const { readSettingsFile, writeSettingsFile } = await import('./settings')
-const { DEFAULT_SETTINGS } = await import('../shared/settings')
+const { DEFAULT_SETTINGS, applySettingsPatch } = await import('../shared/settings')
 
 let dir: string
 let path: string
@@ -63,6 +63,29 @@ describe('readSettingsFile', () => {
     expect(aside).toHaveLength(1)
     expect(aside[0]).toMatch(/^settings\.corrupt-2026-09-21T10-00-00-000Z\.json$/)
     expect(readFileSync(join(dir, aside[0]), 'utf8')).toBe(broken)
+  })
+})
+
+describe('applySettingsPatch', () => {
+  it('changes only the fields a patch names within a group', () => {
+    const current = { ...DEFAULT_SETTINGS, editor: { ...DEFAULT_SETTINGS.editor, fontSize: 20 } }
+    const next = applySettingsPatch(current, { editor: { contentWidth: 800 } })
+    expect(next.editor.fontSize).toBe(20)
+    expect(next.editor.contentWidth).toBe(800)
+    expect(next.editor.liveEditors).toBe(DEFAULT_SETTINGS.editor.liveEditors)
+  })
+
+  it('replaces lists and plain values whole, and can clear the folder', () => {
+    const current = { ...DEFAULT_SETTINGS, recentFiles: ['a.md', 'b.md'], workspace: 'C:\\n' }
+    const next = applySettingsPatch(current, { recentFiles: ['c.md'], workspace: null })
+    expect(next.recentFiles).toEqual(['c.md'])
+    expect(next.workspace).toBeNull()
+  })
+
+  it('leaves the settings it was given unchanged', () => {
+    const current = structuredClone(DEFAULT_SETTINGS)
+    applySettingsPatch(current, { editor: { fontSize: 30 } })
+    expect(current).toEqual(DEFAULT_SETTINGS)
   })
 })
 

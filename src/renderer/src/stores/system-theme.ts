@@ -42,7 +42,7 @@ export async function chooseTheme(id: string): Promise<void> {
   await applyTheme(id)
   if (s.followSystem.enabled) {
     await patchSettings({
-      followSystem: { ...s.followSystem, [systemDark ? 'dark' : 'light']: id },
+      followSystem: { [systemDark ? 'dark' : 'light']: id },
     })
   } else {
     await patchSettings({ theme: id })

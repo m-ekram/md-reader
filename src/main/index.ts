@@ -10,7 +10,7 @@ import {
 } from 'electron'
 import { mark } from './startup'
 import { installCrashHandlers, log } from './log'
-import { flushSettings, getSettings, patchSettings } from './settings'
+import { flushSettings, getSettings, patchSettings, settingsState } from './settings'
 import { allWindows, createWindow, OVERLAY_CAPTIONS, openPaths, takePendingPaths } from './windows'
 import { markdownArgs } from './args'
 import { registerFileIpc } from './ipc/files'
@@ -22,7 +22,7 @@ import { stopWatching, watchRoot } from './watcher'
 import { cancelAllSearches } from './search'
 import { listThemes, readUserTheme, watchUserThemes } from './themes'
 import { flushJournals } from './recovery'
-import type { Settings } from '../shared/settings'
+import type { SettingsPatch } from '../shared/settings'
 import icon from '../../resources/icon.png?asset'
 
 installCrashHandlers()
@@ -101,8 +101,11 @@ app.on('before-quit', () => {
 })
 
 function registerSettingsIpc(): void {
-  ipcMain.handle('settings:get', () => getSettings())
-  ipcMain.handle('settings:patch', (_e, patch: Partial<Settings>) => patchSettings(patch))
+  ipcMain.handle('settings:get', () => settingsState())
+  ipcMain.handle('settings:patch', (_e, patch: SettingsPatch) => {
+    patchSettings(patch)
+    return settingsState()
+  })
 }
 
 function registerThemeIpc(): void {

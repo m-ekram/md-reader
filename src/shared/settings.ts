@@ -86,6 +86,49 @@ export const DEFAULT_SETTINGS: Settings = {
 }
 
 /**
+ * A change to the settings: a group (`editor`, `sidebar`, …) may be given in
+ * part, and only the fields named change.
+ */
+export type SettingsPatch = {
+  [K in keyof Settings]?: Settings[K] extends unknown[]
+    ? Settings[K]
+    : Settings[K] extends object
+      ? Partial<Settings[K]>
+      : Settings[K]
+}
+
+/**
+ * Settings as main last had them, numbered.
+ *
+ * Main numbers every change. A window hears of a change twice, once as the
+ * reply to its own patch and once as the broadcast to every window, and the two
+ * travel separately, so an older one can arrive after a newer one. The number
+ * says which is newer.
+ */
+export type SettingsState = Settings & { revision: number }
+
+/**
+ * Applies a patch one group deep.
+ *
+ * Callers used to send a whole group built from their own copy of it; a copy a
+ * moment out of date then put back every field another change had just set.
+ */
+export function applySettingsPatch(current: Settings, patch: SettingsPatch): Settings {
+  const next = { ...current } as Record<string, unknown>
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === undefined) continue
+    const was = next[key]
+    next[key] =
+      isGroup(was) && isGroup(value) ? { ...was, ...(value as object) } : (value as unknown)
+  }
+  return next as unknown as Settings
+}
+
+function isGroup(v: unknown): v is object {
+  return typeof v === 'object' && v !== null && !Array.isArray(v)
+}
+
+/**
  * Merges stored values over defaults one level deep, so a settings file written
  * by an older version gains new keys instead of tripping over missing ones.
  */

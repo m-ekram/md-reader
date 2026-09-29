@@ -268,7 +268,7 @@ const editorCommands: Command[] = [
       const next = !settings.value.editor.focusMode
       setEditorModes({ focus: next })
       refreshDecorations()
-      await patchSettings({ editor: { ...settings.value.editor, focusMode: next } })
+      await patchSettings({ editor: { focusMode: next } })
     },
   },
   {
@@ -278,7 +278,7 @@ const editorCommands: Command[] = [
       const next = !settings.value.editor.typewriter
       setEditorModes({ typewriter: next })
       refreshDecorations()
-      await patchSettings({ editor: { ...settings.value.editor, typewriter: next } })
+      await patchSettings({ editor: { typewriter: next } })
     },
   },
 

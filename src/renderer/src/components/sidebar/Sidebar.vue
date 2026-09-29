@@ -28,7 +28,7 @@ const active = computed(() => settings.value.sidebar.panel)
 const width = computed(() => settings.value.sidebar.width)
 
 function selectPanel(id: PanelId): void {
-  void patchSettings({ sidebar: { ...settings.value.sidebar, panel: id } })
+  void patchSettings({ sidebar: { panel: id } })
 }
 
 // --- resizing ---------------------------------------------------------------
@@ -55,9 +55,7 @@ function onDrag(e: PointerEvent): void {
 function endDrag(): void {
   dragging.value = false
   window.removeEventListener('pointermove', onDrag)
-  void patchSettings({
-    sidebar: { ...settings.value.sidebar, width: settings.value.sidebar.width },
-  })
+  void patchSettings({ sidebar: { width: settings.value.sidebar.width } })
 }
 
 onBeforeUnmount(() => window.removeEventListener('pointermove', onDrag))

@@ -5,7 +5,14 @@
 import { app, BrowserWindow } from 'electron'
 import { readFileSync, renameSync, rmSync, writeFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { DEFAULT_SETTINGS, mergeSettings, type Settings } from '../shared/settings'
+import {
+  DEFAULT_SETTINGS,
+  applySettingsPatch,
+  mergeSettings,
+  type Settings,
+  type SettingsPatch,
+  type SettingsState,
+} from '../shared/settings'
 import { log } from './log'
 
 let cache: Settings | null = null
@@ -64,12 +71,22 @@ export function getSettings(): Settings {
   return cache
 }
 
-export function patchSettings(patch: Partial<Settings>): Settings {
-  const next = { ...getSettings(), ...patch }
+/** Counts changes, so a window can tell a stale copy from a fresh one. */
+let revision = 0
+
+/** The settings with their revision, as the renderer receives them. */
+export function settingsState(): SettingsState {
+  return { ...getSettings(), revision }
+}
+
+export function patchSettings(patch: SettingsPatch): Settings {
+  const next = applySettingsPatch(getSettings(), patch)
   cache = next
+  revision++
   scheduleFlush()
+  const state = settingsState()
   for (const win of BrowserWindow.getAllWindows()) {
-    win.webContents.send('settings:changed', next)
+    win.webContents.send('settings:changed', state)
   }
   return next
 }
