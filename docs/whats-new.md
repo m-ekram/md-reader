@@ -78,6 +78,17 @@ when you hover over it.
 - Menus, tabs and the status bar keep their own font in the serif themes.
 - A window opens in its theme's colours, instead of flashing dark first.
 
+### Tidier layout
+
+- Menus stay inside the window, and scroll when it is short.
+- The find bar sits below the tabs instead of over them.
+- The text column is centred, and exactly as wide as you set it.
+- A new document says "Start writing, or type / for blocks"; other empty lines
+  stay clean.
+- With many tabs open, the one you are on stays in view. `Ctrl+Shift+Tab` goes
+  back through them.
+- Two files with the same name get tabs that tell them apart.
+
 ### Commands that now do what they say
 
 - **Move Row Up / Down** (`Alt+↑` / `Alt+↓`) move the table row you are in.

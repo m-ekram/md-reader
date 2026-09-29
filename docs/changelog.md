@@ -46,6 +46,20 @@
   document's, and turned serif in the serif themes.
 - Windows open in the theme's colours, not a fixed dark one.
 
+### Layout
+
+- Menus had no height limit and ran off short windows; they now scroll, and
+  submenus open inside the window.
+- The find bar covered the tab bar; it now sits below it.
+- The text column sat 36 px right of centre and was 72 px narrower than set;
+  it is centred, with the text exactly the chosen width.
+- Crepe's "Please enter..." placeholder showed in every empty line; an empty
+  document now reads "Start writing, or type / for blocks".
+- Close buttons use one drawn icon; Preferences' and the word count's show a
+  hover.
+- The active tab scrolls into view; Ctrl+Shift+Tab goes to the previous
+  document; same-named files' tabs add their folder.
+
 ### Fixes
 
 - A file changed on disk while its tab was in the background came back showing
