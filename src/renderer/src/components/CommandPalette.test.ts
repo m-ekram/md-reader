@@ -110,7 +110,7 @@ describe('CommandPalette reach', () => {
     // Built from the fixed menu specification, it skipped the generated parts
     // of the menus: no theme and no recent file could be found by name.
     useThemeStore().available = [{ id: 'nord', name: 'Nord', builtin: true }]
-    useSettingsStore().value.recentFiles = ['C:\notes\holiday-plan.md']
+    useSettingsStore().value.recentFiles = ['C:\\notes\\holiday-plan.md']
     register({ id: 'theme.nord', run: vi.fn() })
     register({ id: 'file.recent.0', run: vi.fn() })
 
