@@ -467,11 +467,15 @@ function isActive(path: number[]): boolean {
 }
 .menu__accel,
 .menu__arrow {
-  color: var(--menu-fg-disabled);
+  color: var(--menu-fg-muted);
   font-size: 12px;
   flex: none;
 }
 .menu__item[data-active='true'] .menu__accel {
   color: var(--menu-fg);
+}
+/* A greyed-out item's shortcut is greyed out with it. */
+.menu__item.is-disabled .menu__accel {
+  color: inherit;
 }
 </style>

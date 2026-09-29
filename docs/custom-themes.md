@@ -50,7 +50,7 @@ suit a light page; a dark theme should set all seven.
 ### Application chrome
 
 `--chrome-bg` `--chrome-fg` `--chrome-fg-dim` `--chrome-hover` `--chrome-active`
-`--chrome-border` `--chrome-accent` `--menu-bg` `--menu-fg` `--menu-fg-disabled`
+`--chrome-border` `--chrome-accent` `--menu-bg` `--menu-fg` `--menu-fg-muted` `--menu-fg-disabled`
 `--menu-hover` `--menu-border` `--menu-shadow` `--sidebar-bg` `--sidebar-fg`
 `--sidebar-hover` `--sidebar-border` `--status-bg` `--status-fg`
 

@@ -92,6 +92,32 @@ describe('native controls', () => {
   })
 })
 
+describe('menus', () => {
+  it('show shortcuts readably, in every theme', async () => {
+    // Shortcuts were painted in the disabled colour, about 2:1, so an enabled
+    // item's shortcut looked greyed out.
+    const failures: string[] = []
+    for (const theme of THEMES) {
+      await useTheme(theme)
+      await ctx.page.keyboard.press('Escape')
+      await ctx.page.locator('.menubar__top', { hasText: /^File$/ }).click()
+      const accel = ctx.page
+        .locator('.menu__item:not(.is-disabled) .menu__accel:not(:empty)')
+        .first()
+      await accel.waitFor({ state: 'visible' })
+      const { fg, bg } = await accel.evaluate((el) => ({
+        fg: getComputedStyle(el).color,
+        bg: getComputedStyle(el.closest('.menu')!).backgroundColor,
+      }))
+      const base = parse(bg)
+      const ratio = contrast(over(parse(fg), base), base)
+      if (ratio < 4.5) failures.push(`${theme}: ${fg} on ${bg} = ${ratio.toFixed(2)}`)
+      await ctx.page.keyboard.press('Escape')
+    }
+    expect(failures, 'shortcut text below 4.5:1').toEqual([])
+  })
+})
+
 describe('the sidebar', () => {
   it('shows where the pointer is, in every theme', async () => {
     await ctx.page.evaluate(() =>

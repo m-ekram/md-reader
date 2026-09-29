@@ -62,6 +62,9 @@
   --menu-bg: #2b3038;
   --menu-fg: #e6e8eb;
   --menu-fg-disabled: #6e7681;
+  /* Secondary text in a menu: shortcuts and submenu arrows. Worked out from
+     the menu's own colours; the disabled colour, used before, read at 2:1. */
+  --menu-fg-muted: color-mix(in srgb, var(--menu-fg) 72%, var(--menu-bg));
   --menu-hover: #3a4149;
   --menu-border: rgba(255, 255, 255, 0.1);
   --menu-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
