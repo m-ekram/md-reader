@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest'
-import { writeFile } from 'node:fs/promises'
+import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { newDocument, openFile, useApp } from './helpers'
 
@@ -225,6 +225,63 @@ describe('the application’s own text', () => {
       }
     }
     expect(failures).toEqual([])
+  })
+})
+
+describe('the chrome’s text', () => {
+  it('reads at 4.5:1, in every theme', async () => {
+    // Tab names, the window title, the status bar and search results' line
+    // numbers were dimmed, several by opacity, below 4.5:1 in some themes.
+    // Two documents, so there is an inactive tab; before the search, which a
+    // new document's editor taking focus would otherwise leave behind.
+    await newDocument(ctx)
+    await newDocument(ctx)
+    const dir = join(ctx.workdir, 'search-here')
+    await mkdir(dir, { recursive: true })
+    await writeFile(join(dir, 'hay.md'), 'needle in the hay\n', 'utf8')
+    await ctx.page.evaluate((root) => window.api.workspace.set(root), dir)
+    await ctx.page.evaluate(() =>
+      window.api.settings.patch({ sidebar: { visible: true, width: 260, panel: 'search' } })
+    )
+    await ctx.page.locator('.search__input').fill('needle')
+    await ctx.page.locator('.results__hit').first().waitFor({ timeout: 15_000 })
+
+    const targets = {
+      'inactive tab': '.tab:not(.is-active) .tab__name',
+      'window title': '.titlebar__title',
+      'status bar': '.status__right',
+      'search line number': '.results__line',
+    }
+    const failures: string[] = []
+    for (const theme of THEMES) {
+      await useTheme(theme)
+      for (const [what, selector] of Object.entries(targets)) {
+        const result = await ctx.page.evaluate((sel) => {
+          const el = document.querySelector(sel)
+          if (!el) return null
+          // The colour on screen, opacity included, over the first opaque
+          // background behind it.
+          let opacity = 1
+          let bg = 'rgba(0, 0, 0, 0)'
+          for (let n: Element | null = el; n; n = n.parentElement) {
+            const s = getComputedStyle(n)
+            opacity *= Number(s.opacity)
+            if (bg === 'rgba(0, 0, 0, 0)' && s.backgroundColor !== 'rgba(0, 0, 0, 0)')
+              bg = s.backgroundColor
+          }
+          return { fg: getComputedStyle(el).color, bg, opacity }
+        }, selector)
+        if (!result) {
+          failures.push(`${theme}: no ${what}`)
+          continue
+        }
+        const base = parse(result.bg)
+        const fg = parse(result.fg)
+        const ratio = contrast(over([fg[0], fg[1], fg[2], fg[3] * result.opacity], base), base)
+        if (ratio < 4.5) failures.push(`${theme} ${what}: ${ratio.toFixed(2)}`)
+      }
+    }
+    expect(failures, 'chrome text below 4.5:1').toEqual([])
   })
 })
 

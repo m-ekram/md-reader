@@ -38,7 +38,7 @@
 
   --chrome-bg: #242933;
   --chrome-fg: #d8dee9;
-  --chrome-fg-dim: #7b8394;
+  --chrome-fg-dim: #8b92a1;
   --chrome-hover: rgba(255, 255, 255, 0.07);
   --chrome-active: rgba(255, 255, 255, 0.12);
   --chrome-border: rgba(255, 255, 255, 0.07);
@@ -54,7 +54,7 @@
   --sidebar-bg: #2a303b;
   --sidebar-fg: #d8dee9;
   --status-bg: #2a303b;
-  --status-fg: #8a93a6;
+  --status-fg: #9199ab;
 
   --danger: #bf616a;
   --warning: #ebcb8b;

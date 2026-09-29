@@ -68,7 +68,7 @@ const isActive = (path: string): boolean =>
 .articles__dir {
   display: block;
   font-size: 11px;
-  opacity: 0.6;
+  color: var(--sidebar-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

@@ -78,6 +78,9 @@
      white at 10% and 8%: invisible on the five light themes' sidebars. */
   --sidebar-hover: color-mix(in srgb, var(--sidebar-fg) 8%, transparent);
   --sidebar-border: color-mix(in srgb, var(--sidebar-fg) 12%, transparent);
+  /* Secondary text in the sidebar: folders, line numbers, the smaller
+     headings. It was dimmed with opacity, to under 3:1 in most themes. */
+  --sidebar-muted: color-mix(in srgb, var(--sidebar-fg) 75%, var(--sidebar-bg));
 
   --status-bg: #f6f8fa;
   --status-fg: #57606a;

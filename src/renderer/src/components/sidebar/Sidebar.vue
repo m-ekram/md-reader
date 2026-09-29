@@ -122,17 +122,16 @@ onBeforeUnmount(() => window.removeEventListener('pointermove', onDrag))
   padding: 0 4px;
   border: 0;
   background: transparent;
-  color: var(--sidebar-fg);
   font: inherit;
   font-size: 11px;
   cursor: default;
-  opacity: 0.65;
+  color: var(--sidebar-muted);
 }
 .sidebar__tab:hover {
   background: var(--sidebar-hover);
 }
 .sidebar__tab.is-active {
-  opacity: 1;
+  color: var(--sidebar-fg);
   font-weight: 600;
   box-shadow: inset 0 -2px 0 var(--doc-accent);
 }
@@ -145,7 +144,7 @@ onBeforeUnmount(() => window.removeEventListener('pointermove', onDrag))
   padding: 5px 8px;
   font-size: 11px;
   font-weight: 600;
-  opacity: 0.7;
+  color: var(--sidebar-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

@@ -88,6 +88,6 @@ function occurrenceOf(index: number): number {
 .outline__item--h4,
 .outline__item--h5,
 .outline__item--h6 {
-  opacity: 0.8;
+  color: var(--sidebar-muted);
 }
 </style>

@@ -65,7 +65,7 @@ const isActive = (path: string): boolean =>
 .tree__twisty {
   width: 10px;
   flex: none;
-  opacity: 0.7;
+  color: var(--sidebar-muted);
 }
 .tree__name {
   overflow: hidden;

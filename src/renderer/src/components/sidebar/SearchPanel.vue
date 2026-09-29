@@ -96,7 +96,7 @@ const grouped = computed(() => {
   padding: 0 8px;
   font-size: 11px;
   font-weight: 600;
-  opacity: 0.75;
+  color: var(--sidebar-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -119,7 +119,7 @@ const grouped = computed(() => {
 }
 .results__line {
   flex: none;
-  opacity: 0.5;
+  color: var(--sidebar-muted);
   font-variant-numeric: tabular-nums;
 }
 .results__preview {
