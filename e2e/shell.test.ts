@@ -281,3 +281,25 @@ describe('menus in a short window', () => {
     )
   })
 })
+
+describe('many tabs', () => {
+  it('keep the active one in view', async () => {
+    // The strip scrolls sideways once it overflows, but nothing kept the
+    // active tab in it: a new document's tab opened out of sight.
+    for (let i = 0; i < 20; i++) {
+      await ctx.page.keyboard.press('Escape')
+      await ctx.page.keyboard.press('Control+n')
+    }
+    const inView = () =>
+      ctx.page.evaluate(() => {
+        const strip = document.querySelector('.tabs')!.getBoundingClientRect()
+        const tab = document.querySelector('.tab.is-active')!.getBoundingClientRect()
+        return tab.left >= strip.left - 0.5 && tab.right <= strip.right + 0.5
+      })
+    await expect.poll(inView, { message: 'the new tab is out of sight' }).toBe(true)
+
+    // Round to the first.
+    await ctx.page.keyboard.press('Control+Tab')
+    await expect.poll(inView, { message: 'the first tab is out of sight' }).toBe(true)
+  })
+})

@@ -5,6 +5,7 @@
  * Tabs are compact: each is capped in width and shrinks as more open, with the
  * name ellipsized and given in full, with its folder, in the tooltip.
  */
+import { nextTick, ref, watch } from 'vue'
 import IconClose from './IconClose.vue'
 import { isDirty, setActive, useDocuments } from '../stores/documents'
 // Not the store's closeDoc, which removes a document without asking: this is
@@ -12,10 +13,31 @@ import { isDirty, setActive, useDocuments } from '../stores/documents'
 import { requestClose } from '../commands/app-commands'
 
 const docs = useDocuments()
+const strip = ref<HTMLElement | null>(null)
+
+/**
+ * Keeps the active tab in view. The strip scrolls sideways once it overflows,
+ * and nothing followed the active tab: a new document's opened out of sight.
+ */
+watch(
+  () => [docs.activeIndex, docs.docs.length],
+  async () => {
+    await nextTick()
+    strip.value
+      ?.querySelector('.tab.is-active')
+      ?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  }
+)
 </script>
 
 <template>
-  <nav v-if="docs.docs.length > 1" class="tabs" role="tablist" aria-label="Open documents">
+  <nav
+    v-if="docs.docs.length > 1"
+    ref="strip"
+    class="tabs"
+    role="tablist"
+    aria-label="Open documents"
+  >
     <div
       v-for="(d, i) in docs.docs"
       :key="d.id"
