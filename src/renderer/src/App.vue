@@ -134,9 +134,13 @@ onBeforeUnmount(() => {
       <Sidebar />
       <div class="app__doc">
         <TabBar />
-        <FindReplace />
-        <Editor />
-        <WordCountPopover />
+        <!-- The overlays are placed against this pane, below the tab bar:
+             against the whole area, the find bar covered the tabs. -->
+        <div class="app__pane">
+          <FindReplace />
+          <Editor />
+          <WordCountPopover />
+        </div>
       </div>
     </main>
     <StatusBar />
@@ -175,6 +179,14 @@ body {
   min-height: 0;
 }
 .app__doc {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.app__pane {
   position: relative;
   flex: 1;
   display: flex;

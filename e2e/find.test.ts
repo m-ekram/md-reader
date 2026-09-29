@@ -181,6 +181,12 @@ describe('match case', () => {
 describe('find in the source view', () => {
   /** Opens a file and shows it as source. */
   async function sourceDocument(body: string, name: string): Promise<string> {
+    // A find bar left open by an earlier test floats over the top of the
+    // document, where this clicks.
+    if (await ctx.page.locator('.find').isVisible()) {
+      await ctx.page.locator('.find__input').first().press('Escape')
+      await ctx.page.locator('.find').waitFor({ state: 'detached' })
+    }
     const file = await documentWith(body, name)
     await waitForText(ctx, body.split(' ')[0])
     await ctx.page.locator('.ProseMirror').click()
@@ -224,5 +230,24 @@ describe('find in the source view', () => {
     await ctx.page.keyboard.press('Escape')
     await ctx.page.keyboard.press('Control+s')
     await expect.poll(() => readFile(file, 'utf8')).toBe('Alpha delta gamma delta.\n')
+  })
+})
+
+describe('the find bar', () => {
+  it('sits below the tab bar, not over it', async () => {
+    // Positioned against the whole document area, it covered the tabs on the
+    // right whenever two or more documents were open.
+    await documentWith('One.\n', 'first-tab.md')
+    await documentWith('Two.\n', 'second-tab.md')
+    await ctx.page.locator('.tabs').waitFor()
+    await ctx.page.locator('.ProseMirror').click()
+    await ctx.page.keyboard.press('Control+f')
+    await ctx.page.waitForSelector('.find', { state: 'visible' })
+    const [tabs, find] = await Promise.all([
+      ctx.page.locator('.tabs').boundingBox(),
+      ctx.page.locator('.find').boundingBox(),
+    ])
+    expect(find!.y).toBeGreaterThanOrEqual(tabs!.y + tabs!.height)
+    await ctx.page.keyboard.press('Escape')
   })
 })
