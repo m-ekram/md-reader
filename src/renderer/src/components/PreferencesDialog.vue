@@ -74,8 +74,12 @@ const widthKind = computed(() =>
 function currentColumnWidth(): number {
   const col = document.querySelector('.editor-host') as HTMLElement | null
   // The content box, which is what max-width limits; the padding is extra.
+  // Less the gutters either side of the text: the width set is the text's.
   const px = col ? parseFloat(getComputedStyle(col).width) : NaN
-  return Number.isFinite(px) ? px : 900
+  const gutter = parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue('--doc-gutter')
+  )
+  return Number.isFinite(px) ? px - 2 * (Number.isFinite(gutter) ? gutter : 0) : 900
 }
 async function setWidthKind(kind: string): Promise<void> {
   if (kind === 'theme') await setContentWidth(null)

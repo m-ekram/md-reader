@@ -24,6 +24,19 @@ function columnMaxWidth(): Promise<string> {
   return ctx.page.evaluate(() => getComputedStyle(document.querySelector('.editor-host')!).maxWidth)
 }
 
+/** The width the text itself gets, inside the gutters. */
+function textWidth(): Promise<number> {
+  return ctx.page.evaluate(() => {
+    const editor = document.querySelector('.milkdown .ProseMirror') as HTMLElement
+    const cs = getComputedStyle(editor)
+    return (
+      editor.getBoundingClientRect().width -
+      parseFloat(cs.paddingLeft) -
+      parseFloat(cs.paddingRight)
+    )
+  })
+}
+
 /** Heights of the title bar and the tab bar, in px. */
 function chromeHeights(): Promise<{ title: number; tabs: number }> {
   return ctx.page.evaluate(() => ({
@@ -147,13 +160,15 @@ describe('content width', () => {
     await openPreferences()
     await ctx.page.getByRole('combobox', { name: 'Content width' }).selectOption('custom')
     await ctx.page.getByRole('slider', { name: 'Content width in pixels' }).fill('700')
-    await expect.poll(columnMaxWidth, { timeout: 5000 }).toBe('700px')
+    // The text is as wide as set: the gutters for the block handle are extra.
+    await expect.poll(textWidth, { timeout: 5000 }).toBeCloseTo(700, 0)
 
     // The width the text gets, not the column's box. Crepe's own 120 px of
     // padding each side once took 240 px of every width while the column's
-    // max-width read exactly as set; only the gutter for the block handle
-    // may remain. Compared with the column as laid out, not the setting: a
-    // window a pixel too narrow for 700 px lays the column out at 699.
+    // max-width read exactly as set; only the gutters for the block handle,
+    // 72 px each side, may remain. Compared with the column as laid out, not
+    // the setting: a window a pixel too narrow lays the column out a pixel
+    // narrower.
     const { column, text } = await ctx.page.evaluate(() => {
       const editor = document.querySelector('.milkdown .ProseMirror') as HTMLElement
       const cs = getComputedStyle(editor)
@@ -165,11 +180,23 @@ describe('content width', () => {
           parseFloat(cs.paddingRight),
       }
     })
-    expect(column, 'the 700 px column is laid out near its width').toBeGreaterThan(650)
-    expect(text, `${column} px column, ${text} px of text`).toBeGreaterThanOrEqual(column - 72)
+    expect(column, 'the column is laid out near its width').toBeGreaterThan(650 + 144)
+    expect(text, `${column} px column, ${text} px of text`).toBeGreaterThanOrEqual(column - 144)
+
+    // And centred in its pane. The gutter for the block handle was on the
+    // left only, so the text sat 36 px right of centre.
+    const offset = await ctx.page.evaluate(() => {
+      const p = document.querySelector('.milkdown .ProseMirror > p')!.getBoundingClientRect()
+      const pane = document.querySelector('.editor-scroll')!.getBoundingClientRect()
+      const scrollbar =
+        (document.querySelector('.editor-scroll') as HTMLElement).offsetWidth -
+        (document.querySelector('.editor-scroll') as HTMLElement).clientWidth
+      return p.left + p.width / 2 - (pane.left + (pane.width - scrollbar) / 2)
+    })
+    expect(Math.abs(offset), `the text sits ${offset} px off centre`).toBeLessThan(2)
 
     await ctx.page.getByRole('combobox', { name: 'Content width' }).selectOption('theme')
-    await expect.poll(columnMaxWidth, { timeout: 5000 }).not.toBe('700px')
+    await expect.poll(textWidth, { timeout: 5000 }).not.toBeCloseTo(700, 0)
     await ctx.page.keyboard.press('Escape')
   })
 })

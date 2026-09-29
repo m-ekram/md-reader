@@ -19,6 +19,8 @@
   --doc-font-size: 16px;
   --doc-line-height: 1.7;
   --doc-measure: 860px;
+  /* Either side of the text, inside the column: room for the block handle. */
+  --doc-gutter: 72px;
 
   --doc-heading-fg: var(--doc-fg);
   --doc-muted: #6a737d;

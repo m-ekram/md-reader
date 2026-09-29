@@ -193,7 +193,10 @@ watch(
   color: var(--doc-fg);
 }
 .editor-host {
-  max-width: var(--doc-measure);
+  /* The measure is the text's width; the gutters either side are extra.
+     Full width sets the measure to none, which makes this invalid, and an
+     invalid max-width is no maximum: the column fills the pane. */
+  max-width: calc(var(--doc-measure) + 2 * var(--doc-gutter));
   margin: 0 auto;
   padding: 40px 32px 55vh;
 }

@@ -12,14 +12,16 @@
 /*
  * Crepe pads the editor by 120 px on each side, inside the column. That made
  * every width 240 px narrower than it was set to: Full width left a quarter of
- * the pane empty, and a theme's 860 px measure showed 620 px of text. The left
- * keeps a gutter for the block handle (its two 32 px buttons sit beside each
- * block); the right needs none beyond the column's own padding.
+ * the pane empty, and a theme's 860 px measure showed 620 px of text. A gutter
+ * of 72 px holds the block handle (its two 32 px buttons sit beside each
+ * block), and the right has one to match, so the text sits in the middle: with
+ * the gutter on the left only, it sat 36 px right of centre. The column widens
+ * by both (Editor.vue), so the text is as wide as the measure.
  */
 .milkdown .ProseMirror {
   outline: none;
-  padding-left: 72px;
-  padding-right: 0;
+  padding-left: var(--doc-gutter);
+  padding-right: var(--doc-gutter);
 }
 .milkdown h1,
 .milkdown h2,
