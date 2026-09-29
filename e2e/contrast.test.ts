@@ -94,6 +94,30 @@ describe('native controls', () => {
   })
 })
 
+describe('secondary text on the page', () => {
+  it('reads at 4.5:1, in every theme', async () => {
+    // The welcome screen's tips, shortcuts and recent folders are in the muted
+    // colour, and they are what a first launch has to be read by.
+    const failures: string[] = []
+    for (const theme of THEMES) {
+      await useTheme(theme)
+      const { fg, bg } = await ctx.page.evaluate(() => {
+        const probe = document.createElement('div')
+        probe.style.cssText = 'color: var(--doc-muted); background: var(--doc-bg)'
+        document.body.appendChild(probe)
+        const s = getComputedStyle(probe)
+        const out = { fg: s.color, bg: s.backgroundColor }
+        probe.remove()
+        return out
+      })
+      const back = parse(bg)
+      const ratio = contrast(over(parse(fg), back), back)
+      if (ratio < 4.5) failures.push(`${theme}: ${ratio.toFixed(2)}`)
+    }
+    expect(failures, 'muted text under 4.5:1').toEqual([])
+  })
+})
+
 describe('menus', () => {
   it('show shortcuts readably, in every theme', async () => {
     // Shortcuts were painted in the disabled colour, about 2:1, so an enabled
