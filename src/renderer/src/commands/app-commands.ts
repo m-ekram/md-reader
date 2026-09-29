@@ -30,6 +30,7 @@ import { chooseTheme } from '../stores/system-theme'
 import { validFontSize } from '../stores/appearance'
 import { refreshArticles, revealPath, setRoot, useWorkspace } from '../stores/workspace'
 import { commandPalette, preferences, quickOpen, showNotice } from '../stores/ui'
+import { notify } from '../stores/notifications'
 import { flushAll } from '../editor/pool'
 
 const docs = useDocuments()
@@ -184,12 +185,22 @@ async function closeActive(): Promise<void> {
   await requestClose(docs.activeIndex)
 }
 
+/**
+ * Save and Save As, from the menu or the keyboard, which say so briefly: the
+ * only other sign was the unsaved dot going away. Auto-save stays quiet.
+ */
+async function saveAndSay(saveAs: boolean): Promise<void> {
+  if (!(await saveActive(saveAs))) return
+  const name = activeDoc.value?.name
+  if (name) notify(`Saved ${name}`, { key: 'saved' })
+}
+
 const commands: Command[] = [
   { id: 'file.new', run: () => void newDoc() },
   { id: 'file.newWindow', run: () => window.api.window.newWindow() },
   { id: 'file.open', run: openFiles },
-  { id: 'file.save', enabled: hasDoc, run: () => void saveActive(false) },
-  { id: 'file.saveAs', enabled: hasDoc, run: () => void saveActive(true) },
+  { id: 'file.save', enabled: hasDoc, run: () => saveAndSay(false) },
+  { id: 'file.saveAs', enabled: hasDoc, run: () => saveAndSay(true) },
   {
     id: 'file.saveAll',
     enabled: () => anyDirty(),

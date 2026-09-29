@@ -41,6 +41,10 @@ describe('auto-save', () => {
     // and auto-save would have happened within it.
     await ctx.page.waitForTimeout(PAST_THE_PAUSE_MS)
     expect(await onDisk(file)).toBe('Saved by hand.\n')
+
+    // A save asked for says so, briefly.
+    await ctx.page.keyboard.press('Control+s')
+    await expect.poll(() => noticeTexts(ctx)).toContain('Saved manual.md')
   })
 
   it('saves a file a moment after typing stops', async () => {
@@ -53,6 +57,8 @@ describe('auto-save', () => {
     await expect
       .poll(() => ctx.page.locator('.titlebar__title').innerText(), { timeout: 5000 })
       .not.toMatch(/^•/)
+    // Quietly: a message after every pause in typing would be noise.
+    expect((await noticeTexts(ctx)).join(' ')).not.toContain('Saved auto.md')
   })
 
   it('saves when the window loses focus, without waiting', async () => {
