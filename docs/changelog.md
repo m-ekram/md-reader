@@ -60,7 +60,33 @@
 - The active tab scrolls into view; Ctrl+Shift+Tab goes to the previous
   document; same-named files' tabs add their folder.
 
+### Messages and first run
+
+- Brief messages moved from the status bar's single slot, which they shared
+  with its lasting warnings, to a stack of up to three above it. They can be
+  dismissed, stay while pointed at, may carry actions, and errors are announced
+  as alerts.
+- Export HTML and Export PDF offer Open and Show in Folder. Main opens only a
+  page or PDF it exported in this session.
+- Save and Save As show "Saved"; auto-save does not.
+- Save As for a new document suggests the first heading as its name, made safe
+  for Windows, in the open folder.
+- An image pasted into an Untitled document is held, with Save As offered; it
+  was refused with a dialog and lost.
+- The welcome screen shows the command palette, the `/` menu and Quick Start.
+- The sidebar starts hidden and Open Folder shows it; its folder panels offer
+  Open Folder, and folder search is disabled without a folder.
+- The command palette lists themes and recent files.
+- `--doc-muted` reaches 4.5:1 in every built-in theme; it was 3.5 to 4.4:1 in
+  five.
+
 ### Fixes
+
+- A settings change could be undone by another made at the same moment: each
+  sent a whole group from its own copy, and an older copy could arrive after a
+  newer one. Changes now carry only their fields, and copies a revision.
+- An editor built for an Untitled document resolved images against no folder
+  even after Save As gave it one, so a newly added image showed broken.
 
 - A file changed on disk while its tab was in the background came back showing
   the old text.

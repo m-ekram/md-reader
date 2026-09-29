@@ -31,9 +31,18 @@ Drop a markdown file onto the window to open it. The documents you had open come
 back the next time you start the app; with none, it opens at a welcome screen
 with your recent files.
 
+Saving a new document suggests a name taken from its first heading, in the
+folder you have open. An image pasted before the first save is kept until you
+save, and then added.
+
+Messages, such as where an export went, appear at the bottom right for a few
+seconds; point at one to keep it. After an export, **Open** and **Show in
+Folder** are one click away.
+
 ## Working in a folder
 
-`File ▸ Open Folder…` puts your notes in the sidebar. From there:
+`File ▸ Open Folder…` puts your notes in the sidebar, which stays out of the
+way until you do. From there:
 
 - **Outline** (`Ctrl+Shift+1`) lists the headings of the current document
 - **Articles** (`Ctrl+Shift+2`) lists every markdown file in the folder

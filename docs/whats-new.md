@@ -89,6 +89,28 @@ when you hover over it.
   back through them.
 - Two files with the same name get tabs that tell them apart.
 
+### Easier to find your way
+
+- Messages appear at the bottom right, above the status bar. Several can show
+  at once, and one stays while you point at it, so a second message no longer
+  replaces the first before you have read it.
+- After **Export HTML** or **Export PDF**, the message has **Open** and **Show
+  in Folder**.
+- `Ctrl+S` says "Saved" for a moment. Saving automatically stays quiet.
+- Saving a new document suggests a name from its first heading, in the folder
+  you have open.
+- An image pasted into a document you have not saved yet is kept: choose
+  **Save As…** in the message, and it is added once the document has a folder.
+- The welcome screen points to the command palette, the `/` menu and the Quick
+  Start guide.
+- The sidebar stays hidden until you open a folder, then shows its files. Its
+  panels offer **Open Folder…** when none is open.
+- The command palette (`Ctrl+Shift+P`) finds themes and recent files by name.
+- Secondary text such as quotes and captions is easier to read in Whitey, One
+  Dark, Nord, Pixyll and Sepia.
+- A setting changed in Preferences sticks. Changed while something else was
+  being saved, it could go back to what it was.
+
 ### Commands that now do what they say
 
 - **Move Row Up / Down** (`Alt+↑` / `Alt+↓`) move the table row you are in.

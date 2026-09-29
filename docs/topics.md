@@ -3,7 +3,8 @@
 ## Keyboard
 
 Every menu item shows its shortcut. `Ctrl+Shift+P` opens the command palette,
-which searches all of them by name — including the ones with no shortcut at all.
+which searches all of them by name — including the ones with no shortcut at all,
+every theme, and your recent files.
 
 `Ctrl+Tab` cycles through open documents. `Ctrl+P` opens a file in the current
 folder by name.
