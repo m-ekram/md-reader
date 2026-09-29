@@ -1,6 +1,8 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest'
-import { newDocument, useApp } from './helpers'
+import { writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
+import { newDocument, openFile, useApp } from './helpers'
 
 /**
  * Colours as they reach the screen, in every built-in theme.
@@ -163,6 +165,36 @@ describe('marks that carry meaning', () => {
     await ctx.page.locator('.find__opt', { hasText: 'Aa' }).click()
     await ctx.page.keyboard.press('Escape')
     expect(failures, 'toggle lettering below 4.5:1').toEqual([])
+  })
+})
+
+describe('alerts', () => {
+  it('label every kind readably, in every theme', async () => {
+    // Tip and Important had fixed colours chosen for a white page.
+    const kinds = ['NOTE', 'TIP', 'IMPORTANT', 'WARNING', 'CAUTION']
+    const file = join(ctx.workdir, 'alerts.md')
+    const markdown = kinds.map((k) => `> [!${k}]\n> ${k.toLowerCase()} text`).join('\n\n')
+    await writeFile(file, `${markdown}\n`, 'utf8')
+    await openFile(ctx, file)
+    await ctx.page.locator('.ProseMirror blockquote[data-alert="caution"]').waitFor()
+    const failures: string[] = []
+    for (const theme of THEMES) {
+      await useTheme(theme)
+      const labels = await ctx.page.evaluate(() =>
+        [...document.querySelectorAll('.ProseMirror blockquote[data-alert]')].map((el) => ({
+          kind: el.getAttribute('data-alert'),
+          fg: getComputedStyle(el, '::before').color,
+          bg: getComputedStyle(el).backgroundColor,
+          page: getComputedStyle(el.closest('.editor-scroll')!).backgroundColor,
+        }))
+      )
+      for (const { kind, fg, bg, page } of labels) {
+        const ground = over(parse(bg), parse(page))
+        const ratio = contrast(parse(fg), ground)
+        if (ratio < 4.5) failures.push(`${theme} ${kind}: ${fg} = ${ratio.toFixed(2)}`)
+      }
+    }
+    expect(failures, 'alert labels below 4.5:1').toEqual([])
   })
 })
 

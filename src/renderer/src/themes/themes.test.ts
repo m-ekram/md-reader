@@ -62,6 +62,15 @@ describe.each(BUILTIN_THEMES.map((t) => t.id))('theme %s', (id) => {
     if (dark) expect(css, `${id} is dark but keeps the light syntax colours`).toContain('--syntax-')
   })
 
+  it('gives alerts colours meant for its page', () => {
+    // The contract's alert colours are for a light page, where a dark theme's
+    // Tip and Important labels read at about 2.3:1.
+    const css = readFileSync(file, 'utf8')
+    const bg = toRgb(css.match(/--doc-bg:\s*([^;]+);/)![1].trim())!
+    const dark = 0.2126 * bg[0] + 0.7152 * bg[1] + 0.0722 * bg[2] < 128
+    if (dark) expect(css, `${id} is dark but keeps the light alert colours`).toContain('--alert-')
+  })
+
   it('is loaded by the renderer', () => {
     expect(RENDERER_MAIN).toContain(`./themes/${id}.css`)
   })

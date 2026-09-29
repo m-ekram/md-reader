@@ -47,6 +47,10 @@ Syntax colours in code blocks: `--syntax-keyword` `--syntax-string` `--syntax-nu
 `--syntax-comment` `--syntax-function` `--syntax-type` `--syntax-property`. The defaults
 suit a light page; a dark theme should set all seven.
 
+Alerts (`> [!TIP]` and the rest): `--alert-note` `--alert-tip` `--alert-important`
+`--alert-warning` `--alert-caution`. The defaults suit a light page; a dark theme
+should set brighter ones.
+
 ### Application chrome
 
 `--chrome-bg` `--chrome-fg` `--chrome-fg-dim` `--chrome-hover` `--chrome-active`

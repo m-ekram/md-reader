@@ -144,7 +144,10 @@
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--alert-color);
+  /* Toward the page's own text colour, which darkens it on a light page and
+     lightens it on a dark one: in the alert's pure colour, on its own tint,
+     the label fell under 4.5:1 in every theme. The bar keeps the pure colour. */
+  color: color-mix(in srgb, var(--alert-color) 55%, var(--doc-fg));
 }
 /*
  * Crepe draws its own quote bar: a 4 px absolutely positioned ::before. The
@@ -163,19 +166,19 @@
   border-radius: 0;
 }
 .milkdown blockquote[data-alert='note'] {
-  --alert-color: var(--doc-accent);
+  --alert-color: var(--alert-note);
 }
 .milkdown blockquote[data-alert='tip'] {
-  --alert-color: #1a7f37;
+  --alert-color: var(--alert-tip);
 }
 .milkdown blockquote[data-alert='important'] {
-  --alert-color: #8250df;
+  --alert-color: var(--alert-important);
 }
 .milkdown blockquote[data-alert='warning'] {
-  --alert-color: var(--warning);
+  --alert-color: var(--alert-warning);
 }
 .milkdown blockquote[data-alert='caution'] {
-  --alert-color: var(--danger);
+  --alert-color: var(--alert-caution);
 }
 
 /* The [TOC] marker, shown as a block rather than raw text. */

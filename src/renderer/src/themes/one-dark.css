@@ -17,6 +17,10 @@
 
   --code-bg: #21252b;
   --code-fg: #abb2bf;
+  --alert-tip: #3fb950;
+  --alert-important: #ab7df8;
+  --alert-warning: #d29922;
+  --alert-caution: #ff7b72;
   --syntax-keyword: #c678dd;
   --syntax-string: #98c379;
   --syntax-number: #d19a66;

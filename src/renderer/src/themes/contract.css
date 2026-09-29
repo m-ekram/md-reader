@@ -82,4 +82,11 @@
 
   --danger: #cf222e;
   --warning: #9a6700;
+  /* Alerts (callouts). Tip and Important had fixed colours picked for a white
+     page; a dark theme sets brighter ones. */
+  --alert-note: var(--doc-accent);
+  --alert-tip: #1a7f37;
+  --alert-important: #8250df;
+  --alert-warning: var(--warning);
+  --alert-caution: var(--danger);
 }
