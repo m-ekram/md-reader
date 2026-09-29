@@ -135,17 +135,22 @@ describe('pendingRecoveries', () => {
     expect(journalCount()).toBe(0)
   })
 
-  it('discards a journal older than the file it shadows', async () => {
+  it('offers unsaved work even when the file looks newer than it', async () => {
+    // A journal "older" than its file was deleted unasked. But the two times
+    // come from different clocks, the file system's and the app's: a clock set
+    // back, or a file with a date in the future (copied from a machine whose
+    // clock runs ahead, on a share with a skewed clock), and the user's
+    // unsaved work was thrown away. A save in the app clears the journal
+    // anyway; a newer file is another program's, and the user decides.
     const file = join(userData, 'note.md')
     await writeFile(file, 'newer on disk', 'utf8')
-    recovery.journal(file, 'stale buffer')
+    recovery.journal(file, 'unsaved buffer')
     recovery.flushJournals()
 
-    // The file was saved after the journal was written, so the journal loses.
     const future = new Date(Date.now() + 60_000)
     await utimes(file, future, future)
 
-    expect(recovery.pendingRecoveries()).toHaveLength(0)
+    expect(recovery.pendingRecoveries().map((e) => e.content)).toEqual(['unsaved buffer'])
   })
 
   it('compares UTF-16 files correctly rather than offering them every launch', async () => {

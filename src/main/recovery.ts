@@ -175,15 +175,13 @@ export function pendingRecoveries(): JournalEntry[] {
       // Must decode the way the editor does. A plain utf8 read mangles UTF-16,
       // so those files never matched and were offered for recovery every launch.
       const onDisk = readTextFileSync(entry.path).content
-      // A file modified after the journal was written supersedes it. The
-      // comparison needs slack, though: journalling and a save that happen in
-      // the same millisecond are indistinguishable, and filesystem timestamp
-      // granularity is coarser than Date.now(). Where it is ambiguous, keep the
-      // journal — the user is only ever *offered* the recovery, so a spurious
-      // offer costs a dialog while a wrongly discarded one costs their work.
-      const STALE_TOLERANCE_MS = 1000
-      const stale = statSync(entry.path).mtimeMs > entry.at + STALE_TOLERANCE_MS
-      if (!stale && onDisk !== entry.content) out.push(entry)
+      // Discarded only when the file already holds it. A journal that looked
+      // older than its file was deleted too, unasked, but the two times come
+      // from different clocks: a clock set back, or a file dated in the future,
+      // and the user's unsaved work was lost. A save in the app clears the
+      // journal itself; a newer file is another program's, and the user is
+      // asked. A spurious offer costs a dialog; a wrong discard costs the work.
+      if (onDisk !== entry.content) out.push(entry)
       else unlinkSync(full)
     } catch (err) {
       log.warn('bad journal entry discarded', { file: f, err: String(err) })
