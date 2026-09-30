@@ -177,6 +177,8 @@ const api = {
   app: {
     openExternal: (url: string): Promise<void> => ipcRenderer.invoke('app:open-external', url),
     version: (): Promise<string> => ipcRenderer.invoke('app:version'),
+    /** Forgets the recent files, here and in Windows' list of them. */
+    clearRecent: (): Promise<void> => ipcRenderer.invoke('app:clear-recent'),
     /** A yes-or-no question; Escape answers with `cancel`. */
     confirm: (message: string, detail?: string, ok?: string, cancel?: string): Promise<boolean> =>
       ipcRenderer.invoke('app:confirm', message, detail, ok, cancel),

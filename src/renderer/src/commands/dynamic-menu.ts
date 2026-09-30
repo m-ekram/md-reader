@@ -30,11 +30,15 @@ function resolve(node: MenuNode): MenuNode[] {
       items:
         recent.length === 0
           ? [{ kind: 'item', id: 'file.noRecent', label: 'No Recent Files' }]
-          : recent.map((p, i) => ({
-              kind: 'item' as const,
-              id: `file.recent.${i}`,
-              label: p.split(/[\\/]/).pop() ?? p,
-            })),
+          : [
+              ...recent.map((p, i) => ({
+                kind: 'item' as const,
+                id: `file.recent.${i}`,
+                label: p.split(/[\\/]/).pop() ?? p,
+              })),
+              { kind: 'separator' },
+              { kind: 'item', id: 'file.clearRecent', label: 'Clear Recent Files' },
+            ],
     },
   ]
 }

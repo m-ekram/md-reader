@@ -263,6 +263,12 @@ function registerAppIpc(): void {
     await shell.openExternal(url)
   })
   ipcMain.handle('app:version', () => app.getVersion())
+  // Windows keeps its own list, shown in the taskbar's jump list, fed by
+  // addRecentFile; forgotten there too, or the files stay a right-click away.
+  ipcMain.handle('app:clear-recent', () => {
+    patchSettings({ recentFiles: [] })
+    app.clearRecentDocuments()
+  })
 
   // Whether Windows is in dark mode, for themes that follow it. Read here, not
   // from the page's prefers-color-scheme: measured, that did not follow the

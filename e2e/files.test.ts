@@ -212,6 +212,55 @@ describe('a recent file that is gone', () => {
   })
 })
 
+describe('Clear Recent Files', () => {
+  /** The labels in File ▸ Open Recent, left closed. */
+  async function recentLabels(): Promise<string[]> {
+    await (await menuItem(ctx, 'File', 'Open Recent')).click()
+    await ctx.page.waitForSelector('.menu--nested .menu__item', { state: 'visible' })
+    const labels = await ctx.page
+      .locator('.menu--nested .menu__label')
+      .evaluateAll((els) => els.map((e) => e.textContent?.trim() ?? ''))
+    await ctx.page.keyboard.press('Escape')
+    return labels
+  }
+
+  it('empties Open Recent, and Windows’ own list of them', async () => {
+    const file = join(ctx.workdir, 'remembered.md')
+    await writeFile(file, '# Remembered\n', 'utf8')
+    await openFile(ctx, file)
+    await waitForText(ctx, 'Remembered')
+    expect(await recentLabels()).toContain('remembered.md')
+    // Windows' jump list cannot be read back: noted as it is asked for.
+    await ctx.app.evaluate(({ app }) => {
+      ;(globalThis as { jumpListCleared?: boolean }).jumpListCleared = false
+      app.clearRecentDocuments = () => {
+        ;(globalThis as { jumpListCleared?: boolean }).jumpListCleared = true
+      }
+    })
+
+    await chooseMenu(ctx, 'File', 'Open Recent', 'Clear Recent Files')
+    await expect.poll(recentLabels).toEqual(['No Recent Files'])
+    expect(
+      await ctx.app.evaluate(() => (globalThis as { jumpListCleared?: boolean }).jumpListCleared)
+    ).toBe(true)
+  })
+
+  it('is in Preferences too', async () => {
+    const file = join(ctx.workdir, 'remembered-again.md')
+    await writeFile(file, '# Again\n', 'utf8')
+    await openFile(ctx, file)
+    await waitForText(ctx, 'Again')
+    expect(await recentLabels()).toContain('remembered-again.md')
+
+    await ctx.page.keyboard.press('Control+,')
+    const row = ctx.page.locator('.prefs__panel .row').filter({ hasText: 'Recent files' })
+    await row.getByRole('button', { name: 'Clear' }).click()
+    await expect.poll(() => row.innerText()).toContain('none')
+    await ctx.page.keyboard.press('Escape')
+    expect(await recentLabels()).toEqual(['No Recent Files'])
+  })
+})
+
 describe('dropping a markdown file onto the window', () => {
   it('opens it in a new tab, with its name and its text', async () => {
     // A synthetic drop: Playwright cannot drag from the desktop, and a file it

@@ -143,6 +143,10 @@ async function setLineHeight(el: HTMLInputElement): Promise<void> {
   await patchEditor({ lineHeight: value })
 }
 
+function clearRecent(): Promise<void> {
+  return window.api.app.clearRecent()
+}
+
 async function setAutoSaveDelay(el: HTMLInputElement): Promise<void> {
   const ms = autoSaveDelay(Number(el.value) * 1000)
   el.value = String(ms / 1000)
@@ -541,6 +545,20 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
             </select>
           </label>
           <p class="hint">Files you open keep their own.</p>
+
+          <div class="row">
+            <span class="row__label">
+              Recent files: {{ settings.recentFiles.length || 'none' }}
+            </span>
+            <button
+              class="row__reset"
+              :disabled="settings.recentFiles.length === 0"
+              title="Forget them, in Open Recent and in the taskbar"
+              @click="clearRecent"
+            >
+              Clear
+            </button>
+          </div>
         </section>
 
         <section class="prefs__section">

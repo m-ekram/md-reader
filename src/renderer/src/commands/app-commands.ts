@@ -446,6 +446,14 @@ export function registerThemeCommands(): void {
 const MAX_RECENT = 15
 
 export function registerRecentCommands(): void {
+  registerAll([
+    {
+      id: 'file.clearRecent',
+      enabled: () => settings.value.recentFiles.length > 0,
+      // Main empties the list and Windows' own, for the taskbar's jump list.
+      run: () => window.api.app.clearRecent(),
+    },
+  ])
   registerAll(
     Array.from({ length: MAX_RECENT }, (_, i) => ({
       id: `file.recent.${i}`,
