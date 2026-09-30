@@ -95,6 +95,22 @@
 - Close Folder, beside the folder's name and in the palette; commands with no
   place in the menu carry labels and are listed in the palette.
 
+### Keyboard and accessibility
+
+- Dialogs give the focus back on closing, with the caret where it was, unless
+  a command moved it; the palette, Open Quickly and Preferences keep `Tab`
+  inside while open.
+- Opening a file from the tree, Open Quickly, Open or Open Recent puts the
+  focus in its editor.
+- Alt letters for the menus (F E P O V T H), underlined while `Alt` is held.
+- The file tree has tree roles, one Tab stop and arrow keys; the tab strip has
+  one Tab stop, arrow keys, Home and End, and `Delete` to close.
+- Menu toggles are `menuitemcheckbox`, choices `menuitemradio`; submenu items
+  carry `aria-checked`. The palette and Open Quickly are comboboxes with
+  `aria-activedescendant`.
+- A keyboard shortcuts table in More Topics, checked against the menus by a
+  test.
+
 ### Fixes
 
 - A settings change could be undone by another made at the same moment: each

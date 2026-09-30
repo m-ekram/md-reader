@@ -124,6 +124,20 @@ when you hover over it.
   open, and keeps open folders open.
 - **Close Folder**, beside the folder's name and in the command palette.
 
+### The keyboard, all the way
+
+- Closing the command palette, Open Quickly or Preferences puts you back where
+  you were typing. `Tab` stays inside a dialog while it is open.
+- A file opened from the file tree, Open Quickly or **File ▸ Open** is ready to
+  type in.
+- `Alt` and a letter opens a menu (`Alt+F` for File), with the letters
+  underlined while `Alt` is held.
+- The arrow keys move through the file tree, opening and closing folders, and
+  through the tabs; `Delete` closes the tab you are on.
+- Screen readers hear which menu items are toggles and which are choices, and
+  which result is highlighted in the command palette and Open Quickly.
+- **Help ▸ More Topics** lists every keyboard shortcut.
+
 ### Commands that now do what they say
 
 - **Move Row Up / Down** (`Alt+↑` / `Alt+↓`) move the table row you are in.
