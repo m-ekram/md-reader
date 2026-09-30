@@ -165,11 +165,12 @@ describe('hyperlink actions', () => {
     await writeFile(file, 'Read this.\n\nmanual\n', 'utf8')
     await openFile(ctx, file)
     await waitForText(ctx, 'manual')
-    // The word alone on its line, so End then Shift+Home selects exactly it:
-    // a selection counted out in arrow presses lost one now and then.
+    // The word alone on its line, selected with Select Line. Counted out in
+    // arrow presses it lost one now and then; with End and Shift+Home the
+    // editor now and then never took the selection up, and Ctrl+K inserted
+    // the address as a link of its own.
     await ctx.page.locator('.ProseMirror p', { hasText: 'manual' }).click()
-    await ctx.page.keyboard.press('End')
-    await ctx.page.keyboard.press('Shift+Home')
+    await chooseMenu(ctx, 'Edit', 'Selection', 'Select Line')
     await expect.poll(() => ctx.page.evaluate(() => String(getSelection()))).toBe('manual')
 
     await ctx.page.keyboard.press('Control+k')

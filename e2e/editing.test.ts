@@ -264,6 +264,13 @@ describe('smart punctuation substitutes while typing', () => {
 })
 
 describe('copy as', () => {
+  /**
+   * Reading the clipboard can take over a second on Linux, where it goes
+   * through the X server: longer than a poll allows by default, so the poll
+   * gave up before its first read came back.
+   */
+  const CLIPBOARD_WAIT = { timeout: 10_000 }
+
   /** What the clipboard holds, as text and as HTML (empty when it has none). */
   const clipboard = () =>
     ctx.app.evaluate(async ({ clipboard: c }) => {
@@ -293,7 +300,9 @@ describe('copy as', () => {
     await documentToCopy()
     await ctx.page.locator('.ProseMirror p', { hasText: 'Other.' }).click()
     await chooseMenu(ctx, 'Edit', 'Copy as HTML Code')
-    await expect.poll(async () => (await clipboard()).text).toContain('<strong>bold</strong>')
+    await expect
+      .poll(async () => (await clipboard()).text, CLIPBOARD_WAIT)
+      .toContain('<strong>bold</strong>')
     const { text } = await clipboard()
     expect(text).toContain('const code = 1')
     expect(text).not.toContain('class="milkdown')
@@ -301,13 +310,15 @@ describe('copy as', () => {
   })
 
   /**
-   * Selects the word that stands alone on its line. By keyboard, not by
-   * double-click: on Windows a double-click takes the space after the word.
+   * Selects the word that stands alone on its line, with Select Line.
+   *
+   * Not by double-click: on Windows that takes the space after the word. Not by
+   * End and Shift+Home either: the page's selection moved, but now and then the
+   * editor never took it up, and the command copied the whole document.
    */
   async function selectAlone(): Promise<void> {
     await ctx.page.locator('.ProseMirror p', { hasText: 'alone' }).click()
-    await ctx.page.keyboard.press('End')
-    await ctx.page.keyboard.press('Shift+Home')
+    await chooseMenu(ctx, 'Edit', 'Selection', 'Select Line')
     await expect.poll(() => ctx.page.evaluate(() => String(getSelection()))).toBe('alone')
   }
 
@@ -317,13 +328,13 @@ describe('copy as', () => {
   it('copies just the selection as plain text', async () => {
     await selectAlone()
     await chooseMenu(ctx, 'Edit', 'Copy as Plain Text')
-    await expect.poll(clipboardText).toBe('alone')
+    await expect.poll(clipboardText, CLIPBOARD_WAIT).toBe('alone')
   })
 
   it('copies just the selection as markdown', async () => {
     await selectAlone()
     await chooseMenu(ctx, 'Edit', 'Copy as Markdown')
-    await expect.poll(clipboardText).toBe('**alone**\n')
+    await expect.poll(clipboardText, CLIPBOARD_WAIT).toBe('**alone**\n')
   })
 
   it('copies formatted text without the theme, for pasting elsewhere', async () => {
@@ -331,7 +342,9 @@ describe('copy as', () => {
     // came out as tags.
     await ctx.page.locator('.ProseMirror p', { hasText: 'Other.' }).click()
     await chooseMenu(ctx, 'Edit', 'Copy without Theme Styling')
-    await expect.poll(async () => (await clipboard()).html).toContain('<strong>bold</strong>')
+    await expect
+      .poll(async () => (await clipboard()).html, CLIPBOARD_WAIT)
+      .toContain('<strong>bold</strong>')
     const { html, text } = await clipboard()
     expect(html).not.toContain('class=')
     expect(html).not.toContain('style=')
