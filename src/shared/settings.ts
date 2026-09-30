@@ -4,6 +4,8 @@
  * electron-vite's CJS main bundle, so the store is hand-rolled instead; this is
  * the type contract it enforces.
  */
+import { DEFAULT_PAGE_SETUP, type PageSetup } from './page-setup'
+
 export interface Settings {
   /** Active theme id, matching a file in the themes folder. */
   theme: string
@@ -55,6 +57,8 @@ export interface Settings {
    * `theme` is kept as the choice to return to when it is switched off.
    */
   followSystem: { enabled: boolean; light: string; dark: string }
+  /** The page setup last chosen for Export PDF. Checked in main before use. */
+  pdf: PageSetup
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -84,6 +88,7 @@ export const DEFAULT_SETTINGS: Settings = {
   session: { restore: true, files: [], active: null },
   autoSave: false,
   followSystem: { enabled: false, light: 'github', dark: 'night' },
+  pdf: { ...DEFAULT_PAGE_SETUP },
 }
 
 /**

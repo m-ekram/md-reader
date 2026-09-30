@@ -14,6 +14,7 @@ import Notifications from './components/Notifications.vue'
 import ContextMenu from './components/ContextMenu.vue'
 import ReplacePreview from './components/ReplacePreview.vue'
 import HistoryDialog from './components/HistoryDialog.vue'
+import PageSetupDialog from './components/PageSetupDialog.vue'
 import { commandPalette, preferences, quickOpen } from './stores/ui'
 import { commandForAccel, isEnabled, isRegistered, run } from './commands/registry'
 import { anyDirty, openPath, useDocuments, isDirty, journalKey } from './stores/documents'
@@ -155,6 +156,7 @@ onBeforeUnmount(() => {
     <ContextMenu />
     <ReplacePreview />
     <HistoryDialog />
+    <PageSetupDialog />
   </div>
 </template>
 

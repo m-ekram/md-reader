@@ -12,13 +12,18 @@
 import { BrowserWindow } from 'electron'
 import { writeFileAtomic } from '../fs/textfile'
 import { log } from './../log'
+import { MARGINS, validPageSetup, type PageSetup } from '../../shared/page-setup'
 
 export interface PdfOptions {
-  /** Paper size as Electron names it. */
-  pageSize?: 'A4' | 'Letter' | 'Legal' | 'Tabloid' | 'A3'
-  landscape?: boolean
+  /** Paper, orientation, margins and page numbers; checked here, whatever sent it. */
+  setup?: Partial<PageSetup>
   printBackground?: boolean
 }
+
+/** "3 / 12", small and centred at the foot of the page. */
+const PAGE_NUMBER_FOOTER =
+  '<div style="width:100%;font-size:8pt;color:#777;text-align:center;font-family:sans-serif">' +
+  '<span class="pageNumber"></span> / <span class="totalPages"></span></div>'
 
 /**
  * Renders HTML to PDF bytes.
@@ -50,14 +55,19 @@ export async function renderPdf(html: string, opts: PdfOptions = {}): Promise<Bu
     // the document before webfonts have been applied.
     await new Promise((resolve) => setTimeout(resolve, 250))
 
+    const setup = validPageSetup(opts.setup)
+    // Explicit inches rather than Electron's ~0.4 in default, so the number is
+    // the same on every platform.
+    const m = MARGINS[setup.margin]
     return await win.webContents.printToPDF({
-      pageSize: opts.pageSize ?? 'A4',
-      landscape: opts.landscape ?? false,
+      pageSize: setup.pageSize,
+      landscape: setup.landscape,
       printBackground: opts.printBackground ?? true,
-      // Explicit inches rather than Electron's ~0.4 in default: prose at this
-      // measure reads better with a wider margin, and the number is then the
-      // same on every platform.
-      margins: { top: 0.6, bottom: 0.6, left: 0.6, right: 0.6 },
+      // Room at the foot for the page number, whatever the margin.
+      margins: { top: m, bottom: setup.pageNumbers ? Math.max(m, 0.6) : m, left: m, right: m },
+      displayHeaderFooter: setup.pageNumbers,
+      headerTemplate: '<div></div>',
+      footerTemplate: setup.pageNumbers ? PAGE_NUMBER_FOOTER : '<div></div>',
       preferCSSPageSize: false,
     })
   } finally {
@@ -65,7 +75,11 @@ export async function renderPdf(html: string, opts: PdfOptions = {}): Promise<Bu
   }
 }
 
-export async function exportPdf(html: string, targetPath: string, opts?: PdfOptions): Promise<void> {
+export async function exportPdf(
+  html: string,
+  targetPath: string,
+  opts?: PdfOptions
+): Promise<void> {
   const bytes = await renderPdf(html, opts)
   await writeFileAtomic(targetPath, bytes)
   log.info('exported pdf', { targetPath, bytes: bytes.byteLength })

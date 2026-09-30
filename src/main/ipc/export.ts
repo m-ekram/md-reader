@@ -14,6 +14,7 @@ import { buildHtml, type ExportPayload } from '../export/html'
 import { exportPdf, renderPdf } from '../export/pdf'
 import { log } from '../log'
 import { mayOpenExport, rememberExport } from '../export/exported'
+import { getSettings } from '../settings'
 
 export interface ExportResult {
   ok: boolean
@@ -60,7 +61,8 @@ export function registerExportIpc(): void {
       })
       if (r.canceled || !r.filePath) return { ok: false, cancelled: true }
 
-      await exportPdf(await buildHtml(payload), r.filePath)
+      // As chosen in the page setup just before, which stores it.
+      await exportPdf(await buildHtml(payload), r.filePath, { setup: getSettings().pdf })
       rememberExport(r.filePath)
       return { ok: true, path: r.filePath }
     } catch (err) {

@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest'
 import { readFile, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { noticeTexts, openFile, useApp, waitForText } from './helpers'
+import { nextFrames, noticeTexts, openFile, useApp, waitForText } from './helpers'
 
 /**
  * Export, asserted on the file that lands on disk.
@@ -217,10 +217,20 @@ describe('export of a long document', () => {
 })
 
 describe('PDF export', () => {
-  it('writes a real PDF', async () => {
+  it('writes a real PDF, laid out as the page setup says', async () => {
+    // Every PDF was A4 portrait, with no page numbers and no way to ask.
     const target = join(ctx.workdir, 'out.pdf')
     await stubSaveDialog(target)
     await chooseExport('PDF')
+
+    const setup = ctx.page.getByRole('dialog', { name: 'Page setup' })
+    await setup.waitFor()
+    // Starts from the default the first time.
+    expect(await setup.getByRole('combobox', { name: 'Paper' }).inputValue()).toBe('A4')
+    await setup.getByRole('combobox', { name: 'Paper' }).selectOption('Letter')
+    await setup.getByRole('radio', { name: 'Landscape' }).check()
+    await setup.getByRole('checkbox', { name: 'Page numbers' }).check()
+    await setup.getByRole('button', { name: 'Export' }).click()
 
     await expect.poll(() => existsSync(target), { timeout: 40_000 }).toBe(true)
     const bytes = await readFile(target)
@@ -229,5 +239,21 @@ describe('PDF export', () => {
     // would still leave something on disk.
     expect(bytes.subarray(0, 5).toString('latin1')).toBe('%PDF-')
     expect(bytes.byteLength).toBeGreaterThan(1000)
+    // Letter, on its side: 11 × 8.5 inches, in points.
+    expect(bytes.toString('latin1')).toMatch(/\/MediaBox \[0 0 792 612\]/)
   }, 60_000)
+
+  it('remembers the page setup, and Cancel exports nothing', async () => {
+    const target = join(ctx.workdir, 'not-written.pdf')
+    await stubSaveDialog(target)
+    await chooseExport('PDF')
+    const setup = ctx.page.getByRole('dialog', { name: 'Page setup' })
+    await setup.waitFor()
+    expect(await setup.getByRole('combobox', { name: 'Paper' }).inputValue()).toBe('Letter')
+    expect(await setup.getByRole('radio', { name: 'Landscape' }).isChecked()).toBe(true)
+    await setup.getByRole('button', { name: 'Cancel' }).click()
+    await setup.waitFor({ state: 'detached' })
+    await nextFrames(ctx)
+    expect(existsSync(target)).toBe(false)
+  })
 })

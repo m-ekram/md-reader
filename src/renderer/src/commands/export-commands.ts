@@ -14,6 +14,8 @@ import { activeDoc } from '../stores/documents'
 import type { collectExport } from '../export/payload'
 import { showNotice } from '../stores/ui'
 import { dismiss, notify } from '../stores/notifications'
+import { askPageSetup } from '../stores/page-setup'
+import { patchSettings } from '../stores/settings'
 import { registerAll, type Command } from './registry'
 
 const hasDocument = (): boolean => activeDoc.value !== null
@@ -82,7 +84,13 @@ const exportCommands: Command[] = [
   {
     id: 'file.exportPdf',
     enabled: hasDocument,
-    run: () => runExport('Export PDF', (p) => window.api.export.pdf(p), { offerOpen: true }),
+    run: async () => {
+      // Asked every time, filled in with the last choice, which main then reads.
+      const setup = await askPageSetup()
+      if (!setup) return
+      await patchSettings({ pdf: setup })
+      await runExport('Export PDF', (p) => window.api.export.pdf(p), { offerOpen: true })
+    },
   },
   {
     id: 'file.print',
