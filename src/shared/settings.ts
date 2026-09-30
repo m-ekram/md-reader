@@ -58,6 +58,8 @@ export interface Settings {
   session: { restore: boolean; files: string[]; active: string | null }
   /** Saves documents that have a file a moment after typing stops. */
   autoSave: boolean
+  /** Line endings a new document is written with. Opened files keep their own. */
+  newFileEol: 'crlf' | 'lf'
   /**
    * Follows Windows' light or dark mode with a theme for each. While on,
    * `theme` is kept as the choice to return to when it is switched off.
@@ -96,6 +98,7 @@ export const DEFAULT_SETTINGS: Settings = {
   recentFiles: [],
   session: { restore: true, files: [], active: null },
   autoSave: false,
+  newFileEol: 'crlf',
   followSystem: { enabled: false, light: 'github', dark: 'night' },
   pdf: { ...DEFAULT_PAGE_SETUP },
 }

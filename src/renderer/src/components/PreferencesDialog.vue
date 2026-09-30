@@ -474,6 +474,23 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
             Files are saved a moment after you stop typing, and when you switch away. New documents
             still ask for a name.
           </p>
+
+          <label class="row">
+            <span class="row__label">Line endings for new documents</span>
+            <select
+              class="row__control"
+              :value="settings.newFileEol"
+              @change="
+                patchSettings({
+                  newFileEol: ($event.target as HTMLSelectElement).value === 'lf' ? 'lf' : 'crlf',
+                })
+              "
+            >
+              <option value="crlf">Windows (CRLF)</option>
+              <option value="lf">Unix (LF)</option>
+            </select>
+          </label>
+          <p class="hint">Files you open keep their own.</p>
         </section>
 
         <section class="prefs__section">

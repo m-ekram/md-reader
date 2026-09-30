@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest'
-import { writeFile } from 'node:fs/promises'
+import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { newDocument, openFile, useApp, waitForText } from './helpers'
 
@@ -221,5 +221,28 @@ describe('preferences dialog', () => {
       throw err
     }
     await ctx.page.keyboard.press('Escape')
+  })
+
+  it('writes new documents with the line endings chosen for them', async () => {
+    await openPreferences()
+    await ctx.page
+      .locator('.prefs__panel .row')
+      .filter({ hasText: 'Line endings for new documents' })
+      .locator('select')
+      .selectOption('lf')
+    await ctx.page.keyboard.press('Escape')
+
+    await newDocument(ctx)
+    await ctx.page.keyboard.type('First')
+    await ctx.page.keyboard.press('Enter')
+    await ctx.page.keyboard.type('Second')
+    await expect.poll(() => ctx.page.locator('.status').innerText()).toMatch(/(^|\s)LF(\s|$)/)
+
+    const target = join(ctx.workdir, 'new-lf.md')
+    await ctx.app.evaluate(async ({ dialog }, filePath) => {
+      dialog.showSaveDialog = async () => ({ canceled: false, filePath })
+    }, target)
+    await ctx.page.keyboard.press('Control+s')
+    await expect.poll(() => readFile(target, 'utf8').catch(() => '')).toBe('First\n\nSecond\n')
   })
 })

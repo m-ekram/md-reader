@@ -103,6 +103,8 @@ export function anyDirty(): boolean {
  */
 export function newDoc(opts: { id?: string } = {}): Doc {
   untitledCounter++
+  // As chosen in Preferences. Clean either way: nothing to save yet.
+  const eol = useSettingsStore().value.newFileEol === 'lf' ? '\n' : '\r\n'
   const d: Doc = {
     id: opts.id ?? newDocId(),
     path: null,
@@ -111,8 +113,8 @@ export function newDoc(opts: { id?: string } = {}): Doc {
     savedContent: '',
     encoding: 'utf8',
     hasBom: false,
-    eol: '\r\n',
-    savedEol: '\r\n',
+    eol,
+    savedEol: eol,
     mtimeMs: 0,
     lossy: null,
     sourceMode: false,

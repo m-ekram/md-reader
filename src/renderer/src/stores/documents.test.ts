@@ -67,6 +67,16 @@ describe('dirty tracking', () => {
     expect(docs.isDirty(d)).toBe(false)
   })
 
+  it('a new document takes the line endings chosen for new documents, and is clean', async () => {
+    const settings = (await import('./settings')).useSettingsStore()
+    expect(docs.newDoc().eol).toBe('\r\n')
+
+    settings.value.newFileEol = 'lf'
+    const d = docs.newDoc()
+    expect(d.eol).toBe('\n')
+    expect(docs.isDirty(d)).toBe(false)
+  })
+
   it('anyDirty reports across every open document', () => {
     docs.adoptFile(someFile())
     const b = docs.adoptFile(someFile({ path: 'C:\\notes\\b.md' }))
