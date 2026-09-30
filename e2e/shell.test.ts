@@ -383,3 +383,48 @@ describe('dialogs give the focus back', () => {
     await ctx.page.keyboard.press('Escape')
   })
 })
+
+describe('Alt and a letter', () => {
+  // Read at once, not waited for: most of the time no menu is open.
+  const openMenu = () =>
+    ctx.page.evaluate(
+      () =>
+        document.querySelector('.menubar__root.is-open .menubar__top')?.textContent?.trim() ?? ''
+    )
+
+  it('opens the menu it names, as Windows menus do', async () => {
+    // Alt alone reached the menu bar; Alt+F did nothing.
+    await ctx.page.keyboard.press('Escape')
+    await ctx.page.locator('.ProseMirror').first().click()
+    for (const [key, menu] of [
+      ['f', 'File'],
+      ['e', 'Edit'],
+      ['p', 'Paragraph'],
+      ['o', 'Format'],
+      ['v', 'View'],
+      ['t', 'Themes'],
+      ['h', 'Help'],
+    ]) {
+      await ctx.page.keyboard.press(`Alt+${key}`)
+      await expect.poll(openMenu).toBe(menu)
+      await ctx.page.keyboard.press('Escape')
+      await expect.poll(openMenu).toBe('')
+    }
+  })
+
+  it('shows which letter while Alt is held', async () => {
+    const underlined = () =>
+      ctx.page
+        .locator('.menubar__mnemonic')
+        .evaluateAll(
+          (els) =>
+            els.filter((e) => getComputedStyle(e).textDecorationLine.includes('underline')).length
+        )
+    expect(await underlined()).toBe(0)
+    await ctx.page.keyboard.down('Alt')
+    await expect.poll(underlined).toBe(7)
+    await ctx.page.keyboard.up('Alt')
+    await expect.poll(underlined).toBe(0)
+    await ctx.page.keyboard.press('Escape')
+  })
+})

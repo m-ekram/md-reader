@@ -17,6 +17,8 @@ export type MenuNode =
 
 export interface Menu {
   label: string
+  /** The letter that opens it with Alt, as a Windows menu bar has. In the label. */
+  mnemonic?: string
   items: MenuNode[]
 }
 
@@ -31,6 +33,7 @@ const item = (id: string, label: string, accel?: string): MenuNode => ({
 export const MENUS: Menu[] = [
   {
     label: 'File',
+    mnemonic: 'F',
     items: [
       item('file.new', 'New', 'Ctrl+N'),
       item('file.newWindow', 'New Window', 'Ctrl+Shift+N'),
@@ -67,6 +70,7 @@ export const MENUS: Menu[] = [
   },
   {
     label: 'Edit',
+    mnemonic: 'E',
     items: [
       item('edit.undo', 'Undo', 'Ctrl+Z'),
       item('edit.redo', 'Redo', 'Ctrl+Y'),
@@ -155,6 +159,7 @@ export const MENUS: Menu[] = [
   },
   {
     label: 'Paragraph',
+    mnemonic: 'P',
     items: [
       item('para.h1', 'Heading 1', 'Ctrl+1'),
       item('para.h2', 'Heading 2', 'Ctrl+2'),
@@ -232,6 +237,7 @@ export const MENUS: Menu[] = [
   },
   {
     label: 'Format',
+    mnemonic: 'O',
     items: [
       item('format.strong', 'Strong', 'Ctrl+B'),
       item('format.emphasis', 'Emphasis', 'Ctrl+I'),
@@ -261,6 +267,7 @@ export const MENUS: Menu[] = [
   },
   {
     label: 'View',
+    mnemonic: 'V',
     items: [
       item('view.toggleSidebar', 'Toggle Sidebar', 'Ctrl+Shift+L'),
       item('view.outline', 'Outline', 'Ctrl+Shift+1'),
@@ -292,10 +299,12 @@ export const MENUS: Menu[] = [
   },
   {
     label: 'Themes',
+    mnemonic: 'T',
     items: [{ kind: 'dynamic', source: 'themes', label: 'Themes' }],
   },
   {
     label: 'Help',
+    mnemonic: 'H',
     items: [
       item('help.whatsNew', "What's New…"),
       sep,

@@ -187,6 +187,7 @@ function onKeydown(e: KeyboardEvent): void {
 
 /** Alt alone focuses the menu bar, matching the Windows convention. */
 function onWindowKeydown(e: KeyboardEvent): void {
+  if (e.key === 'Alt') altHeld.value = true
   if (e.key === 'Alt' && !e.ctrlKey && !e.shiftKey && openIndex.value === null) {
     altPressedAlone = true
   } else {
@@ -195,7 +196,40 @@ function onWindowKeydown(e: KeyboardEvent): void {
 }
 let altPressedAlone = false
 
+/** Underlines each menu's letter while Alt is down. */
+const altHeld = ref(false)
+
+/** The label around its Alt letter, which is underlined while Alt is held. */
+function labelParts(label: string, mnemonic?: string): [string, string, string] {
+  const at = mnemonic ? label.toLowerCase().indexOf(mnemonic.toLowerCase()) : -1
+  if (at < 0) return [label, '', '']
+  return [label.slice(0, at), label[at], label.slice(at + 1)]
+}
+
+/**
+ * Alt and a menu's letter opens it, with its first item ready, as Windows
+ * menus do. Taken before the document sees the keys. Shift is left alone:
+ * Alt+Shift+P is Print.
+ */
+function onMnemonic(e: KeyboardEvent): void {
+  if (!e.altKey || e.ctrlKey || e.shiftKey || e.metaKey || e.key.length !== 1) return
+  const i = resolvedMenus.value.findIndex((m) => m.mnemonic?.toLowerCase() === e.key.toLowerCase())
+  if (i < 0) return
+  e.preventDefault()
+  e.stopPropagation()
+  altPressedAlone = false
+  altHeld.value = false
+  openMenu(i)
+  const first = focusableIndexes(resolvedMenus.value[i].items)[0]
+  if (first !== undefined) activePath.value = [first]
+}
+
+function onWindowBlur(): void {
+  altHeld.value = false
+}
+
 function onWindowKeyup(e: KeyboardEvent): void {
+  if (e.key === 'Alt') altHeld.value = false
   if (e.key === 'Alt' && altPressedAlone) {
     e.preventDefault()
     altPressedAlone = false
@@ -213,12 +247,16 @@ function onDocumentPointerDown(e: PointerEvent): void {
 
 onMounted(() => {
   window.addEventListener('keydown', onWindowKeydown)
+  window.addEventListener('keydown', onMnemonic, true)
   window.addEventListener('keyup', onWindowKeyup)
+  window.addEventListener('blur', onWindowBlur)
   document.addEventListener('pointerdown', onDocumentPointerDown, true)
 })
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onWindowKeydown)
+  window.removeEventListener('keydown', onMnemonic, true)
   window.removeEventListener('keyup', onWindowKeyup)
+  window.removeEventListener('blur', onWindowBlur)
   document.removeEventListener('pointerdown', onDocumentPointerDown, true)
 })
 
@@ -284,10 +322,15 @@ function isActive(path: number[]): boolean {
         :tabindex="i === 0 ? 0 : -1"
         :aria-expanded="openIndex === i"
         aria-haspopup="true"
+        :aria-keyshortcuts="menu.mnemonic ? `Alt+${menu.mnemonic}` : undefined"
         @click="openIndex === i ? closeMenu() : openMenu(i)"
         @mouseenter="openIndex !== null && openIndex !== i && openMenu(i)"
       >
-        {{ menu.label }}
+        {{ labelParts(menu.label, menu.mnemonic)[0]
+        }}<span class="menubar__mnemonic" :class="{ 'is-shown': altHeld }">{{
+          labelParts(menu.label, menu.mnemonic)[1]
+        }}</span
+        >{{ labelParts(menu.label, menu.mnemonic)[2] }}
       </button>
 
       <div
@@ -382,6 +425,9 @@ function isActive(path: number[]): boolean {
 .menubar__root {
   position: relative;
   -webkit-app-region: no-drag;
+}
+.menubar__mnemonic.is-shown {
+  text-decoration: underline;
 }
 .menubar__top {
   height: 100%;
