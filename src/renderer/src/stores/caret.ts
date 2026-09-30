@@ -7,6 +7,7 @@
  * gives the caret's line. Both report at most once a frame.
  */
 import { reactive } from 'vue'
+import { countWords } from '../utils/words'
 
 export const caret = reactive({
   docId: '',
@@ -20,6 +21,26 @@ export function reportCaret(docId: string, kind: 'heading' | 'line', value: numb
   caret.docId = docId
   caret.kind = kind
   caret.value = value
+}
+
+/** The caret's line and column in the source view, for the status bar. */
+export const lineCol = reactive({ docId: '', line: 1, col: 1 })
+
+export function reportLineCol(docId: string, line: number, col: number): void {
+  if (lineCol.docId === docId && lineCol.line === line && lineCol.col === col) return
+  lineCol.docId = docId
+  lineCol.line = line
+  lineCol.col = col
+}
+
+/** How many words are selected, in either view; 0 with nothing selected. */
+export const selection = reactive({ docId: '', words: 0 })
+
+export function reportSelection(docId: string, text: string): void {
+  const words = text ? countWords(text) : 0
+  if (selection.docId === docId && selection.words === words) return
+  selection.docId = docId
+  selection.words = words
 }
 
 /** The index of the heading the caret is under, among `lines` (1-based, in order). */

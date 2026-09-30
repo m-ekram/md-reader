@@ -24,7 +24,7 @@ import { isDarkTheme } from '../utils/dark'
 import { clearShownSource, setShownSource } from '../editor/source-registry'
 import { invalidateCommands } from '../commands/registry'
 import { started } from '../stores/session'
-import { reportCaret } from '../stores/caret'
+import { reportCaret, reportLineCol, reportSelection } from '../stores/caret'
 import { followWikiLink } from '../stores/wiki'
 import { wikiSuggestHooks } from '../stores/wiki-suggest'
 import Welcome from './Welcome.vue'
@@ -79,7 +79,11 @@ async function showSource(doc: Doc, token: number): Promise<void> {
       target.content = text
       window.api.file.journal(journalKey(target), text)
     },
-    onCaret: (line) => reportCaret(doc.id, 'line', line),
+    onCaret: (line, col) => {
+      reportCaret(doc.id, 'line', line)
+      reportLineCol(doc.id, line, col)
+    },
+    onSelection: (text) => reportSelection(doc.id, text),
   })
   // Find and the other commands reach it through the registry, by document.
   setShownSource(doc.id, source)
@@ -144,6 +148,7 @@ async function show(): Promise<void> {
       window.api.file.journal(journalKey(target), markdown)
     },
     onCaret: (index) => reportCaret(doc.id, 'heading', index),
+    onSelection: (text) => reportSelection(doc.id, text),
     onWikiLink: (link) => void followWikiLink(link, doc.id),
     wikiSuggest: wikiSuggestHooks(
       doc.id,

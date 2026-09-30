@@ -135,7 +135,10 @@ export interface EditorHandle {
  * Counts the top-level headings before the caret, once a frame at most: a
  * walk over the document's blocks is cheap, but not on every transaction.
  */
-function caretReporter(report: ((headingIndex: number) => void) | undefined): Plugin {
+function caretReporter(
+  report: ((headingIndex: number) => void) | undefined,
+  reportSelection: ((text: string) => void) | undefined
+): Plugin {
   return new Plugin({
     view: (initial) => {
       let frame = 0
@@ -151,9 +154,14 @@ function caretReporter(report: ((headingIndex: number) => void) | undefined): Pl
           pos += child.nodeSize
         }
         report?.(index)
+        // The text as shown, blocks apart, so words either side of a break
+        // are not run together.
+        reportSelection?.(
+          selection.empty ? '' : doc.textBetween(selection.from, selection.to, '\n', ' ')
+        )
       }
       const schedule = (view: EditorView): void => {
-        if (!report || frame) return
+        if ((!report && !reportSelection) || frame) return
         frame = requestAnimationFrame(() => measure(view))
       }
       schedule(initial)
@@ -180,6 +188,8 @@ export async function createEditor(opts: {
   onChange(markdown: string): void
   /** How many top-level headings precede the caret, less one; at most once a frame. */
   onCaret?(headingIndex: number): void
+  /** The selected text, as shown; '' with nothing selected. At most once a frame. */
+  onSelection?(text: string): void
   /** A `[[wiki link]]` Ctrl+clicked, as written. */
   onWikiLink?(link: string): void
   /** Shows notes to link to as `[[` is typed. See wiki-suggest.ts. */
@@ -256,7 +266,7 @@ export async function createEditor(opts: {
     // Refuses any change to a readonly document, whoever asks for it.
     .use($prose(() => new Plugin({ filterTransaction: (tr) => !(readonly && tr.docChanged) })))
     // The heading the caret is under, for the outline. See stores/caret.ts.
-    .use($prose(() => caretReporter(opts.onCaret)))
+    .use($prose(() => caretReporter(opts.onCaret, opts.onSelection)))
     .use(
       // Marks unreported edits, and reports them once the user pauses.
       $prose(

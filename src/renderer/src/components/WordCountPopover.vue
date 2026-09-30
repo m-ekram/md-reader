@@ -2,15 +2,16 @@
 /**
  * A fuller breakdown than the status bar carries.
  *
- * Counts are computed here rather than shared with the status bar because this
+ * Counts are computed here rather than taken from the status bar because this
  * is open rarely, and the status bar deliberately keeps its own work minimal to
- * stay off the typing path.
+ * stay off the typing path. Words are counted the same way (utils/words.ts).
  */
 import IconClose from './IconClose.vue'
 import { computed, ref } from 'vue'
 import { activeDoc } from '../stores/documents'
 import { uiState } from '../stores/ui'
 import { useFocusTrap } from '../composables/useFocusTrap'
+import { countWords } from '../utils/words'
 
 // Not modal, so Tab is free to leave; the focus still comes back on close.
 const panel = ref<HTMLElement | null>(null)
@@ -19,23 +20,17 @@ useFocusTrap(panel, () => uiState.wordCountOpen, { trap: false })
 const stats = computed(() => {
   const text = activeDoc.value?.content ?? ''
   const trimmed = text.trim()
-
-  // Words split on whitespace; CJK is written without spaces, so those
-  // characters are counted individually or a Japanese document reads as one
-  // word. Unicode property escapes rather than hex ranges: the ranges contain
-  // an ideographic space, which is invisible in source and easy to corrupt.
-  const CJK = /\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana}/u
-  const latinWords = trimmed ? trimmed.split(/\s+/).filter((w) => !CJK.test(w)) : []
-  const cjk = (text.match(/\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana}/gu) ?? []).length
+  // Counted as the status bar counts them, so the two never disagree.
+  const words = countWords(text)
 
   return {
-    words: latinWords.length + cjk,
+    words,
     characters: text.length,
     charactersNoSpaces: text.replace(/\s/g, '').length,
     lines: text ? text.split('\n').length : 0,
     paragraphs: trimmed ? trimmed.split(/\n\s*\n/).filter((p) => p.trim().length > 0).length : 0,
     // 200 words per minute is the usual rule of thumb for prose.
-    readingMinutes: Math.max(1, Math.round((latinWords.length + cjk) / 200)),
+    readingMinutes: Math.max(1, Math.round(words / 200)),
   }
 })
 </script>

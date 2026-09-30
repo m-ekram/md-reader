@@ -99,6 +99,7 @@ export async function acquire(opts: {
   documentPath?: () => string | null
   onChange: (markdown: string) => void
   onCaret?: (headingIndex: number) => void
+  onSelection?: (text: string) => void
   onWikiLink?: (link: string) => void
   wikiSuggest?: WikiSuggestHooks
 }): Promise<PooledEditor> {
@@ -117,6 +118,7 @@ export async function acquire(opts: {
     documentPath: opts.documentPath,
     onChange: opts.onChange,
     onCaret: opts.onCaret,
+    onSelection: opts.onSelection,
     onWikiLink: opts.onWikiLink,
     wikiSuggest: opts.wikiSuggest,
   })
