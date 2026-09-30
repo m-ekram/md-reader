@@ -22,6 +22,7 @@ import { setEditorModes } from '../editor/typewriter'
 import { invalidateCommands } from '../commands/registry'
 import { refreshDecorations } from '../editor/view'
 import { useFocusTrap } from '../composables/useFocusTrap'
+import { AUTOSAVE_MAX_MS, AUTOSAVE_MIN_MS, autoSaveDelay } from '../commands/autosave'
 import {
   FONT_MAX,
   FONT_MIN,
@@ -140,6 +141,12 @@ async function setLineHeight(el: HTMLInputElement): Promise<void> {
   const value = el.value.trim() === '' ? null : validLineHeight(Number(el.value))
   el.value = value === null ? '' : String(value)
   await patchEditor({ lineHeight: value })
+}
+
+async function setAutoSaveDelay(el: HTMLInputElement): Promise<void> {
+  const ms = autoSaveDelay(Number(el.value) * 1000)
+  el.value = String(ms / 1000)
+  await patchSettings({ autoSaveDelayMs: ms })
 }
 
 function setTheme(id: string): Promise<void> {
@@ -469,6 +476,22 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
               @change="patchSettings({ autoSave: ($event.target as HTMLInputElement).checked })"
             />
             <span>Save automatically</span>
+          </label>
+
+          <label class="row">
+            <span class="row__label">After a pause in typing of</span>
+            <input
+              class="row__control row__control--num"
+              type="number"
+              :min="AUTOSAVE_MIN_MS / 1000"
+              :max="AUTOSAVE_MAX_MS / 1000"
+              step="0.1"
+              :value="autoSaveDelay(settings.autoSaveDelayMs) / 1000"
+              :disabled="!settings.autoSave"
+              aria-label="Pause before saving, in seconds"
+              @change="setAutoSaveDelay($event.target as HTMLInputElement)"
+            />
+            <span class="row__unit">s</span>
           </label>
           <p class="hint">
             Files are saved a moment after you stop typing, and when you switch away. New documents

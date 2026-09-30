@@ -58,6 +58,8 @@ export interface Settings {
   session: { restore: boolean; files: string[]; active: string | null }
   /** Saves documents that have a file a moment after typing stops. */
   autoSave: boolean
+  /** How long typing must pause before an auto-save, 300 ms to 10 s. */
+  autoSaveDelayMs: number
   /** Line endings a new document is written with. Opened files keep their own. */
   newFileEol: 'crlf' | 'lf'
   /**
@@ -98,6 +100,7 @@ export const DEFAULT_SETTINGS: Settings = {
   recentFiles: [],
   session: { restore: true, files: [], active: null },
   autoSave: false,
+  autoSaveDelayMs: 1000,
   newFileEol: 'crlf',
   followSystem: { enabled: false, light: 'github', dark: 'night' },
   pdf: { ...DEFAULT_PAGE_SETUP },

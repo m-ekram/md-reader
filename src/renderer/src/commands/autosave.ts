@@ -20,8 +20,19 @@ import { showNotice } from '../stores/ui'
 import { logError } from '../utils/report'
 import { saveInPlace } from './app-commands'
 
-/** How long typing must pause before a save. */
+/** How long typing must pause before a save, unless another pause is chosen. */
 export const AUTOSAVE_AFTER_MS = 1000
+export const AUTOSAVE_MIN_MS = 300
+export const AUTOSAVE_MAX_MS = 10_000
+
+/**
+ * The pause chosen in Preferences, kept within bounds: a shorter one would
+ * save mid-word, and a longer one is hardly automatic.
+ */
+export function autoSaveDelay(ms: unknown): number {
+  if (typeof ms !== 'number' || !Number.isFinite(ms)) return AUTOSAVE_AFTER_MS
+  return Math.round(Math.min(AUTOSAVE_MAX_MS, Math.max(AUTOSAVE_MIN_MS, ms)))
+}
 
 /**
  * Documents a refused save left alone, by id, with the file time they were
@@ -94,9 +105,10 @@ export function installAutoSave(): () => void {
   const stop = watch(
     () => docs.docs.map((d) => d.content),
     () => {
-      if (!useSettingsStore().value.autoSave) return
+      const settings = useSettingsStore().value
+      if (!settings.autoSave) return
       window.clearTimeout(timer)
-      timer = window.setTimeout(() => void autoSaveNow(), AUTOSAVE_AFTER_MS)
+      timer = window.setTimeout(() => void autoSaveNow(), autoSaveDelay(settings.autoSaveDelayMs))
     }
   )
   const onBlur = (): void => void autoSaveNow()

@@ -8,7 +8,17 @@ import type { Doc } from '../stores/documents'
 vi.mock('./app-commands', () => ({ saveInPlace: vi.fn() }))
 vi.mock('../editor/pool', () => ({ flushAll: vi.fn(), release: vi.fn(), setCapacity: vi.fn() }))
 
-const { autoSavable } = await import('./autosave')
+const { autoSavable, autoSaveDelay } = await import('./autosave')
+
+describe('the pause before an auto-save', () => {
+  it('is the one chosen, kept between 300 ms and 10 s', () => {
+    expect(autoSaveDelay(2500)).toBe(2500)
+    expect(autoSaveDelay(50)).toBe(300)
+    expect(autoSaveDelay(60_000)).toBe(10_000)
+    expect(autoSaveDelay(Number.NaN)).toBe(1000)
+    expect(autoSaveDelay(undefined)).toBe(1000)
+  })
+})
 
 const doc = (over: Partial<Doc> = {}): Doc => ({
   id: 'doc-1',

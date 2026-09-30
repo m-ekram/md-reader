@@ -61,6 +61,22 @@ describe('auto-save', () => {
     expect((await noticeTexts(ctx)).join(' ')).not.toContain('Saved auto.md')
   })
 
+  it('waits as long as the pause set for it', async () => {
+    await setAutoSave(true)
+    await ctx.page.evaluate(() => window.api.settings.patch({ autoSaveDelayMs: 6000 }))
+    const file = join(ctx.workdir, 'slow.md')
+    await openAndEdit(file, 'Saved already.\n', ' Typed slowly.')
+    await waitForText(ctx, 'Typed slowly.')
+
+    // A duration: past the usual pause, and short of the one set, nothing is
+    // written yet.
+    await ctx.page.waitForTimeout(PAST_THE_PAUSE_MS)
+    expect(await onDisk(file)).toBe('Saved already.\n')
+    await expect.poll(() => onDisk(file), { timeout: 15_000 }).toContain('Typed slowly.')
+
+    await ctx.page.evaluate(() => window.api.settings.patch({ autoSaveDelayMs: 1000 }))
+  })
+
   it('saves when the window loses focus, without waiting', async () => {
     // Typed with auto-save off, and switched on only once the edit has reached
     // the document (the title's unsaved marker): nothing changes after that, so
