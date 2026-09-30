@@ -25,6 +25,7 @@ import { clearShownSource, setShownSource } from '../editor/source-registry'
 import { invalidateCommands } from '../commands/registry'
 import { started } from '../stores/session'
 import { reportCaret } from '../stores/caret'
+import { followWikiLink } from '../stores/wiki'
 import Welcome from './Welcome.vue'
 
 const host = ref<HTMLElement | null>(null)
@@ -142,6 +143,7 @@ async function show(): Promise<void> {
       window.api.file.journal(journalKey(target), markdown)
     },
     onCaret: (index) => reportCaret(doc.id, 'heading', index),
+    onWikiLink: (link) => void followWikiLink(link, doc.id),
   })
   builtAt.set(doc.id, builtFor)
 
