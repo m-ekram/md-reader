@@ -2,6 +2,7 @@
 /** One tree row. Self-recursive for nested folders. */
 import { toggleNode, useWorkspace, type TreeNode } from '../../stores/workspace'
 import { activeDoc, openPath } from '../../stores/documents'
+import { openContextMenu, type ContextItem } from '../../stores/context-menu'
 
 defineProps<{ node: TreeNode; depth: number; tabStop: string }>()
 
@@ -9,6 +10,19 @@ const ws = useWorkspace()
 
 const isActive = (path: string): boolean =>
   (activeDoc.value?.path ?? '').toLowerCase() === path.toLowerCase()
+
+/** What can be done to a file or folder from where it is listed. */
+function onContextMenu(e: MouseEvent, node: TreeNode): void {
+  const path = node.entry.path
+  const items: ContextItem[] = node.entry.isDirectory
+    ? []
+    : [{ label: 'Open', run: () => openPath(path) }, { separator: true }]
+  items.push(
+    { label: 'Show in Folder', run: () => window.api.file.showInFolder(path) },
+    { label: 'Copy Path', run: () => window.api.clipboard.write({ text: path }) }
+  )
+  openContextMenu(e, items)
+}
 </script>
 
 <template>
@@ -29,6 +43,7 @@ const isActive = (path: string): boolean =>
       :data-path="node.entry.path"
       @focus="ws.treeFocus = node.entry.path"
       @click="node.entry.isDirectory ? toggleNode(node) : openPath(node.entry.path)"
+      @contextmenu="onContextMenu($event, node)"
     >
       <span class="tree__twisty" aria-hidden="true">
         {{ node.entry.isDirectory ? (node.expanded ? '▾' : '▸') : '' }}

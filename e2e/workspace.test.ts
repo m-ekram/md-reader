@@ -62,6 +62,52 @@ describe('workspace, sidebar and watching', () => {
     expect(await read(join(notes(), '..', 'userdata'))).toBe('refused')
   })
 
+  it('has its own right-click menu in the file tree, worked by the keyboard', async () => {
+    // The tree had no right-click menu: files could be made, renamed and
+    // deleted only outside the app.
+    await ctx.app.evaluate(({ Menu }) => {
+      const g = globalThis as unknown as { __nativeMenu?: boolean }
+      g.__nativeMenu = false
+      Menu.prototype.popup = function () {
+        g.__nativeMenu = true
+      }
+    })
+    await showPanel('files')
+    const row = ctx.page.locator('.tree__item', { hasText: 'second.md' })
+    await row.click({ button: 'right' })
+    const menu = ctx.page.locator('.context-menu')
+    await menu.waitFor({ state: 'visible' })
+    expect(await menu.locator('[role="menuitem"]').allInnerTexts()).toEqual(
+      expect.arrayContaining(['Show in Folder', 'Copy Path'])
+    )
+    // Only the app's own: the native one would have shown over it.
+    expect(
+      await ctx.app.evaluate(
+        () => (globalThis as unknown as { __nativeMenu?: boolean }).__nativeMenu
+      )
+    ).toBe(false)
+
+    // Down to Copy Path, and Enter.
+    const focused = () => ctx.page.evaluate(() => document.activeElement?.textContent?.trim())
+    for (let i = 0; i < 5 && (await focused()) !== 'Copy Path'; i++) {
+      await ctx.page.keyboard.press('ArrowDown')
+    }
+    await ctx.page.keyboard.press('Enter')
+    await menu.waitFor({ state: 'detached' })
+    await expect
+      .poll(() => ctx.app.evaluate(({ clipboard }) => clipboard.readText()))
+      .toBe(join(notes(), 'second.md'))
+    // Back to the row it was opened on.
+    expect(await ctx.page.evaluate(() => document.activeElement?.textContent)).toContain(
+      'second.md'
+    )
+
+    await row.click({ button: 'right' })
+    await menu.waitFor({ state: 'visible' })
+    await ctx.page.keyboard.press('Escape')
+    await menu.waitFor({ state: 'detached' })
+  })
+
   it('expands a folder lazily and opens a nested file', async () => {
     await ctx.page.locator('.tree__item', { hasText: 'sub' }).first().click()
     await expect.poll(allText('.tree__name')).toContain('third.md')
