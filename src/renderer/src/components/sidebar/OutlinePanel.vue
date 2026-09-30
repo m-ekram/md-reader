@@ -4,8 +4,19 @@ import { computed } from 'vue'
 import { extractHeadings, plainHeadingText } from '../../editor/outline'
 import { activeDoc } from '../../stores/documents'
 import { shownSourceFor } from '../../editor/source-registry'
+import { currentHeading } from '../../stores/caret'
 
 const headings = computed(() => (activeDoc.value ? extractHeadings(activeDoc.value.content) : []))
+
+/** The heading the caret is under, marked so the outline shows where you are. */
+const current = computed(() =>
+  activeDoc.value
+    ? currentHeading(
+        activeDoc.value.id,
+        headings.value.map((h) => h.line)
+      )
+    : -1
+)
 
 /**
  * In source view, by line: the heading's line is known, and the formatted
@@ -59,7 +70,8 @@ function occurrenceOf(index: number): number {
         <button
           class="outline__item"
           :style="{ paddingLeft: `${6 + (h.level - 1) * 12}px` }"
-          :class="`outline__item--h${h.level}`"
+          :class="[`outline__item--h${h.level}`, { 'is-current': i === current }]"
+          :aria-current="i === current ? 'location' : undefined"
           @click="goTo(i)"
         >
           {{ plainHeadingText(h.text) }}
@@ -91,6 +103,10 @@ function occurrenceOf(index: number): number {
   white-space: nowrap;
 }
 .outline__item:hover {
+  background: var(--sidebar-hover);
+}
+.outline__item.is-current {
+  box-shadow: inset 2px 0 0 var(--doc-accent);
   background: var(--sidebar-hover);
 }
 .outline__item--h1 {

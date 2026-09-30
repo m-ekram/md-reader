@@ -184,3 +184,30 @@ describe('the outline in source view', () => {
       .toBe(true)
   })
 })
+
+describe('the outline marks where the caret is', () => {
+  const current = () => ctx.page.locator('.outline__item[aria-current="location"]').allInnerTexts()
+
+  it('in source view, the heading above the caret', async () => {
+    // Still the document above, in source view: the click put the caret on
+    // Far Down's line.
+    await expect.poll(current).toEqual(['Far Down'])
+    await ctx.page.keyboard.press('Control+Home')
+    await expect.poll(current).toEqual(['Top'])
+  })
+
+  it('in the formatted view, the heading above the caret', async () => {
+    const file = join(ctx.workdir, 'outline-caret.md')
+    await writeFile(file, '# One\n\nFirst part.\n\n## Two\n\nSecond part.\n\n## Three\n\nEnd.\n')
+    await ctx.page.evaluate(() =>
+      window.api.settings.patch({ editor: { sourceModeForceLines: 10_000 } })
+    )
+    await openFile(ctx, file)
+    await waitForText(ctx, 'Second part.')
+
+    await ctx.page.locator('.ProseMirror p', { hasText: 'Second part.' }).click()
+    await expect.poll(current).toEqual(['Two'])
+    await ctx.page.locator('.ProseMirror p', { hasText: 'End.' }).click()
+    await expect.poll(current).toEqual(['Three'])
+  })
+})

@@ -97,6 +97,7 @@ export async function acquire(opts: {
   getContent: () => string
   documentPath?: () => string | null
   onChange: (markdown: string) => void
+  onCaret?: (headingIndex: number) => void
 }): Promise<PooledEditor> {
   const existing = entries.get(opts.id)
   if (existing) {
@@ -112,6 +113,7 @@ export async function acquire(opts: {
     value: opts.getContent(),
     documentPath: opts.documentPath,
     onChange: opts.onChange,
+    onCaret: opts.onCaret,
   })
 
   const entry: Entry = { id: opts.id, handle, el, usedAt: ++clock }

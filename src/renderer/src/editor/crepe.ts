@@ -126,6 +126,43 @@ export interface EditorHandle {
   destroy(): Promise<void>
 }
 
+/**
+ * Counts the top-level headings before the caret, once a frame at most: a
+ * walk over the document's blocks is cheap, but not on every transaction.
+ */
+function caretReporter(report: ((headingIndex: number) => void) | undefined): Plugin {
+  return new Plugin({
+    view: (initial) => {
+      let frame = 0
+      const measure = (view: EditorView): void => {
+        frame = 0
+        const { doc, selection } = view.state
+        let index = -1
+        let pos = 0
+        for (let i = 0; i < doc.childCount; i++) {
+          if (pos > selection.from) break
+          const child = doc.child(i)
+          if (child.type.name === 'heading') index++
+          pos += child.nodeSize
+        }
+        report?.(index)
+      }
+      const schedule = (view: EditorView): void => {
+        if (!report || frame) return
+        frame = requestAnimationFrame(() => measure(view))
+      }
+      schedule(initial)
+      return {
+        update: (view, prev) => {
+          if (prev.selection.eq(view.state.selection) && prev.doc.eq(view.state.doc)) return
+          schedule(view)
+        },
+        destroy: () => cancelAnimationFrame(frame),
+      }
+    },
+  })
+}
+
 export async function createEditor(opts: {
   root: HTMLElement
   value: string
@@ -136,6 +173,8 @@ export async function createEditor(opts: {
    */
   documentPath?: () => string | null
   onChange(markdown: string): void
+  /** How many top-level headings precede the caret, less one; at most once a frame. */
+  onCaret?(headingIndex: number): void
 }): Promise<EditorHandle> {
   const documentDir = (): string | null => directoryOf(opts.documentPath?.() ?? null)
 
@@ -203,6 +242,8 @@ export async function createEditor(opts: {
     .use($prose(() => historyClock()))
     // Refuses any change to a readonly document, whoever asks for it.
     .use($prose(() => new Plugin({ filterTransaction: (tr) => !(readonly && tr.docChanged) })))
+    // The heading the caret is under, for the outline. See stores/caret.ts.
+    .use($prose(() => caretReporter(opts.onCaret)))
     .use(
       // Marks unreported edits, and reports them once the user pauses.
       $prose(

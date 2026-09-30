@@ -152,6 +152,8 @@ export function createSourceEditor(opts: {
   dark: boolean
   readonly?: boolean
   onChange: (text: string) => void
+  /** The caret's 1-based line, as it moves. */
+  onCaret?: (line: number) => void
 }): SourceHandle {
   const readonlyCompartment = new Compartment()
   const view = new EditorView({
@@ -173,10 +175,16 @@ export function createSourceEditor(opts: {
         appearance(opts.dark),
         EditorView.updateListener.of((update) => {
           if (update.docChanged) opts.onChange(update.state.doc.toString())
+          if (update.docChanged || update.selectionSet) {
+            opts.onCaret?.(update.state.doc.lineAt(update.state.selection.main.head).number)
+          }
         }),
       ],
     }),
   })
+
+  // The caret starts on the first line, and no update says so.
+  opts.onCaret?.(1)
 
   return {
     view,

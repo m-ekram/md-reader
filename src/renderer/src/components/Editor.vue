@@ -16,6 +16,7 @@ import { isDarkTheme } from '../utils/dark'
 import { clearShownSource, setShownSource } from '../editor/source-registry'
 import { invalidateCommands } from '../commands/registry'
 import { started } from '../stores/session'
+import { reportCaret } from '../stores/caret'
 import Welcome from './Welcome.vue'
 
 const host = ref<HTMLElement | null>(null)
@@ -68,6 +69,7 @@ async function showSource(doc: Doc, token: number): Promise<void> {
       target.content = text
       window.api.file.journal(journalKey(target), text)
     },
+    onCaret: (line) => reportCaret(doc.id, 'line', line),
   })
   // Find and the other commands reach it through the registry, by document.
   setShownSource(doc.id, source)
@@ -127,6 +129,7 @@ async function show(): Promise<void> {
       target.content = markdown
       window.api.file.journal(journalKey(target), markdown)
     },
+    onCaret: (index) => reportCaret(doc.id, 'heading', index),
   })
   builtAt.set(doc.id, builtFor)
 
