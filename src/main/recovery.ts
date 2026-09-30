@@ -82,6 +82,7 @@ function adoptOldBackup(path: string, folder: string): void {
   try {
     const at = Math.floor(statSync(old).mtimeMs)
     renameSync(old, join(folder, `${String(at).padStart(13, '0')}-${randomTail()}.bak`))
+    writeFileSync(join(folder, 'meta.json'), JSON.stringify({ path }), 'utf8')
   } catch (err) {
     log.warn('could not take in an old backup', { path, err: String(err) })
   }
@@ -169,6 +170,38 @@ export function backup(path: string, previousBytes: Buffer): void {
     prune(path)
   } catch (err) {
     log.warn('backup failed', { path, err: String(err) })
+  }
+}
+
+/**
+ * Takes versions along when a file or a whole folder is renamed or moved:
+ * every file at `from`, or under it, as its history's meta.json names it.
+ */
+export function moveHistoryUnder(from: string, to: string): void {
+  const lower = from.toLowerCase().replace(/[\\/]+$/, '')
+  let folders: string[] = []
+  try {
+    folders = readdirSync(dir('backups'))
+  } catch {
+    return
+  }
+  for (const f of folders) {
+    let path: string
+    try {
+      path = (
+        JSON.parse(readFileSync(join(dir('backups'), f, 'meta.json'), 'utf8')) as {
+          path: string
+        }
+      ).path
+    } catch {
+      continue
+    }
+    if (typeof path !== 'string') continue
+    const p = path.toLowerCase()
+    if (p === lower) moveHistory(path, to)
+    else if (p.startsWith(`${lower}\\`) || p.startsWith(`${lower}/`)) {
+      moveHistory(path, to + path.slice(lower.length))
+    }
   }
 }
 

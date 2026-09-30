@@ -37,6 +37,9 @@ const api = {
       ipcRenderer.send('file:journal', path, content),
     pendingRecoveries: (): Promise<JournalEntry[]> => ipcRenderer.invoke('file:pending-recoveries'),
     backupInfo: (path: string): Promise<BackupInfo> => ipcRenderer.invoke('file:backup-info', path),
+    /** Takes a file's versions to its new name, after a rename seen by the watcher. */
+    historyMoved: (from: string, to: string): Promise<void> =>
+      ipcRenderer.invoke('file:history-moved', from, to),
     /** The versions kept of a file, newest first. */
     versions: (path: string): Promise<VersionInfo[]> => ipcRenderer.invoke('file:versions', path),
     /** One version's text, decoded; null when there is no such version. */

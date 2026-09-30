@@ -21,6 +21,7 @@ describe('a file renamed while open', () => {
         mtimeMs: 2,
       })),
       discardRecovery: vi.fn(async () => {}),
+      historyMoved: vi.fn(async () => {}),
       journal: vi.fn(),
     },
   }

@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest'
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { noticeTexts, openFile, useApp, waitForText, watcherReady } from './helpers'
+import { chooseMenu, noticeTexts, openFile, useApp, waitForText, watcherReady } from './helpers'
 
 /**
  * The opened folder: sidebar panels, search, watching and renames.
@@ -175,6 +175,13 @@ describe('workspace, sidebar and watching', () => {
     await rename('fresh-note.md', 'kept-note')
     await expect.poll(() => existsSync(join(notes(), 'renamed-here', 'kept-note.md'))).toBe(true)
     await expect.poll(() => ctx.page.title()).toContain('kept-note.md')
+
+    // Its versions came with it: the one kept at the save above, under the
+    // old name. They stayed behind under it, and the history read empty.
+    await chooseMenu(ctx, 'Help', 'Data Recovery and Version Control')
+    const history = ctx.page.getByRole('dialog', { name: /^Versions of kept-note\.md$/ })
+    await expect.poll(() => history.getByRole('option').count()).toBe(1)
+    await history.getByRole('button', { name: 'Close' }).click()
 
     // Never onto a name that is taken.
     await rename('kept-note.md', '../second')

@@ -16,7 +16,7 @@ import {
 } from '../workspace'
 import { watchRoot } from '../watcher'
 import { cancelSearch, startSearch } from '../search'
-import { clearJournal } from '../recovery'
+import { clearJournal, moveHistoryUnder } from '../recovery'
 import { getSettings, patchSettings } from '../settings'
 import { log } from '../log'
 import { resolveInside } from '../paths'
@@ -139,6 +139,7 @@ export function registerWorkspaceIpc(): void {
     // The journal is keyed by path; leaving the old one behind would offer to
     // recover a file that no longer exists at that location.
     clearJournal(path)
+    moveHistoryUnder(path, r.filePath)
     log.info('moved file', { from: path, to: r.filePath })
     return r.filePath
   })
@@ -176,6 +177,8 @@ export function registerWorkspaceIpc(): void {
 
   ipcMain.handle('fileops:rename', async (_e, path: string, name: string) => {
     const to = await renameEntry(openFolder(), path, name)
+    // The versions kept go with it, a folder's files' included.
+    moveHistoryUnder(path, to)
     log.info('renamed', { from: path, to })
     return to
   })

@@ -108,6 +108,9 @@ async function handleChanged(path: string): Promise<void> {
  */
 function followRename(doc: Doc, newPath: string, mtimeMs: number): void {
   const oldKey = journalKey(doc)
+  // And its versions. A rename from the sidebar took them already; this is
+  // then a no-op.
+  if (doc.path) void window.api.file.historyMoved(doc.path, newPath)
   doc.path = newPath
   doc.name = nameOf(newPath)
   doc.mtimeMs = mtimeMs

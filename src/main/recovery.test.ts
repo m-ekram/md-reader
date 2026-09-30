@@ -266,6 +266,23 @@ describe('version history', () => {
     expect(recovery.readVersion(path, 'meta')).toBeNull()
   })
 
+  it('moves with every file in a folder when the folder is renamed', () => {
+    recovery.backup('C:/n/sub/a.md', Buffer.from('in sub'))
+    recovery.backup('C:/n/sub/deeper/b.md', Buffer.from('deeper'))
+    recovery.backup('C:/n/subway.md', Buffer.from('not in sub'))
+    recovery.moveHistoryUnder('C:/n/sub', 'C:/n/moved')
+
+    const first = (p: string) => {
+      const [v] = recovery.listVersions(p)
+      return v ? recovery.readVersion(p, v.id)!.toString() : null
+    }
+    expect(first('C:/n/moved/a.md')).toBe('in sub')
+    expect(first('C:/n/moved/deeper/b.md')).toBe('deeper')
+    expect(first('C:/n/sub/a.md')).toBeNull()
+    // A name that only starts the same is another file.
+    expect(first('C:/n/subway.md')).toBe('not in sub')
+  })
+
   it('moves with the file when it is renamed', () => {
     recovery.backup(path, Buffer.from('kept'))
     recovery.moveHistory(path, 'C:/notes/renamed.md')

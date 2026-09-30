@@ -11,6 +11,7 @@ import {
   clearJournal,
   journal,
   listVersions,
+  moveHistoryUnder,
   pendingRecoveries,
   readVersion,
 } from '../recovery'
@@ -113,6 +114,10 @@ export function registerFileIpc(): void {
   ipcMain.handle('file:backup-info', (_e, path: string) => backupInfo(path))
   // The version history: see recovery.ts. The id is checked before it names a file.
   ipcMain.handle('file:versions', (_e, path: string) => listVersions(String(path)))
+  // A rename another program made, which the page saw through the watcher.
+  ipcMain.handle('file:history-moved', (_e, from: string, to: string) => {
+    if (typeof from === 'string' && typeof to === 'string') moveHistoryUnder(from, to)
+  })
   ipcMain.handle('file:version-content', (_e, path: string, id: string) => {
     const bytes = readVersion(String(path), id)
     return bytes ? decodeTextBuffer(bytes).content : null
