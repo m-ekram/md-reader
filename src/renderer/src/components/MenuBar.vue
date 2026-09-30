@@ -43,6 +43,16 @@ function itemState(id: string) {
 }
 
 /**
+ * What a screen reader calls an item: a plain command, a toggle, or one of a
+ * set. Every tickable item was announced as one of a set, and in a submenu
+ * none said whether it was ticked.
+ */
+function itemRole(node: { id: string; radio?: boolean }): string {
+  if (itemState(node.id).checked === undefined) return 'menuitem'
+  return node.radio ? 'menuitemradio' : 'menuitemcheckbox'
+}
+
+/**
  * Why an item cannot be chosen.
  *
  * "Not available yet" means this version has not implemented it; a stated
@@ -369,10 +379,11 @@ function isActive(path: number[]): boolean {
                 <button
                   v-else-if="sub.kind === 'item'"
                   class="menu__item"
-                  role="menuitem"
+                  :role="itemRole(sub)"
                   tabindex="-1"
                   :data-active="isActive([j, k])"
                   :aria-disabled="!itemState(sub.id).enabled"
+                  :aria-checked="itemState(sub.id).checked"
                   :class="{ 'is-disabled': !itemState(sub.id).enabled }"
                   :title="tooltip(sub.id)"
                   @click="activate(sub.id)"
@@ -392,7 +403,7 @@ function isActive(path: number[]): boolean {
             v-else-if="node.kind === 'item'"
             class="menu__item"
             tabindex="-1"
-            :role="itemState(node.id).checked === undefined ? 'menuitem' : 'menuitemradio'"
+            :role="itemRole(node)"
             :data-active="isActive([j])"
             :aria-disabled="!itemState(node.id).enabled"
             :aria-checked="itemState(node.id).checked"

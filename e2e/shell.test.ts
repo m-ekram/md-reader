@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest'
 import { join } from 'node:path'
 import {
   chooseMenu,
+  menuItem,
   newDocument,
   nextFrames,
   noticeTexts,
@@ -459,5 +460,30 @@ describe('the tab strip and the keyboard', () => {
     await ctx.page.keyboard.press('Delete')
     await expect.poll(() => ctx.page.locator('.tab').count()).toBe(count - 1)
     await expect.poll(focusedIsActiveTab).toBe(true)
+  })
+})
+
+describe('menu items that can be ticked', () => {
+  const roleAndState = async (menu: string, ...path: string[]) => {
+    const item = await menuItem(ctx, menu, ...path)
+    return `${await item.getAttribute('role')} ${await item.getAttribute('aria-checked')}`
+  }
+
+  it('say whether they are one of a set or on their own', async () => {
+    // Every tickable item was announced as one of a set of radio buttons,
+    // Focus Mode as much as the choice of line endings; in a submenu, none
+    // said whether it was ticked.
+    await newDocument(ctx)
+    expect(await roleAndState('View', 'Focus Mode')).toBe('menuitemcheckbox false')
+    expect(await roleAndState('View', 'Status Bar')).toBe('menuitemcheckbox true')
+    expect(await roleAndState('View', 'Outline')).toMatch(/^menuitemradio (true|false)$/)
+    // One of the pair, whichever this document has.
+    const endings = [
+      await roleAndState('Edit', 'Line Endings', 'Unix (LF)'),
+      await roleAndState('Edit', 'Line Endings', 'Windows (CRLF)'),
+    ].sort()
+    expect(endings).toEqual(['menuitemradio false', 'menuitemradio true'])
+    expect(await roleAndState('Themes', 'Github')).toMatch(/^menuitemradio (true|false)$/)
+    await ctx.page.keyboard.press('Escape')
   })
 })

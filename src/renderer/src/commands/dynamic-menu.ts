@@ -18,6 +18,7 @@ function resolve(node: MenuNode): MenuNode[] {
       kind: 'item' as const,
       id: `theme.${t.id}`,
       label: t.name,
+      radio: true,
     }))
   }
 

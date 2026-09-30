@@ -9,7 +9,7 @@
  */
 
 export type MenuNode =
-  | { kind: 'item'; id: string; label: string; accel?: string }
+  | { kind: 'item'; id: string; label: string; accel?: string; radio?: boolean }
   | { kind: 'separator' }
   | { kind: 'submenu'; label: string; items: MenuNode[] }
   /** Filled at render time from application state (recent files, themes). */
@@ -28,6 +28,14 @@ const item = (id: string, label: string, accel?: string): MenuNode => ({
   id,
   label,
   accel,
+})
+/** One of a set, of which one is ticked (a screen reader says so), not a toggle. */
+const choice = (id: string, label: string, accel?: string): MenuNode => ({
+  kind: 'item',
+  id,
+  label,
+  accel,
+  radio: true,
 })
 
 export const MENUS: Menu[] = [
@@ -133,7 +141,7 @@ export const MENUS: Menu[] = [
       {
         kind: 'submenu',
         label: 'Line Endings',
-        items: [item('edit.eolCrlf', 'Windows (CRLF)'), item('edit.eolLf', 'Unix (LF)')],
+        items: [choice('edit.eolCrlf', 'Windows (CRLF)'), choice('edit.eolLf', 'Unix (LF)')],
       },
       {
         kind: 'submenu',
@@ -216,7 +224,7 @@ export const MENUS: Menu[] = [
       {
         kind: 'submenu',
         label: 'Task Status',
-        items: [item('para.taskDone', 'Complete'), item('para.taskTodo', 'Incomplete')],
+        items: [choice('para.taskDone', 'Complete'), choice('para.taskTodo', 'Incomplete')],
       },
       {
         kind: 'submenu',
@@ -270,10 +278,10 @@ export const MENUS: Menu[] = [
     mnemonic: 'V',
     items: [
       item('view.toggleSidebar', 'Toggle Sidebar', 'Ctrl+Shift+L'),
-      item('view.outline', 'Outline', 'Ctrl+Shift+1'),
-      item('view.articles', 'Articles', 'Ctrl+Shift+2'),
-      item('view.fileTree', 'File Tree', 'Ctrl+Shift+3'),
-      item('view.search', 'Search', 'Ctrl+Shift+F'),
+      choice('view.outline', 'Outline', 'Ctrl+Shift+1'),
+      choice('view.articles', 'Articles', 'Ctrl+Shift+2'),
+      choice('view.fileTree', 'File Tree', 'Ctrl+Shift+3'),
+      choice('view.search', 'Search', 'Ctrl+Shift+F'),
       sep,
       item('view.sourceMode', 'Source Code Mode', 'Ctrl+/'),
       item('view.readonly', 'Readonly Mode'),
