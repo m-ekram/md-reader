@@ -31,6 +31,12 @@ export default defineConfig({
           testTimeout: 60_000,
           hookTimeout: 90_000,
           fileParallelism: false,
+          // A poll waits for a condition; one second was too little on a busy
+          // Windows runner, where a single read of the page can take longer
+          // (two different tests, 1 run in 3 each, the same week). A value
+          // that never arrives still fails; checks that something did not
+          // happen use nextFrames, not polls.
+          expect: { poll: { timeout: 5000 } },
         },
       },
     ],
