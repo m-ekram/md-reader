@@ -124,6 +124,19 @@ when you hover over it.
   open, and keeps open folders open.
 - **Close Folder**, beside the folder's name and in the command palette.
 
+### Files from the sidebar
+
+- Right-click in the file tree for **New File**, **New Folder**, **Rename** and
+  **Delete**. A new name is typed where the item will appear; a new file opens
+  ready to type in.
+- Renaming a file or folder takes its open documents along, unsaved work
+  included. Nothing is ever written over a file that is already there.
+- **Delete** moves to the Recycle Bin, after asking. An open document with
+  unsaved work stays open, so nothing typed is lost.
+- Right-click a tab to close it, the others, those to its right or the saved
+  ones, or to copy its path, find it in the sidebar or show it in its folder.
+- Drag a tab to move it.
+
 ### The keyboard, all the way
 
 - Closing the command palette, Open Quickly or Preferences puts you back where

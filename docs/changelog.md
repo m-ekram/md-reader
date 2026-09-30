@@ -95,6 +95,22 @@
 - Close Folder, beside the folder's name and in the palette; commands with no
   place in the menu carry labels and are listed in the palette.
 
+### Sidebar file operations
+
+- Every path the sidebar sends is resolved through links and refused outside
+  the open folder, and names are checked against what Windows will store;
+  reading the tree is checked the same way. A link to a folder outside is no
+  longer followed.
+- The page has its own right-click menu, keyboard-driven, for the tree and the
+  tabs; the native one stays for text.
+- New File (made with `wx`, never over an existing file; `.md` added), New
+  Folder, Rename (extension kept; taken names refused except a change of case;
+  retried while another program holds the file; open documents and their
+  journals follow) and Delete (to the Recycle Bin after asking; clean open
+  documents close, unsaved ones stay, detached).
+- Tabs: Close, Close Others, Close to the Right, Close Saved (each stops at
+  Cancel), Copy Path, Reveal in Sidebar, Show in Folder; drag to reorder.
+
 ### Keyboard and accessibility
 
 - Dialogs give the focus back on closing, with the caret where it was, unless

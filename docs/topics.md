@@ -89,6 +89,11 @@ in the find bar; **Aa** beside the search box matches case. The file tree
 follows files and folders as they are made or deleted. The **×** beside the
 folder's name, or **Close Folder** in the command palette, closes it.
 
+Right-click in the file tree to make a file or folder, rename one, or move it to
+the Recycle Bin; right-click the space below the files to make one at the top.
+Only files inside the open folder can be changed from here. Right-click a tab
+for ways to close several at once, and drag a tab to move it.
+
 ## Large documents
 
 Past about five thousand lines the formatted view starts to feel heavy, and the
