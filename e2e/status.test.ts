@@ -29,7 +29,10 @@ describe('the status bar', () => {
     // The heading's # is not a word.
     await expect.poll(() => status().locator('.words').innerText()).toBe('3 of 6 words')
 
-    await ctx.page.keyboard.press('ArrowRight')
+    // Collapsed with a click, which the editor handles itself. ArrowRight is
+    // the browser's, and on a CI runner the editor once never took up the
+    // selection it made (see CLAUDE.md on keyboard selections in e2e).
+    await ctx.page.locator('.ProseMirror h1').click()
     await expect.poll(() => status().locator('.words').innerText()).toBe('6 words')
   })
 
