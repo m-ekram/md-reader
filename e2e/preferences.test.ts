@@ -146,7 +146,26 @@ describe('preferences dialog', () => {
     await offer.blur()
 
     // The force threshold is pulled up to meet the new offer threshold.
-    await expect.poll(async () => Number(await force.inputValue())).toBeGreaterThanOrEqual(20000)
+    try {
+      await expect.poll(async () => Number(await force.inputValue())).toBeGreaterThanOrEqual(20000)
+    } catch (err) {
+      // An open lead: this failed now and then in full runs only, never alone
+      // (see CLAUDE.md). What the fields and the stored settings held says
+      // whether the change never fired, fired with a partial value, or was
+      // stored and not shown; the second reading, whether it was only late.
+      console.log(
+        'thresholds after the failure',
+        JSON.stringify({
+          offer: await offer.inputValue(),
+          force: await force.inputValue(),
+          stored: (await ctx.page.evaluate(() => window.api.settings.get())).editor,
+          focused: await ctx.page.evaluate(() => document.activeElement?.outerHTML.slice(0, 120)),
+        })
+      )
+      await ctx.page.waitForTimeout(3000)
+      console.log('force three seconds later', await force.inputValue())
+      throw err
+    }
     await ctx.page.keyboard.press('Escape')
   })
 })
