@@ -78,6 +78,7 @@ changes its language.
 
 ```
 [a link](https://example.com)
+[[Another note]], [[Another note#A heading|shown as this]]
 ![alt text](assets/picture.png)
 A claim.[^1]
 

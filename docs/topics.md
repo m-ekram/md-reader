@@ -99,6 +99,21 @@ the Recycle Bin; right-click the space below the files to make one at the top.
 Only files inside the open folder can be changed from here. Right-click a tab
 for ways to close several at once, and drag a tab to move it.
 
+## Linking notes
+
+Write `[[Name]]` to link to another note in the open folder, by its file name
+without `.md`. `[[Name#Heading]]` links to a heading in it, and
+`[[Name|other words]]` shows other words in the text. Where two notes share a
+name, the one in the same folder wins, then the one nearer the top of the
+folder; write part of the path, as in `[[trips/Porto]]`, to choose.
+
+`Ctrl`+click a link to open its note. A link to a note that is not there offers
+to make it, beside the note you are in.
+
+As you type `[[`, the folder's notes are listed; keep typing to narrow the list,
+use the arrow keys to choose, and `Enter` or `Tab` to put the name in. `Esc`
+closes the list.
+
 ## Large documents
 
 Past about five thousand lines the formatted view starts to feel heavy, and the

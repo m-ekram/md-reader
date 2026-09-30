@@ -110,6 +110,19 @@
 - Print uses the system print dialog, from a hidden window owned by the user's,
   starting from the page setup; it opened a PDF in another program.
 
+### Wiki links
+
+- `[[Wiki links]]` are drawn as links; only the blocks an edit touched are
+  scanned again.
+- `Ctrl`+click follows one: by file name without extension, ignoring case, or a
+  path ending; the note in the same folder first, then the shortest path. It
+  opens at the `#heading`, in either view. A missing note is offered to be made
+  (`wx`, beside the linking note, or under the folder for a link with a path).
+- After `[[`, a list of the folder's notes ranked by fuzzy match; `Enter` or
+  `Tab` inserts the name, and closes the link unless it already is; the path
+  goes in where the name alone would lead to another note. `Esc` keeps it shut
+  for that link; nothing opens while an input method is composing.
+
 ### Find and replace
 
 - One module (`shared/text-search.ts`) builds patterns (plain, case, whole word

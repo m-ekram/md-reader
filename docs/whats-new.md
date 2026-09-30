@@ -135,6 +135,14 @@ when you hover over it.
 - **Print** opens the Windows print dialog, starting from the same page
   setup, instead of opening a PDF in another program.
 
+### Linked notes
+
+- `[[Wiki links]]` show as links. `Ctrl`+click one to open the note it names,
+  at the heading after `#` if it gives one; a note that is not there yet is
+  offered to be made.
+- Type `[[` and the open folder's notes are listed as you type; `Enter` puts
+  the name in and closes the link.
+
 ### Find and replace, further
 
 - **.\*** in the find bar searches by regular expression, in either view; a
