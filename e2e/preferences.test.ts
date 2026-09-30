@@ -250,6 +250,29 @@ describe('preferences dialog', () => {
     await ctx.page.keyboard.press('Escape')
   })
 
+  it('narrows to the settings that mention what is typed', async () => {
+    await openPreferences()
+    // Typed straight away: the search box has the focus.
+    await ctx.page.keyboard.type('line')
+    const visibleRows = () =>
+      ctx.page
+        .locator('.prefs__body .row:visible')
+        .evaluateAll((rows) => rows.map((r) => (r.querySelector('span')?.textContent ?? '').trim()))
+    await expect.poll(visibleRows).toEqual(['Line height', 'Line endings for new documents'])
+    await expect
+      .poll(() => ctx.page.locator('.prefs__section:visible h3').allTextContents())
+      .toEqual(['Appearance', 'Files'])
+
+    await ctx.page.keyboard.type('zzz')
+    await expect.poll(() => ctx.page.locator('.prefs__none').innerText()).toContain('linezzz')
+    await ctx.page.keyboard.press('Escape')
+
+    // Opened again, it starts with everything.
+    await openPreferences()
+    await expect.poll(async () => (await visibleRows()).length).toBeGreaterThan(10)
+    await ctx.page.keyboard.press('Escape')
+  })
+
   it('writes new documents with the line endings chosen for them', async () => {
     await openPreferences()
     await ctx.page

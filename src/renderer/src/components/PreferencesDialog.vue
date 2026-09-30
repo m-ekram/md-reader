@@ -12,7 +12,8 @@
  * — the Themes menu, a View toggle — is reflected here without wiring.
  */
 import IconClose from './IconClose.vue'
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onUpdated, ref, watch } from 'vue'
+import { filterSettings } from '../utils/settings-filter'
 import { patchSettings, setContentWidth, setFontSize, useSettingsStore } from '../stores/settings'
 import { useThemeStore } from '../stores/theme'
 import { chooseTheme } from '../stores/system-theme'
@@ -44,14 +45,31 @@ const themes = useThemeStore()
 const panel = ref<HTMLElement | null>(null)
 useFocusTrap(panel, () => props.open)
 
+/** What the settings shown are narrowed to; see utils/settings-filter.ts. */
+const filter = ref('')
+const matches = ref(0)
+const body = ref<HTMLElement | null>(null)
+const filterInput = ref<HTMLInputElement | null>(null)
+
+function applyFilter(): void {
+  if (body.value) matches.value = filterSettings(body.value, filter.value)
+}
+watch(filter, applyFilter, { flush: 'post' })
+// Rows that come and go with a setting (the width slider, the theme pair)
+// are filtered as they appear.
+onUpdated(applyFilter)
+
 watch(
   () => props.open,
   async (open) => {
     if (!open) return
+    filter.value = ''
     await nextTick()
+    applyFilter()
     // Focus moves into the dialog so Escape and Tab behave, and so a screen
-    // reader announces it rather than leaving the caret in the document.
-    panel.value?.focus()
+    // reader announces it rather than leaving the caret in the document. To
+    // the search box, so typing finds a setting straight away.
+    ;(filterInput.value ?? panel.value)?.focus()
   }
 )
 
@@ -316,7 +334,22 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
         </button>
       </header>
 
-      <div class="prefs__body">
+      <div class="prefs__find">
+        <input
+          ref="filterInput"
+          v-model="filter"
+          class="prefs__filter"
+          type="search"
+          placeholder="Find a setting"
+          aria-label="Find a setting"
+          aria-controls="prefs-body"
+        />
+      </div>
+      <p v-if="filter.trim() && matches === 0" class="prefs__none" role="status">
+        No setting mentions “{{ filter.trim() }}”.
+      </p>
+
+      <div id="prefs-body" ref="body" class="prefs__body">
         <section class="prefs__section">
           <h3>Appearance</h3>
 
@@ -763,6 +796,30 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
 .prefs__body {
   overflow: auto;
   padding: 4px 16px 16px;
+}
+/* Rows are flex boxes, which would override the attribute's own display: none. */
+.prefs__body [hidden] {
+  display: none;
+}
+.prefs__find {
+  padding: 10px 16px 0;
+}
+.prefs__filter {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 5px 8px;
+  background: var(--menu-hover);
+  color: inherit;
+  border: 1px solid var(--menu-border);
+  border-radius: 4px;
+  font: inherit;
+  font-size: 13px;
+}
+.prefs__none {
+  margin: 0;
+  padding: 16px;
+  font-size: 13px;
+  color: var(--menu-fg-muted);
 }
 .prefs__section {
   padding: 12px 0;
