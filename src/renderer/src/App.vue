@@ -12,6 +12,7 @@ import FindReplace from './components/FindReplace.vue'
 import WordCountPopover from './components/WordCountPopover.vue'
 import Notifications from './components/Notifications.vue'
 import ContextMenu from './components/ContextMenu.vue'
+import WikiSuggest from './components/WikiSuggest.vue'
 import ReplacePreview from './components/ReplacePreview.vue'
 import HistoryDialog from './components/HistoryDialog.vue'
 import PageSetupDialog from './components/PageSetupDialog.vue'
@@ -154,6 +155,7 @@ onBeforeUnmount(() => {
     <CommandPalette :open="commandPalette.open" @close="commandPalette.open = false" />
     <PreferencesDialog :open="preferences.open" @close="preferences.open = false" />
     <ContextMenu />
+    <WikiSuggest />
     <ReplacePreview />
     <HistoryDialog />
     <PageSetupDialog />

@@ -13,6 +13,7 @@
  * store, and the editor is rebuilt from there on next use.
  */
 import { createEditor, type EditorHandle } from './crepe'
+import type { WikiSuggestHooks } from './wiki-suggest'
 
 export interface PooledEditor {
   handle: EditorHandle
@@ -99,6 +100,7 @@ export async function acquire(opts: {
   onChange: (markdown: string) => void
   onCaret?: (headingIndex: number) => void
   onWikiLink?: (link: string) => void
+  wikiSuggest?: WikiSuggestHooks
 }): Promise<PooledEditor> {
   const existing = entries.get(opts.id)
   if (existing) {
@@ -116,6 +118,7 @@ export async function acquire(opts: {
     onChange: opts.onChange,
     onCaret: opts.onCaret,
     onWikiLink: opts.onWikiLink,
+    wikiSuggest: opts.wikiSuggest,
   })
 
   const entry: Entry = { id: opts.id, handle, el, usedAt: ++clock }

@@ -40,7 +40,11 @@ import { codeTheme } from './code-theme'
 import { labelTopBar } from './toolbar'
 import { keepWikiLinks } from './wiki-links'
 import { wikiLinkPlugin } from './wiki-decorations'
+import { wikiSuggestPlugin, type WikiSuggestHooks } from './wiki-suggest'
 import { historyClock } from './history-clock'
+
+/** For an editor built with no list to show suggestions in. */
+const NO_SUGGESTIONS: WikiSuggestHooks = { update: () => false, keydown: () => false }
 
 /**
  * Drops the newline the trailing plugin's empty paragraph adds.
@@ -178,6 +182,8 @@ export async function createEditor(opts: {
   onCaret?(headingIndex: number): void
   /** A `[[wiki link]]` Ctrl+clicked, as written. */
   onWikiLink?(link: string): void
+  /** Shows notes to link to as `[[` is typed. See wiki-suggest.ts. */
+  wikiSuggest?: WikiSuggestHooks
 }): Promise<EditorHandle> {
   const documentDir = (): string | null => directoryOf(opts.documentPath?.() ?? null)
 
@@ -243,6 +249,8 @@ export async function createEditor(opts: {
     .use(whitespacePlugin)
     // [[Wiki links]] marked, and followed with Ctrl+click. See wiki-decorations.ts.
     .use($prose(() => wikiLinkPlugin((link) => opts.onWikiLink?.(link))))
+    // Notes suggested as a link is typed.
+    .use($prose(() => wikiSuggestPlugin(opts.wikiSuggest ?? NO_SUGGESTIONS)))
     // Undo steps by the time that passed, not the wall clock. See history-clock.ts.
     .use($prose(() => historyClock()))
     // Refuses any change to a readonly document, whoever asks for it.

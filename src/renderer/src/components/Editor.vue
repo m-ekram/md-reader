@@ -26,6 +26,7 @@ import { invalidateCommands } from '../commands/registry'
 import { started } from '../stores/session'
 import { reportCaret } from '../stores/caret'
 import { followWikiLink } from '../stores/wiki'
+import { wikiSuggestHooks } from '../stores/wiki-suggest'
 import Welcome from './Welcome.vue'
 
 const host = ref<HTMLElement | null>(null)
@@ -144,6 +145,10 @@ async function show(): Promise<void> {
     },
     onCaret: (index) => reportCaret(doc.id, 'heading', index),
     onWikiLink: (link) => void followWikiLink(link, doc.id),
+    wikiSuggest: wikiSuggestHooks(
+      doc.id,
+      () => docs.docs.find((d) => d.id === doc.id)?.path ?? null
+    ),
   })
   builtAt.set(doc.id, builtFor)
 

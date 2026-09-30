@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { resolveWikiTarget } from './wiki-resolve'
+import { resolveWikiTarget, wikiCandidates } from './wiki-resolve'
 
 const root = 'C:\\notes'
 const file = (relativePath: string) => ({
@@ -52,5 +52,46 @@ describe('resolveWikiTarget', () => {
   it('finds nothing for a name that is not there, or only part of one', () => {
     expect(resolveWikiTarget('Lis', `${root}\\index.md`, files)).toBeNull()
     expect(resolveWikiTarget('an/Plan', `${root}\\index.md`, files)).toBeNull()
+  })
+})
+
+describe('wikiCandidates', () => {
+  const from = `${root}\\index.md`
+
+  it('ranks notes by how well their name fits what was typed', () => {
+    const names = wikiCandidates('pl', from, files).map((c) => c.insert)
+    expect(names[0]).toBe('Plan')
+    expect(wikiCandidates('lsb', from, files).map((c) => c.insert)).toEqual(['Lisbon'])
+  })
+
+  it('lists every note, shortest path first, before anything is typed', () => {
+    expect(wikiCandidates('', from, files).map((c) => c.insert)).toEqual([
+      'Lisbon',
+      'Porto',
+      'archive/Porto',
+      'Plan',
+      'Faro',
+    ])
+  })
+
+  it('writes a path only where the name alone would lead to another note', () => {
+    // Every insert leads back to the note it was chosen for.
+    for (const c of wikiCandidates('porto', from, files)) {
+      expect(resolveWikiTarget(c.insert, from, files)).toBe(c.path)
+    }
+    expect(wikiCandidates('porto', from, files).map((c) => c.insert)).toEqual([
+      'Porto',
+      'archive/Porto',
+    ])
+    // From the archive, its own Porto is the bare name.
+    expect(wikiCandidates('porto', `${root}\\archive\\x.md`, files).map((c) => c.insert)).toEqual([
+      'Porto',
+      'trips/Porto',
+    ])
+  })
+
+  it('stops at a handful', () => {
+    const many = Array.from({ length: 30 }, (_, i) => file(`n${i}.md`))
+    expect(wikiCandidates('n', from, many)).toHaveLength(8)
   })
 })

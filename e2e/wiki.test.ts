@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest'
 import { mkdir, stat, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { noticeTexts, openFile, useApp, waitForText } from './helpers'
+import { nextFrames, noticeTexts, openFile, useApp, waitForText } from './helpers'
 
 /**
  * `[[Wiki links]]`: shown as links, followed with Ctrl+click, and suggested
@@ -110,5 +110,57 @@ describe('wiki links', () => {
     await expect
       .poll(() => ctx.page.locator('.tab__select[aria-selected="true"]').innerText())
       .toContain('Madrid')
+  })
+
+  const suggestions = () => ctx.page.locator('.wiki-suggest [role="option"]')
+  // Trimmed: an empty paragraph holds a <br>.
+  const lastParagraph = async () =>
+    (await ctx.page.locator('.ProseMirror p').last().innerText()).trim()
+
+  it('suggest notes as a link is typed, and Enter picks one', async () => {
+    await openNote('index.md', 'See [[Lisbon]]')
+    await ctx.page.locator('.ProseMirror').click()
+    await ctx.page.keyboard.press('Control+End')
+    await ctx.page.keyboard.type(' Also [[lis')
+
+    await expect
+      .poll(() => suggestions().allInnerTexts())
+      .toEqual([expect.stringContaining('Lisbon')])
+    await ctx.page.keyboard.press('Enter')
+    await ctx.page.keyboard.type('!')
+
+    // Closed once, not split into a new paragraph, and the caret after it.
+    await expect.poll(lastParagraph).toMatch(/Also \[\[Lisbon\]\]!$/)
+    expect(await suggestions().count()).toBe(0)
+  })
+
+  it('writes a path where the name alone would lead elsewhere', async () => {
+    await mkdir(join(notes(), 'archive'), { recursive: true })
+    await writeFile(join(notes(), 'archive', 'Porto.md'), '# Old Porto\n', 'utf8')
+    await openNote('index.md', 'See [[Lisbon]]')
+    await ctx.page.locator('.ProseMirror').click()
+    await ctx.page.keyboard.press('Control+End')
+    await ctx.page.keyboard.type(' [[porto')
+
+    await expect.poll(() => suggestions().count()).toBe(2)
+    await ctx.page.keyboard.press('ArrowDown')
+    await ctx.page.keyboard.press('Tab')
+    await expect.poll(lastParagraph).toMatch(/\[\[archive\/Porto\]\]$/)
+  })
+
+  it('close on Escape, and stay closed while that link is typed', async () => {
+    await openNote('index.md', 'See [[Lisbon]]')
+    await ctx.page.locator('.ProseMirror').click()
+    await ctx.page.keyboard.press('Control+End')
+    await ctx.page.keyboard.type(' [[L')
+    await expect.poll(() => suggestions().count()).toBeGreaterThan(0)
+
+    await ctx.page.keyboard.press('Escape')
+    await ctx.page.keyboard.type('is')
+    await nextFrames(ctx)
+    expect(await suggestions().count()).toBe(0)
+    await ctx.page.keyboard.press('Enter')
+    // Enter is the editor's again: a new paragraph.
+    await expect.poll(lastParagraph).toBe('')
   })
 })
