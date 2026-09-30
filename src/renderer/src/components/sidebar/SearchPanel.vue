@@ -8,6 +8,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { cancelSearch, runSearch, setSearchOption, useWorkspace } from '../../stores/workspace'
 import { activeDoc, openPath } from '../../stores/documents'
 import { showMatch } from '../../editor/find'
+import { previewFolderReplace } from '../../stores/replace'
 import type { SearchHit } from '../../../../main/search-worker'
 
 const ws = useWorkspace()
@@ -43,6 +44,10 @@ async function openHit(hit: SearchHit): Promise<void> {
     await new Promise((r) => requestAnimationFrame(r))
   }
 }
+
+const replacement = ref('')
+/** A search worth replacing: long enough, and a pattern that compiles. */
+const canReplace = computed(() => !!ws.root && query.value.trim().length >= 2 && !ws.search.invalid)
 
 /** The ways a search can match, as the find bar has them. */
 const options = [
@@ -86,6 +91,25 @@ const grouped = computed(() => {
         @click="setSearchOption(o.key, !ws.search[o.key])"
       >
         {{ o.text }}
+      </button>
+    </div>
+    <!-- Replace across the folder, shown first as a preview (ReplacePreview). -->
+    <div v-if="ws.root" class="search__box search__box--replace">
+      <input
+        v-model="replacement"
+        class="search__replacement"
+        type="text"
+        placeholder="Replace with…"
+        aria-label="Replace in folder with"
+        @keydown.enter.prevent="canReplace && previewFolderReplace(replacement)"
+      />
+      <button
+        class="search__replace"
+        :disabled="!canReplace"
+        title="See what would change, then replace"
+        @click="previewFolderReplace(replacement)"
+      >
+        Replace…
       </button>
     </div>
 
@@ -152,7 +176,27 @@ const grouped = computed(() => {
 .search__invalid {
   color: var(--warning);
 }
-.search__input {
+.search__box--replace {
+  padding-top: 0;
+}
+.search__replace {
+  flex: none;
+  padding: 0 8px;
+  border: 1px solid var(--sidebar-border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--sidebar-fg);
+  font: inherit;
+  font-size: 12px;
+}
+.search__replace:hover:not(:disabled) {
+  background: var(--sidebar-hover);
+}
+.search__replace:disabled {
+  opacity: 0.6;
+}
+.search__input,
+.search__replacement {
   flex: 1;
   min-width: 0;
   width: 100%;

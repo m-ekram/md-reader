@@ -12,6 +12,7 @@ import FindReplace from './components/FindReplace.vue'
 import WordCountPopover from './components/WordCountPopover.vue'
 import Notifications from './components/Notifications.vue'
 import ContextMenu from './components/ContextMenu.vue'
+import ReplacePreview from './components/ReplacePreview.vue'
 import { commandPalette, preferences, quickOpen } from './stores/ui'
 import { commandForAccel, isEnabled, isRegistered, run } from './commands/registry'
 import { anyDirty, openPath, useDocuments, isDirty, journalKey } from './stores/documents'
@@ -151,6 +152,7 @@ onBeforeUnmount(() => {
     <CommandPalette :open="commandPalette.open" @close="commandPalette.open = false" />
     <PreferencesDialog :open="preferences.open" @close="preferences.open = false" />
     <ContextMenu />
+    <ReplacePreview />
   </div>
 </template>
 

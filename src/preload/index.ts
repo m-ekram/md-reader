@@ -5,6 +5,7 @@ import type { BackupInfo, JournalEntry } from '../main/recovery'
 import type { DirEntry, MarkdownFile } from '../main/workspace'
 import type { FileProperties, SearchFlags } from '../main/ipc/workspace'
 import type { SearchHit } from '../main/search-worker'
+import type { PreviewFile, ReplaceResult, ReplaceSpec } from '../main/replace'
 import type { WatchEvent } from '../main/watcher'
 import type { SaveImageRequest, SaveImageResult } from '../main/ipc/images'
 import type { ExportResult } from '../main/ipc/export'
@@ -66,6 +67,13 @@ const api = {
     start: (query: string, opts: SearchFlags = {}): Promise<number> =>
       ipcRenderer.invoke('search:start', query, opts),
     cancel: (): Promise<void> => ipcRenderer.invoke('search:cancel'),
+    /** The files a replace would change, leaving out `open` (the page has those). */
+    previewReplace: (spec: ReplaceSpec, open: string[]): Promise<PreviewFile[]> =>
+      ipcRenderer.invoke('replace:preview', spec, open),
+    applyReplace: (
+      spec: ReplaceSpec,
+      files: Array<{ path: string; mtimeMs: number }>
+    ): Promise<ReplaceResult> => ipcRenderer.invoke('replace:apply', spec, files),
     onHit: (fn: (payload: { id: number; hit: SearchHit }) => void) => subscribe('search:hit', fn),
     onDone: (fn: (payload: { id: number; found: number }) => void) => subscribe('search:done', fn),
   },

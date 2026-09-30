@@ -72,6 +72,43 @@ export function expandReplacement(
   })
 }
 
+export interface ReplaceSpec extends SearchSpec {
+  replacement: string
+}
+
+/** A line with a match, as it is and as the replacement would make it. */
+export interface ReplaceSample {
+  line: number
+  before: string
+  after: string
+}
+
+/** A text's matches for a replace, with a few sample lines before and after. */
+export function previewText(
+  text: string,
+  re: RegExp,
+  spec: ReplaceSpec,
+  maxSamples = 3
+): { count: number; samples: ReplaceSample[] } {
+  const found = findAll(text, re)
+  const samples: ReplaceSample[] = []
+  const seen = new Set<number>()
+  for (const f of found) {
+    if (samples.length >= maxSamples) break
+    const start = text.lastIndexOf('\n', f.from - 1) + 1
+    if (seen.has(start)) continue
+    seen.add(start)
+    const endAt = text.indexOf('\n', f.to)
+    const before = text.slice(start, endAt < 0 ? text.length : endAt)
+    samples.push({
+      line: text.slice(0, start).split('\n').length,
+      before,
+      after: replaceAllIn(before, re, spec.replacement, spec.regexp === true).text,
+    })
+  }
+  return { count: found.length, samples }
+}
+
 /** Replaces every match, and says how many there were. */
 export function replaceAllIn(
   text: string,

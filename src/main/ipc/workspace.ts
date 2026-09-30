@@ -21,6 +21,7 @@ import { getSettings, patchSettings } from '../settings'
 import { log } from '../log'
 import { resolveInside } from '../paths'
 import { createFile, createFolder, renameEntry } from '../fileops'
+import { applyReplace, previewReplace, type ReplaceSpec } from '../replace'
 
 export interface FileProperties {
   path: string
@@ -102,6 +103,16 @@ export function registerWorkspaceIpc(): void {
   })
 
   ipcMain.handle('search:cancel', (e) => cancelSearch(windowOf(e)))
+
+  // Replace across the open folder: see replace.ts.
+  ipcMain.handle('replace:preview', (_e, spec: ReplaceSpec, open: string[]) =>
+    previewReplace(openFolder(), spec, Array.isArray(open) ? open : [])
+  )
+  ipcMain.handle(
+    'replace:apply',
+    (_e, spec: ReplaceSpec, files: Array<{ path: string; mtimeMs: number }>) =>
+      applyReplace(openFolder(), spec, Array.isArray(files) ? files : [])
+  )
 
   // --- file operations ----------------------------------------------------
 
