@@ -143,6 +143,17 @@ when you hover over it.
 - Type `[[` and the open folder's notes are listed as you type; `Enter` puts
   the name in and closes the link.
 
+### Smaller things
+
+- The status bar shows the caret's line and column in source mode, and
+  "12 of 340 words" when some are selected. Badges show source, read-only,
+  focus and typewriter mode while they are on; click one to turn it off.
+- **Preferences** has a search box, and new settings: the text font, the code
+  font and the line height; how long to wait before saving automatically; the
+  line endings of new documents; the spelling language; and **Clear** for the
+  recent files, also in **File ▸ Open Recent**.
+- Themes' line spacing now reaches the text: paragraphs were all at 1.5.
+
 ### Find and replace, further
 
 - **.\*** in the find bar searches by regular expression, in either view; a

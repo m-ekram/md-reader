@@ -147,7 +147,27 @@ breaks, and strips trailing spaces from the document.
 
 Line endings are shown in the status bar and set per document under
 `Edit ▸ Line Endings`. A file keeps the endings it arrived with unless you
-change them.
+change them. New documents use Windows endings (CRLF) unless you choose Unix
+(LF) in **Preferences ▸ Files**.
+
+## The status bar
+
+Besides the counts, the status bar shows the line and column of the caret in
+source mode, and how many of the words are selected, as in "12 of 340 words".
+Words are counted as you would count them: a `#` or `-` on its own is not one,
+and Chinese and Japanese are counted by character.
+
+While source mode, read-only, focus mode or typewriter mode is on, a badge says
+so; click it to turn that mode off.
+
+## Preferences
+
+Type in the box at the top of **Preferences** to find a setting. Besides the
+text size and width, you can choose the fonts for the text and for code, and
+the line height; **Reset** hands each back to the theme. **Files** sets how long
+typing must pause before an automatic save, the line endings of new documents,
+and clears the list of recent files, including the one in the taskbar.
+**Editing** chooses the language spelling is checked in.
 
 ## Recovering work
 

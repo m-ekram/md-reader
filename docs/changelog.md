@@ -122,6 +122,22 @@
   `Tab` inserts the name, and closes the link unless it already is; the path
   goes in where the name alone would lead to another note. `Esc` keeps it shut
   for that link; nothing opens while an input method is composing.
+- `[[#Heading]]` goes to a heading in the same note.
+
+### Status bar and preferences
+
+- Status bar: Ln and Col in source mode; "n of m words" for a selection in
+  either view; badges for source, read-only, focus and typewriter mode, each
+  turning its mode off. One word count (`utils/words.ts`) for the status bar,
+  the selection and the Word Count panel: CJK by character, and a token with no
+  letter or digit is not a word.
+- Preferences: text font, code font (by family name, checked before it becomes
+  CSS) and line height (1–2.5); the auto-save pause (0.3–10 s); line endings
+  for new documents; the spelling language, checked in main against the
+  session's list; Clear for recent files, also at the end of Open Recent, which
+  clears Windows' recent documents too; a filter box.
+- Paragraphs take the theme's `--doc-line-height`: Crepe's
+  `.milkdown .ProseMirror p { line-height: 1.5 }` outranked it.
 
 ### Find and replace
 
