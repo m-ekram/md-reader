@@ -196,11 +196,9 @@ describe('backups', () => {
     expect(recovery.readBackup('C:/notes/never-saved.md')).toBeNull()
   })
 
-  it('keeps one rolling backup per path', () => {
+  it('reads back the latest of the versions kept', () => {
     recovery.backup('C:/notes/a.md', Buffer.from('first'))
     recovery.backup('C:/notes/a.md', Buffer.from('second'))
-
-    expect(readdirSync(backupDir())).toHaveLength(1)
     expect(recovery.readBackup('C:/notes/a.md')!.toString()).toBe('second')
   })
 
@@ -210,5 +208,69 @@ describe('backups', () => {
 
     expect(recovery.readBackup('C:/notes/a.md')!.toString()).toBe('aaa')
     expect(recovery.readBackup('C:/notes/b.md')!.toString()).toBe('bbb')
+  })
+})
+
+describe('version history', () => {
+  const path = 'C:/notes/a.md'
+  const contents = () =>
+    recovery.listVersions(path).map((v) => recovery.readVersion(path, v.id)!.toString())
+
+  it('keeps each version, newest first', () => {
+    // Only the last one was kept: a save that went wrong twice lost the good
+    // version for good.
+    recovery.backup(path, Buffer.from('one'))
+    recovery.backup(path, Buffer.from('two'))
+    recovery.backup(path, Buffer.from('three'))
+    expect(contents()).toEqual(['three', 'two', 'one'])
+  })
+
+  it('adds nothing for a save that changed nothing since the last version', () => {
+    recovery.backup(path, Buffer.from('same'))
+    recovery.backup(path, Buffer.from('same'))
+    expect(contents()).toEqual(['same'])
+  })
+
+  it('keeps twenty at most, dropping the oldest', () => {
+    for (let i = 1; i <= 25; i++) recovery.backup(path, Buffer.from(`v${i}`))
+    const kept = contents()
+    expect(kept).toHaveLength(20)
+    expect(kept[0]).toBe('v25')
+    expect(kept.at(-1)).toBe('v6')
+  })
+
+  it('keeps ten megabytes at most, but always the newest', () => {
+    const big = (c: string) => Buffer.alloc(4 * 1024 * 1024, c)
+    recovery.backup(path, big('a'))
+    recovery.backup(path, big('b'))
+    recovery.backup(path, big('c'))
+    // Three of 4 MB is 12 MB: the oldest goes.
+    expect(contents().map((c) => c[0])).toEqual(['c', 'b'])
+    recovery.backup(path, Buffer.alloc(11 * 1024 * 1024, 'd'))
+    expect(contents().map((c) => c[0])).toEqual(['d'])
+  })
+
+  it('takes over the single backup an older version kept', async () => {
+    const { createHash } = await import('node:crypto')
+    const key = createHash('sha256').update(path.toLowerCase()).digest('hex').slice(0, 32)
+    const { mkdirSync, writeFileSync } = await import('node:fs')
+    mkdirSync(backupDir(), { recursive: true })
+    writeFileSync(join(backupDir(), `${key}.bak`), 'from before')
+    recovery.backup(path, Buffer.from('new'))
+    expect(contents()).toEqual(['new', 'from before'])
+  })
+
+  it('refuses a version id that is not one, rather than read any file', () => {
+    recovery.backup(path, Buffer.from('one'))
+    expect(recovery.readVersion(path, '../../secrets')).toBeNull()
+    expect(recovery.readVersion(path, 'meta')).toBeNull()
+  })
+
+  it('moves with the file when it is renamed', () => {
+    recovery.backup(path, Buffer.from('kept'))
+    recovery.moveHistory(path, 'C:/notes/renamed.md')
+    expect(recovery.listVersions(path)).toEqual([])
+    const moved = recovery.listVersions('C:/notes/renamed.md')
+    expect(recovery.readVersion('C:/notes/renamed.md', moved[0].id)!.toString()).toBe('kept')
   })
 })
