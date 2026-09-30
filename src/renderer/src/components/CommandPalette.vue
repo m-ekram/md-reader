@@ -9,7 +9,7 @@
  * cannot run is only noise.
  */
 import { computed, nextTick, ref, watch } from 'vue'
-import { flattenMenu, type FlatMenuItem } from '../commands/menus'
+import { EXTRA_COMMANDS, flattenMenu, type FlatMenuItem } from '../commands/menus'
 import { resolvedMenus } from '../commands/dynamic-menu'
 import { commandEpoch, getCommand, isEnabled, isRegistered, run } from '../commands/registry'
 import { fuzzyScore } from '../utils/fuzzy'
@@ -42,8 +42,10 @@ watch(
  */
 const available = computed<FlatMenuItem[]>(() => {
   void commandEpoch.value
-  // With the themes and recent files filled in, so they can be found by name.
-  return flattenMenu(resolvedMenus())
+  // With the themes and recent files filled in, so they can be found by name,
+  // and the few commands that live outside the menu.
+  const extra = EXTRA_COMMANDS.map((c) => ({ id: c.id, label: c.label, path: '', accel: c.accel }))
+  return [...flattenMenu(resolvedMenus()), ...extra]
     .filter((entry) => isRegistered(entry.id))
     .map((entry) => ({ ...entry, label: getCommand(entry.id)?.label ?? entry.label }))
 })

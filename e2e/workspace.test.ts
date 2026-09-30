@@ -258,3 +258,28 @@ describe('a renamed file keeps its tab', () => {
     expect(await ctx.page.locator('.ProseMirror').innerText()).toContain('body text')
   })
 })
+
+describe('Close Folder', () => {
+  const current = () => ctx.page.evaluate(() => window.api.workspace.current())
+
+  it('is in the command palette', async () => {
+    // A folder, once open, could only be swapped for another.
+    await showPanel('files')
+    await ctx.page.keyboard.press('Escape')
+    await ctx.page.keyboard.press('Control+Shift+P')
+    await ctx.page.locator('.palette__input').fill('close folder')
+    await ctx.page.locator('.palette__item', { hasText: 'Close Folder' }).first().click()
+
+    await expect.poll(current).toBeNull()
+    // Nothing left for the sidebar to show, so it goes, as it started.
+    await expect.poll(() => ctx.page.locator('.sidebar').count()).toBe(0)
+  })
+
+  it('is a button beside the folder’s name', async () => {
+    const dir = join(ctx.workdir, 'renames')
+    await ctx.page.evaluate((root) => window.api.workspace.set(root), dir)
+    await showPanel('files')
+    await ctx.page.getByRole('button', { name: 'Close Folder' }).click()
+    await expect.poll(current).toBeNull()
+  })
+})

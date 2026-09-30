@@ -328,17 +328,24 @@ export function allMenuCommandIds(nodes: MenuNode[] = MENUS.flatMap((m) => m.ite
 }
 
 /**
- * Accelerators for commands that have no home in the menu.
+ * Commands that have no home in the menu.
  *
- * The menu is a fixed specification and is not grown to give a shortcut
- * somewhere to live, so the few commands that are keyboard-only are listed
- * here and bound alongside it.
+ * The menu is a fixed specification and is not grown to give a command
+ * somewhere to live, so the few that live elsewhere (a shortcut, a button) are
+ * listed here: bound alongside the menu, and found in the command palette.
  */
-export const EXTRA_ACCELERATORS: Array<{ id: string; accel: string }> = [
-  { id: 'app.commandPalette', accel: 'Ctrl+Shift+P' },
+export const EXTRA_COMMANDS: Array<{ id: string; label: string; accel?: string }> = [
+  { id: 'app.commandPalette', label: 'Command Palette', accel: 'Ctrl+Shift+P' },
   // The way back through the documents Ctrl+Tab goes forward through.
-  { id: 'view.switchDocsBack', accel: 'Ctrl+Shift+Tab' },
+  { id: 'view.switchDocsBack', label: 'Previous Document', accel: 'Ctrl+Shift+Tab' },
+  // A button beside the folder's name in the sidebar.
+  { id: 'file.closeFolder', label: 'Close Folder' },
 ]
+
+/** The ones with a shortcut, to bind. */
+export const EXTRA_ACCELERATORS: Array<{ id: string; accel: string }> = EXTRA_COMMANDS.flatMap(
+  (c) => (c.accel ? [{ id: c.id, accel: c.accel }] : [])
+)
 
 export interface FlatMenuItem {
   id: string

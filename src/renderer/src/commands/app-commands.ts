@@ -258,6 +258,16 @@ const commands: Command[] = [
     },
   },
   {
+    // From the sidebar's header and the palette; the menu has no place for it.
+    // The sidebar goes with the folder, as it was before one was opened.
+    id: 'file.closeFolder',
+    enabled: () => ws.root !== null,
+    run: async () => {
+      await window.api.workspace.set(null)
+      await patchSettings({ sidebar: { visible: false } })
+    },
+  },
+  {
     id: 'file.properties',
     enabled: hasPath,
     run: async () => {

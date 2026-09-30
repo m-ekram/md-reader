@@ -11,6 +11,8 @@ import OutlinePanel from './OutlinePanel.vue'
 import ArticlesPanel from './ArticlesPanel.vue'
 import FileTreePanel from './FileTreePanel.vue'
 import SearchPanel from './SearchPanel.vue'
+import IconClose from '../IconClose.vue'
+import { run } from '../../commands/registry'
 
 type PanelId = 'outline' | 'articles' | 'files' | 'search'
 
@@ -78,7 +80,17 @@ onBeforeUnmount(() => window.removeEventListener('pointermove', onDrag))
       </button>
     </nav>
 
-    <p v-if="ws.root" class="sidebar__root" :title="ws.root">{{ workspaceName }}</p>
+    <div v-if="ws.root" class="sidebar__root">
+      <span class="sidebar__root-name" :title="ws.root">{{ workspaceName }}</span>
+      <button
+        class="sidebar__close"
+        title="Close Folder"
+        aria-label="Close Folder"
+        @click="run('file.closeFolder')"
+      >
+        <IconClose />
+      </button>
+    </div>
 
     <div class="sidebar__body">
       <OutlinePanel v-if="active === 'outline'" />
@@ -138,15 +150,36 @@ onBeforeUnmount(() => window.removeEventListener('pointermove', onDrag))
   outline-offset: -2px;
 }
 .sidebar__root {
-  margin: 0;
-  padding: 5px 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 4px 3px 8px;
   font-size: 11px;
   font-weight: 600;
   color: var(--sidebar-muted);
+  flex: none;
+}
+.sidebar__root-name {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.sidebar__close {
   flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--sidebar-muted);
+}
+.sidebar__close:hover {
+  background: var(--sidebar-hover);
+  color: var(--sidebar-fg);
 }
 .sidebar__body {
   flex: 1;
