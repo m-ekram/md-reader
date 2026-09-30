@@ -137,7 +137,8 @@ const inCodeBlock = (): boolean => caretIn('code_block')
 function copyCode(): void {
   const text = fromView((v) => ancestor(v, 'code_block')?.node.textContent ?? '', '')
   if (!text) return
-  void navigator.clipboard.writeText(text)
+  // Through main, as Copy As is: see view-commands.ts.
+  void window.api.clipboard.write({ text })
   showNotice('Code copied')
 }
 

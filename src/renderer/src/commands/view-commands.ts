@@ -90,20 +90,20 @@ function copiedMarkdown(): string {
   return out ?? currentMarkdown()
 }
 
+/**
+ * Through main: the page's clipboard refuses a write while its window is not
+ * the focused one, and a copy then failed now and then in the test runs, where
+ * several windows are open at once.
+ */
 async function copy(text: string): Promise<void> {
   if (text.length === 0) return
-  await navigator.clipboard.writeText(text)
+  await window.api.clipboard.write({ text })
 }
 
 /** Formatted text for pasting into mail or a word processor, with plain text beside it. */
 async function copyFormatted(html: string, text: string): Promise<void> {
   if (html.length === 0) return
-  await navigator.clipboard.write([
-    new ClipboardItem({
-      'text/html': new Blob([html], { type: 'text/html' }),
-      'text/plain': new Blob([text], { type: 'text/plain' }),
-    }),
-  ])
+  await window.api.clipboard.write({ text, html })
 }
 
 const viewCommands: Command[] = [

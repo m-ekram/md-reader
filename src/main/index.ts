@@ -1,6 +1,8 @@
 import {
   app,
   BrowserWindow,
+  clipboard,
+  ClipboardItem,
   dialog,
   ipcMain,
   Menu,
@@ -268,6 +270,14 @@ function registerAppIpc(): void {
       if (!w.isDestroyed()) w.webContents.send('app:system-dark', nativeTheme.shouldUseDarkColors)
     }
   })
+  // Copy As and Copy Code. Through main because the page's clipboard refuses
+  // a write while its window is not the focused one.
+  ipcMain.handle('clipboard:write', async (_e, data: { text: string; html?: string }) => {
+    const item: Record<string, string> = { 'text/plain': String(data?.text ?? '') }
+    if (typeof data?.html === 'string') item['text/html'] = data.html
+    await clipboard.write([new ClipboardItem(item)])
+  })
+
   ipcMain.on('app:log-error', (_e, message: string) => {
     log.error('renderer', { message: String(message).slice(0, 4000) })
   })

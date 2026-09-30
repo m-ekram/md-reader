@@ -155,6 +155,15 @@ const api = {
     systemDark: (): Promise<boolean> => ipcRenderer.invoke('app:system-dark'),
     onSystemDarkChanged: (fn: (dark: boolean) => void) => subscribe('app:system-dark', fn),
   },
+
+  /**
+   * Writes text, with HTML beside it when given, through main. The page's own
+   * clipboard refuses a write while its window is not the focused one.
+   */
+  clipboard: {
+    write: (data: { text: string; html?: string }): Promise<void> =>
+      ipcRenderer.invoke('clipboard:write', data),
+  },
 }
 
 /** Returns an unsubscribe function, so components can clean up on unmount. */
