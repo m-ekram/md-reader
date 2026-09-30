@@ -189,6 +189,33 @@ async function setFocusMode(value: boolean): Promise<void> {
   await patchEditor({ focusMode: value })
 }
 
+/** The languages spelling can be checked in, by name, read when the dialog opens. */
+const spellingLanguages = ref<Array<{ code: string; name: string }>>([])
+const languageNames = new Intl.DisplayNames(undefined, { type: 'language' })
+watch(
+  () => props.open,
+  async (open) => {
+    if (!open || spellingLanguages.value.length) return
+    const { available } = await window.api.spelling.languages()
+    const named = (code: string): string => {
+      try {
+        return languageNames.of(code) ?? code
+      } catch {
+        return code
+      }
+    }
+    spellingLanguages.value = available
+      .map((code) => ({ code, name: named(code) }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+  },
+  { immediate: true }
+)
+
+async function setSpellingLanguage(code: string): Promise<void> {
+  // Main checks the language and stores it; the change comes back as settings.
+  await window.api.spelling.setLanguage(code || null)
+}
+
 async function setSpellcheck(value: boolean): Promise<void> {
   window.api.window.setSpellcheck(value)
   await patchEditor({ spellcheck: value })
@@ -526,6 +553,21 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
               @change="setSpellcheck(($event.target as HTMLInputElement).checked)"
             />
             <span>Check spelling</span>
+          </label>
+
+          <label class="row">
+            <span class="row__label">Spelling language</span>
+            <select
+              class="row__control"
+              :value="editor.spellcheckLanguage ?? ''"
+              :disabled="!editor.spellcheck"
+              @change="setSpellingLanguage(($event.target as HTMLSelectElement).value)"
+            >
+              <option value="">System default</option>
+              <option v-for="l in spellingLanguages" :key="l.code" :value="l.code">
+                {{ l.name }}
+              </option>
+            </select>
           </label>
 
           <label class="row row--check">

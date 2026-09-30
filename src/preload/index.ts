@@ -138,6 +138,15 @@ const api = {
     onChanged: (fn: (s: SettingsState) => void) => subscribe('settings:changed', fn),
   },
 
+  spelling: {
+    /** The languages spelling can be checked in, and those in force now. */
+    languages: (): Promise<{ available: string[]; current: string[] }> =>
+      ipcRenderer.invoke('spelling:languages'),
+    /** One of `available`, or null for the system's. */
+    setLanguage: (lang: string | null): Promise<SettingsState> =>
+      ipcRenderer.invoke('spelling:set-language', lang),
+  },
+
   themes: {
     list: (): Promise<Array<{ id: string; name: string; builtin: boolean }>> =>
       ipcRenderer.invoke('themes:list'),

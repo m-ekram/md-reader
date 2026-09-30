@@ -223,6 +223,33 @@ describe('preferences dialog', () => {
     await ctx.page.keyboard.press('Escape')
   })
 
+  it('checks spelling in the language chosen, and goes back to the system’s', async () => {
+    const inForce = () =>
+      ctx.app.evaluate(({ session }) => session.defaultSession.getSpellCheckerLanguages())
+    const before = await inForce()
+    const wanted = await ctx.app.evaluate(({ session }) => {
+      const list = session.defaultSession.availableSpellCheckerLanguages
+      return list.find((l) => l.startsWith('fr')) ?? list[0]
+    })
+
+    await openPreferences()
+    const select = ctx.page
+      .locator('.prefs__panel .row')
+      .filter({ hasText: 'Spelling language' })
+      .locator('select')
+    await expect.poll(() => select.locator('option').count()).toBeGreaterThan(1)
+    await select.selectOption(wanted)
+    await expect.poll(inForce).toEqual([wanted])
+    // Stored, for the next launch.
+    await expect
+      .poll(() => ctx.page.evaluate(async () => (await window.api.settings.get()).editor))
+      .toMatchObject({ spellcheckLanguage: wanted })
+
+    await select.selectOption('')
+    await expect.poll(inForce).toEqual(before)
+    await ctx.page.keyboard.press('Escape')
+  })
+
   it('writes new documents with the line endings chosen for them', async () => {
     await openPreferences()
     await ctx.page

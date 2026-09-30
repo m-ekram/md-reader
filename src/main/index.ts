@@ -24,6 +24,7 @@ import { stopWatching, watchRoot } from './watcher'
 import { cancelAllSearches } from './search'
 import { listThemes, readUserTheme, watchUserThemes } from './themes'
 import { flushJournals } from './recovery'
+import { applyStoredSpellingLanguage, registerSpellingIpc } from './spelling'
 import type { SettingsPatch } from '../shared/settings'
 import icon from '../../resources/icon.png?asset'
 
@@ -65,6 +66,8 @@ if (!app.requestSingleInstanceLock()) {
     registerThemeIpc()
     registerWindowIpc()
     registerAppIpc()
+    registerSpellingIpc()
+    applyStoredSpellingLanguage()
 
     createWindow(markdownArgs(process.argv))
 

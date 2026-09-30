@@ -27,6 +27,8 @@ export interface Settings {
     typewriter: boolean
     focusMode: boolean
     spellcheck: boolean
+    /** The language spelling is checked in, such as 'en-GB'; null follows the system. */
+    spellcheckLanguage: string | null
     /** Folder for pasted images, relative to the document. */
     assetsFolder: string
     /** Draws markers for spaces, tabs and line breaks. */
@@ -84,6 +86,7 @@ export const DEFAULT_SETTINGS: Settings = {
     typewriter: false,
     focusMode: false,
     spellcheck: true,
+    spellcheckLanguage: null,
     assetsFolder: 'assets',
     showWhitespace: false,
     smartQuotes: true,
