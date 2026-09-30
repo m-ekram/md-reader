@@ -111,6 +111,19 @@ when you hover over it.
 - A setting changed in Preferences sticks. Changed while something else was
   being saved, it could go back to what it was.
 
+### Long documents and folders
+
+- A long document that opens in source view says why, with **Show Formatted**.
+  In the formatted view, the status bar's "may lag" warning switches to source
+  view when you click it; in source view it no longer shows.
+- The Outline marks the heading you are in, and clicking a heading works in
+  source view too.
+- A folder search result opens its file at that match, selected and with the
+  word in the find bar. **Aa** beside the search box matches case.
+- The file tree shows files and folders made or deleted while the folder is
+  open, and keeps open folders open.
+- **Close Folder**, beside the folder's name and in the command palette.
+
 ### Commands that now do what they say
 
 - **Move Row Up / Down** (`Alt+↑` / `Alt+↓`) move the table row you are in.

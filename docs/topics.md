@@ -9,12 +9,23 @@ every theme, and your recent files.
 `Ctrl+Tab` cycles through open documents. `Ctrl+P` opens a file in the current
 folder by name.
 
+## Working in a folder
+
+The Outline marks the heading you are in, and a click on a heading goes to it in
+either view. A folder search result opens its file at that match, with the word
+in the find bar; **Aa** beside the search box matches case. The file tree
+follows files and folders as they are made or deleted. The **×** beside the
+folder's name, or **Close Folder** in the command palette, closes it.
+
 ## Large documents
 
 Past about five thousand lines the formatted view starts to feel heavy, and the
-status bar says so. `Ctrl+/` switches to source mode, which stays responsive
-because it only renders the part of the file you are looking at. Both views edit
-the same text, so switching costs nothing.
+status bar says so; click the warning, or press `Ctrl+/`, to switch to source
+mode, which stays responsive because it only renders the part of the file you
+are looking at. Both views edit the same text, so switching costs nothing.
+
+Past about ten thousand lines a document opens in source mode by itself, and a
+message says so, with **Show Formatted** if you want the formatted view anyway.
 
 The two thresholds are in `File ▸ Preferences… ▸ Large documents`.
 

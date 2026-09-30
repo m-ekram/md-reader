@@ -80,6 +80,21 @@
 - `--doc-muted` reaches 4.5:1 in every built-in theme; it was 3.5 to 4.4:1 in
   five.
 
+### Long documents and folders
+
+- A document forced into source view by its length says why, with Show
+  Formatted. The status bar's lag warning shows only in the formatted view,
+  beside any other warning, and switches to source view when clicked.
+- The Outline marks the heading the caret is under (`aria-current`); both views
+  report the caret at most once a frame. Its clicks work in source view, by
+  line.
+- Folder search results carry which match in their file they are, and open the
+  file with that match selected and the term in the find bar. Match case (Aa).
+- The file tree follows the disk: the watcher reports folders too, and the tree
+  is read again after any change, keeping open folders open.
+- Close Folder, beside the folder's name and in the palette; commands with no
+  place in the menu carry labels and are listed in the palette.
+
 ### Fixes
 
 - A settings change could be undone by another made at the same moment: each
