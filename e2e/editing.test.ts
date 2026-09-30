@@ -322,8 +322,13 @@ describe('copy as', () => {
     await expect.poll(() => ctx.page.evaluate(() => String(getSelection()))).toBe('alone')
   }
 
-  /** The clipboard's text, with Windows' line endings made plain. */
-  const clipboardText = async () => (await clipboard()).text.replace(/\r\n/g, '\n')
+  /**
+   * The clipboard's text, with Windows' line endings made plain. Read on its
+   * own: reading every format as well now and then hung for over ten seconds
+   * under Xvfb, and the text alone is all these checks need.
+   */
+  const clipboardText = async () =>
+    (await ctx.app.evaluate(({ clipboard: c }) => c.readText())).replace(/\r\n/g, '\n')
 
   it('copies just the selection as plain text', async () => {
     await selectAlone()
