@@ -259,6 +259,17 @@ export function closeDoc(index: number): void {
   invalidateCommands()
 }
 
+/** Moves a tab to another place, keeping the same document in front. */
+export function moveDoc(from: number, to: number): void {
+  const n = state.docs.length
+  if (from === to || from < 0 || to < 0 || from >= n || to >= n) return
+  const active = state.docs[state.activeIndex]
+  const [moved] = state.docs.splice(from, 1)
+  state.docs.splice(to, 0, moved)
+  state.activeIndex = state.docs.indexOf(active)
+  invalidateCommands()
+}
+
 export function setActive(index: number): void {
   state.activeIndex = index
   invalidateCommands()

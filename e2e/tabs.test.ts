@@ -56,6 +56,29 @@ describe('the tabs’ right-click menu', () => {
     expect(await ctx.page.title()).toContain(third)
   })
 
+  it('moves a tab when it is dragged along the strip', async () => {
+    // Tabs stayed in the order they were opened in.
+    while ((await names()).length < 3) await newDocument(ctx)
+    const before = await names()
+    const box = async (name: string) => (await tab(name).boundingBox())!
+
+    const from = await box(before[0])
+    const to = await box(before[2])
+    await ctx.page.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
+    await ctx.page.mouse.down()
+    for (let s = 1; s <= 10; s++) {
+      const x =
+        from.x + from.width / 2 + ((to.x + to.width / 2 - (from.x + from.width / 2)) * s) / 10
+      await ctx.page.mouse.move(x, from.y + from.height / 2)
+    }
+    await ctx.page.mouse.up()
+
+    await expect.poll(names).toEqual([before[1], before[2], before[0], ...before.slice(3)])
+    // A click that does not move is still a click.
+    await tab(before[1]).click()
+    expect(await ctx.page.title()).toContain(before[1])
+  })
+
   it('copies a tab’s path, or says it has none', async () => {
     await newDocument(ctx)
     await tab((await names())[0]).click({ button: 'right' })

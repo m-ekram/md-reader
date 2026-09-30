@@ -172,3 +172,24 @@ describe('closing', () => {
     expect(release).toHaveBeenCalledWith(d.id)
   })
 })
+
+describe('moveDoc', () => {
+  it('moves a tab, keeping the same document in front', () => {
+    docs.adoptFile(someFile({ path: 'C:\\a.md' }))
+    docs.adoptFile(someFile({ path: 'C:\\b.md' }))
+    docs.adoptFile(someFile({ path: 'C:\\c.md' }))
+    docs.setActive(1)
+    docs.moveDoc(0, 2)
+    const s = docs.useDocuments()
+    expect(s.docs.map((d) => d.name)).toEqual(['b.md', 'c.md', 'a.md'])
+    expect(docs.activeDoc.value?.name).toBe('b.md')
+  })
+
+  it('ignores a move to where it is, or out of range', () => {
+    docs.adoptFile(someFile({ path: 'C:\\a.md' }))
+    docs.adoptFile(someFile({ path: 'C:\\b.md' }))
+    docs.moveDoc(1, 1)
+    docs.moveDoc(0, 5)
+    expect(docs.useDocuments().docs.map((d) => d.name)).toEqual(['a.md', 'b.md'])
+  })
+})

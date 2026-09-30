@@ -8,7 +8,7 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import IconClose from './IconClose.vue'
 import { tabLabels } from '../utils/tab-labels'
-import { isDirty, setActive, useDocuments, type Doc } from '../stores/documents'
+import { isDirty, moveDoc, setActive, useDocuments, type Doc } from '../stores/documents'
 import { useWorkspace } from '../stores/workspace'
 import { openContextMenu } from '../stores/context-menu'
 import { run } from '../commands/registry'
@@ -62,6 +62,39 @@ async function closeEach(targets: Doc[]): Promise<void> {
     const at = docs.docs.indexOf(d)
     if (at >= 0 && !(await requestClose(at))) return
   }
+}
+
+/**
+ * Dragging a tab along the strip moves it. Pointer events, not the page's
+ * drag and drop, which is how files dropped on the window are opened. It
+ * starts only after a few pixels, so a click is still a click.
+ */
+let drag: { doc: Doc; startX: number; moved: boolean; pointerId: number } | null = null
+const dragging = ref<string | null>(null)
+
+function onPointerDown(e: PointerEvent, i: number): void {
+  if (e.button !== 0) return
+  drag = { doc: docs.docs[i], startX: e.clientX, moved: false, pointerId: e.pointerId }
+  ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+}
+
+function onPointerMove(e: PointerEvent): void {
+  if (!drag || e.pointerId !== drag.pointerId) return
+  if (!drag.moved && Math.abs(e.clientX - drag.startX) < 5) return
+  drag.moved = true
+  dragging.value = drag.doc.id
+  const from = docs.docs.indexOf(drag.doc)
+  const tabs = [...(strip.value?.querySelectorAll<HTMLElement>('.tab') ?? [])]
+  const to = tabs.findIndex((t) => {
+    const r = t.getBoundingClientRect()
+    return e.clientX >= r.left && e.clientX < r.right
+  })
+  if (from >= 0 && to >= 0 && to !== from) moveDoc(from, to)
+}
+
+function onPointerUp(): void {
+  drag = null
+  dragging.value = null
 }
 
 /** What can be done to a tab from its right-click menu. */
@@ -122,7 +155,7 @@ watch(
       v-for="(d, i) in docs.docs"
       :key="d.id"
       class="tab"
-      :class="{ 'is-active': i === docs.activeIndex }"
+      :class="{ 'is-active': i === docs.activeIndex, 'is-dragging': d.id === dragging }"
     >
       <button
         class="tab__select"
@@ -134,6 +167,10 @@ watch(
         @auxclick.middle="requestClose(i)"
         @keydown="onKeydown($event, i)"
         @contextmenu="onContextMenu($event, i)"
+        @pointerdown="onPointerDown($event, i)"
+        @pointermove="onPointerMove"
+        @pointerup="onPointerUp"
+        @pointercancel="onPointerUp"
       >
         <span class="tab__name">{{ labels[i] }}</span>
         <span v-if="isDirty(d)" class="tab__dot" aria-label="Unsaved changes">•</span>
@@ -209,6 +246,12 @@ watch(
 .tab.is-active {
   background: var(--doc-bg);
   color: var(--doc-fg);
+}
+.tab.is-dragging {
+  opacity: 0.7;
+}
+.tab__select {
+  touch-action: none;
 }
 .tab:hover:not(.is-active) {
   background: var(--chrome-hover);
