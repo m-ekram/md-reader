@@ -1,6 +1,14 @@
 <script setup lang="ts">
 /** One tree row. Self-recursive for nested folders. */
-import { toggleNode, useWorkspace, type TreeNode } from '../../stores/workspace'
+import {
+  commitCreate,
+  folderOf,
+  startCreate,
+  toggleNode,
+  useWorkspace,
+  type TreeNode,
+} from '../../stores/workspace'
+import TreeNameInput from './TreeNameInput.vue'
 import { activeDoc, openPath } from '../../stores/documents'
 import { openContextMenu, type ContextItem } from '../../stores/context-menu'
 
@@ -14,10 +22,15 @@ const isActive = (path: string): boolean =>
 /** What can be done to a file or folder from where it is listed. */
 function onContextMenu(e: MouseEvent, node: TreeNode): void {
   const path = node.entry.path
+  // New things go in the folder clicked, or beside the file clicked.
+  const dir = node.entry.isDirectory ? path : folderOf(path)
   const items: ContextItem[] = node.entry.isDirectory
     ? []
     : [{ label: 'Open', run: () => openPath(path) }, { separator: true }]
   items.push(
+    { label: 'New File', run: () => startCreate('file', dir) },
+    { label: 'New Folder', run: () => startCreate('folder', dir) },
+    { separator: true },
     { label: 'Show in Folder', run: () => window.api.file.showInFolder(path) },
     { label: 'Copy Path', run: () => window.api.clipboard.write({ text: path }) }
   )
@@ -52,6 +65,14 @@ function onContextMenu(e: MouseEvent, node: TreeNode): void {
     </button>
 
     <ul v-if="node.expanded && node.children" class="tree__children" role="group">
+      <li v-if="ws.treeEdit?.dir === node.entry.path" role="none">
+        <TreeNameInput
+          :depth="depth + 1"
+          :label="ws.treeEdit.kind === 'file' ? 'New file name' : 'New folder name'"
+          @commit="commitCreate"
+          @cancel="ws.treeEdit = null"
+        />
+      </li>
       <TreeItem
         v-for="child in node.children"
         :key="child.entry.path"

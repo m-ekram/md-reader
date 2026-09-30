@@ -103,6 +103,11 @@ const api = {
     move: (path: string): Promise<string | null> => ipcRenderer.invoke('fileops:move', path),
     delete: (path: string): Promise<boolean> => ipcRenderer.invoke('fileops:delete', path),
     parentDir: (path: string): Promise<string> => ipcRenderer.invoke('fileops:parent-dir', path),
+    /** In the open folder only; `.md` is added. Resolves to the new file's path. */
+    createFile: (dir: string, name: string): Promise<string> =>
+      ipcRenderer.invoke('fileops:create-file', dir, name),
+    createFolder: (dir: string, name: string): Promise<string> =>
+      ipcRenderer.invoke('fileops:create-folder', dir, name),
   },
 
   settings: {

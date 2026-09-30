@@ -1,8 +1,9 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest'
-import { mkdir, rename, rm, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { openFile, useApp, waitForText, watcherReady } from './helpers'
+import { noticeTexts, openFile, useApp, waitForText, watcherReady } from './helpers'
 
 /**
  * The opened folder: sidebar panels, search, watching and renames.
@@ -106,6 +107,45 @@ describe('workspace, sidebar and watching', () => {
     await menu.waitFor({ state: 'visible' })
     await ctx.page.keyboard.press('Escape')
     await menu.waitFor({ state: 'detached' })
+  })
+
+  it('makes files and folders from the right-click menu, never over one', async () => {
+    // Files could be made only outside the app.
+    const panel = ctx.page.locator('.tree-panel')
+    const below = async () => {
+      const box = (await panel.boundingBox())!
+      await panel.click({ button: 'right', position: { x: 30, y: box.height - 10 } })
+    }
+    const choose = async (label: string) => {
+      await ctx.page.locator('.context-menu [role="menuitem"]', { hasText: label }).click()
+    }
+    const nameBox = ctx.page.locator('.tree__name-input')
+
+    await below()
+    await choose('New Folder')
+    await nameBox.fill('made-here')
+    await nameBox.press('Enter')
+    await expect.poll(() => existsSync(join(notes(), 'made-here'))).toBe(true)
+
+    await ctx.page.locator('.tree__item', { hasText: 'made-here' }).click({ button: 'right' })
+    await choose('New File')
+    await nameBox.fill('fresh-note')
+    await nameBox.press('Enter')
+    await expect.poll(() => existsSync(join(notes(), 'made-here', 'fresh-note.md'))).toBe(true)
+    // Open, and ready to type in.
+    await expect.poll(() => ctx.page.title()).toContain('fresh-note.md')
+    await ctx.page.keyboard.type('Written straight away.')
+    await waitForText(ctx, 'Written straight away.')
+
+    // A name that is taken: said, and the file left alone.
+    await below()
+    await choose('New File')
+    await nameBox.fill('second')
+    await nameBox.press('Enter')
+    await expect
+      .poll(async () => (await noticeTexts(ctx)).join(' '))
+      .toContain('second.md is already there')
+    expect(await readFile(join(notes(), 'second.md'), 'utf8')).toContain('Second note')
   })
 
   it('expands a folder lazily and opens a nested file', async () => {

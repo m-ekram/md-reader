@@ -8,8 +8,16 @@
  */
 import { computed, nextTick, ref } from 'vue'
 import NoFolder from './NoFolder.vue'
-import { toggleNode, useWorkspace, type TreeNode } from '../../stores/workspace'
+import {
+  commitCreate,
+  startCreate,
+  toggleNode,
+  useWorkspace,
+  type TreeNode,
+} from '../../stores/workspace'
+import { openContextMenu } from '../../stores/context-menu'
 import TreeItem from './TreeItem.vue'
+import TreeNameInput from './TreeNameInput.vue'
 
 const ws = useWorkspace()
 const list = ref<HTMLElement | null>(null)
@@ -57,6 +65,15 @@ async function focusRow(node: TreeNode | null | undefined): Promise<void> {
   row?.focus()
 }
 
+function onPanelMenu(e: MouseEvent): void {
+  const root = ws.root
+  if (!root) return
+  openContextMenu(e, [
+    { label: 'New File', run: () => startCreate('file', root) },
+    { label: 'New Folder', run: () => startCreate('folder', root) },
+  ])
+}
+
 async function onKeydown(e: KeyboardEvent): Promise<void> {
   const rows = visible(ws.tree)
   const at = rows.findIndex(
@@ -87,10 +104,25 @@ async function onKeydown(e: KeyboardEvent): Promise<void> {
 </script>
 
 <template>
-  <div class="panel">
+  <!-- Right-click on the space around the rows: new things at the top level. -->
+  <div class="panel tree-panel" @contextmenu="onPanelMenu">
     <NoFolder v-if="!ws.root" />
-    <p v-else-if="ws.tree.length === 0" class="panel__empty">Empty folder</p>
-    <ul v-else ref="list" class="tree" role="tree" aria-label="Files" @keydown="onKeydown">
+    <TreeNameInput
+      v-else-if="ws.treeEdit?.dir === ws.root"
+      :depth="0"
+      :label="ws.treeEdit.kind === 'file' ? 'New file name' : 'New folder name'"
+      @commit="commitCreate"
+      @cancel="ws.treeEdit = null"
+    />
+    <p v-if="ws.root && ws.tree.length === 0" class="panel__empty">Empty folder</p>
+    <ul
+      v-else-if="ws.root"
+      ref="list"
+      class="tree"
+      role="tree"
+      aria-label="Files"
+      @keydown="onKeydown"
+    >
       <TreeItem
         v-for="node in ws.tree"
         :key="node.entry.path"
@@ -103,6 +135,10 @@ async function onKeydown(e: KeyboardEvent): Promise<void> {
 </template>
 
 <style scoped>
+/* The whole panel, so a right-click below the last row is on it. */
+.tree-panel {
+  min-height: 100%;
+}
 .tree {
   list-style: none;
   margin: 0;

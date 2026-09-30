@@ -20,6 +20,7 @@ import { clearJournal } from '../recovery'
 import { getSettings, patchSettings } from '../settings'
 import { log } from '../log'
 import { resolveInside } from '../paths'
+import { createFile, createFolder } from '../fileops'
 
 export interface FileProperties {
   path: string
@@ -135,6 +136,18 @@ export function registerWorkspaceIpc(): void {
     clearJournal(path)
     log.info('trashed file', { path })
     return true
+  })
+
+  // From the sidebar, inside the open folder only: see fileops.ts.
+  ipcMain.handle('fileops:create-file', async (_e, dir: string, name: string) => {
+    const path = await createFile(openFolder(), dir, name)
+    log.info('created file', { path })
+    return path
+  })
+  ipcMain.handle('fileops:create-folder', async (_e, dir: string, name: string) => {
+    const path = await createFolder(openFolder(), dir, name)
+    log.info('created folder', { path })
+    return path
   })
 
   ipcMain.handle('fileops:parent-dir', (_e, path: string) => dirname(path))

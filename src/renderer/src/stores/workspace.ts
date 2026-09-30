@@ -9,6 +9,8 @@ import { watch } from 'vue'
 import { invalidateCommands } from '../commands/registry'
 import { useSettingsStore } from './settings'
 import { showNotice } from './ui'
+import { openPath } from './documents'
+import { describeError } from '../utils/report'
 
 export interface TreeNode {
   entry: DirEntry
@@ -23,6 +25,8 @@ const state = reactive({
   tree: [] as TreeNode[],
   /** The tree row last focused: the one Tab returns to. */
   treeFocus: '',
+  /** A name being typed in the tree: for a new file or folder in `dir`. */
+  treeEdit: null as null | { kind: 'file' | 'folder'; dir: string },
   articles: [] as MarkdownFile[],
   loadingArticles: false,
   search: {
@@ -112,6 +116,51 @@ export async function refreshTree(): Promise<void> {
     if (state.root === root) state.tree = tree
   } catch {
     // The folder itself has gone; opening it again says so.
+  }
+}
+
+/** The folder a path is in. */
+export function folderOf(path: string): string {
+  return path.slice(0, Math.max(path.lastIndexOf('\\'), path.lastIndexOf('/')))
+}
+
+function findNode(path: string, nodes = state.tree): TreeNode | null {
+  for (const n of nodes) {
+    if (n.entry.path === path) return n
+    const inner = n.children ? findNode(path, n.children) : null
+    if (inner) return inner
+  }
+  return null
+}
+
+/**
+ * Asks for the name of a new file or folder, in the tree where it will go.
+ * The folder is opened first, so the name box shows among its contents.
+ */
+export async function startCreate(kind: 'file' | 'folder', dir: string): Promise<void> {
+  const node = findNode(dir)
+  if (node && !node.expanded) await toggleNode(node)
+  state.treeEdit = { kind, dir }
+}
+
+/**
+ * Makes the file or folder named. A new file opens, ready to type in. A name
+ * that is taken or not allowed is said, and nothing is made.
+ */
+export async function commitCreate(name: string): Promise<void> {
+  const edit = state.treeEdit
+  state.treeEdit = null
+  if (!edit || !name.trim()) return
+  try {
+    const path =
+      edit.kind === 'file'
+        ? await window.api.fileops.createFile(edit.dir, name.trim())
+        : await window.api.fileops.createFolder(edit.dir, name.trim())
+    await refreshTree()
+    void refreshArticles()
+    if (edit.kind === 'file') await openPath(path)
+  } catch (err) {
+    showNotice(describeError(err), 'error')
   }
 }
 
