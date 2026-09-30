@@ -248,6 +248,17 @@
 }
 
 /*
+ * [[Wiki links]]: a decoration over text, in the link colour, dotted rather
+ * than underlined so it does not read as an ordinary link. Ctrl+click follows
+ * it; a plain click places the caret, so the brackets stay editable.
+ */
+.milkdown .ProseMirror .wiki-link {
+  color: var(--doc-accent);
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+
+/*
  * Show Whitespace.
  *
  * Markers are drawn as backgrounds on a decoration span rather than inserted

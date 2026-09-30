@@ -39,6 +39,7 @@ import { mark } from '../utils/startup'
 import { codeTheme } from './code-theme'
 import { labelTopBar } from './toolbar'
 import { keepWikiLinks } from './wiki-links'
+import { wikiLinkPlugin } from './wiki-decorations'
 import { historyClock } from './history-clock'
 
 /**
@@ -175,6 +176,8 @@ export async function createEditor(opts: {
   onChange(markdown: string): void
   /** How many top-level headings precede the caret, less one; at most once a frame. */
   onCaret?(headingIndex: number): void
+  /** A `[[wiki link]]` Ctrl+clicked, as written. */
+  onWikiLink?(link: string): void
 }): Promise<EditorHandle> {
   const documentDir = (): string | null => directoryOf(opts.documentPath?.() ?? null)
 
@@ -238,6 +241,8 @@ export async function createEditor(opts: {
     .use(typewriterPlugin)
     .use(punctuationPlugin)
     .use(whitespacePlugin)
+    // [[Wiki links]] marked, and followed with Ctrl+click. See wiki-decorations.ts.
+    .use($prose(() => wikiLinkPlugin((link) => opts.onWikiLink?.(link))))
     // Undo steps by the time that passed, not the wall clock. See history-clock.ts.
     .use($prose(() => historyClock()))
     // Refuses any change to a readonly document, whoever asks for it.
