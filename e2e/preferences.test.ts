@@ -113,7 +113,10 @@ describe('preferences dialog', () => {
 
   it('refuses an assets folder that would write outside the document folder', async () => {
     await openPreferences()
-    const field = ctx.page.locator('.prefs__panel input[type="text"]').first()
+    // By label: Appearance has text fields too.
+    const assetsField = () =>
+      ctx.page.locator('.prefs__panel .row').filter({ hasText: 'Assets folder' }).locator('input')
+    const field = assetsField()
     const before = await field.inputValue()
 
     await field.fill('../elsewhere')
@@ -126,9 +129,60 @@ describe('preferences dialog', () => {
     // document, and an escaping path is the one thing this setting must not do.
     await ctx.page.keyboard.press('Escape')
     await openPreferences()
-    expect(await ctx.page.locator('.prefs__panel input[type="text"]').first().inputValue()).toBe(
-      before
-    )
+    expect(await assetsField().inputValue()).toBe(before)
+    await ctx.page.keyboard.press('Escape')
+  })
+
+  it('sets the text font, the code font and the line height, and gives them back', async () => {
+    const file = join(ctx.workdir, 'fonts.md')
+    await writeFile(file, '# Fonts\n\nSome `code` here.\n', 'utf8')
+    await openFile(ctx, file)
+    await waitForText(ctx, 'Some code here.')
+    const computed = (selector: string, prop: 'fontFamily' | 'lineHeight' | 'fontSize') =>
+      ctx.page
+        .locator(selector)
+        .first()
+        .evaluate((el, p) => getComputedStyle(el)[p], prop)
+    const themeFont = await computed('.ProseMirror p', 'fontFamily')
+    const themeLineHeight = await computed('.ProseMirror p', 'lineHeight')
+    // The theme's own line height reaches the text: Crepe's 1.5 on every
+    // paragraph used to outrank it.
+    expect(themeLineHeight).toBe(await computed('.milkdown', 'lineHeight'))
+
+    await openPreferences()
+    const input = (label: string) =>
+      ctx.page.locator('.prefs__panel .row').filter({ hasText: label }).locator('input')
+    await input('Text font').fill('Georgia')
+    await input('Text font').press('Enter')
+    await input('Code font').fill('Courier New')
+    await input('Code font').press('Enter')
+    await input('Line height').fill('2')
+    await input('Line height').press('Enter')
+
+    await expect.poll(() => computed('.ProseMirror p', 'fontFamily')).toMatch(/^"?Georgia"?,/)
+    await expect
+      .poll(() => computed('.ProseMirror code', 'fontFamily'))
+      .toMatch(/^"?Courier New"?,/)
+    const size = parseFloat(await computed('.ProseMirror p', 'fontSize'))
+    await expect
+      .poll(async () => parseFloat(await computed('.ProseMirror p', 'lineHeight')))
+      .toBe(size * 2)
+
+    // A name that would break out of the declaration is refused, and the
+    // field shows what is in force.
+    await input('Text font').fill('Arial; color: red')
+    await input('Text font').press('Enter')
+    await expect.poll(() => input('Text font').inputValue()).toBe('Georgia')
+
+    for (const label of ['Text font', 'Code font', 'Line height']) {
+      await ctx.page
+        .locator('.prefs__panel .row')
+        .filter({ hasText: label })
+        .getByRole('button', { name: 'Reset' })
+        .click()
+    }
+    await expect.poll(() => computed('.ProseMirror p', 'fontFamily')).toBe(themeFont)
+    await expect.poll(() => computed('.ProseMirror p', 'lineHeight')).toBe(themeLineHeight)
     await ctx.page.keyboard.press('Escape')
   })
 

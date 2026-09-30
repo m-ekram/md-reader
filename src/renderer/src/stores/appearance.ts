@@ -36,16 +36,51 @@ export function validWidth(v: unknown): number | 'full' | null {
     : null
 }
 
+export const LINE_HEIGHT_MIN = 1
+export const LINE_HEIGHT_MAX = 2.5
+
+/**
+ * A font family name, or null when there is none or it is not one.
+ *
+ * Only a name: letters, digits, spaces and a few marks. It goes into a CSS
+ * value, where a quote, semicolon or brace would end the declaration and
+ * start another.
+ */
+export function validFontFamily(v: unknown): string | null {
+  if (typeof v !== 'string') return null
+  const name = v.trim()
+  return /^[\p{L}\p{N} ._-]{1,64}$/u.test(name) ? name : null
+}
+
+/** A stored line height, to the nearest 0.05, or null. */
+export function validLineHeight(v: unknown): number | null {
+  if (typeof v !== 'number' || !Number.isFinite(v)) return null
+  const clamped = Math.min(LINE_HEIGHT_MAX, Math.max(LINE_HEIGHT_MIN, v))
+  return Math.round(clamped * 20) / 20
+}
+
+function setOrClear(name: string, value: string | null): void {
+  const root = document.documentElement.style
+  if (value === null) root.removeProperty(name)
+  else root.setProperty(name, value)
+}
+
 /** Writes the reader's choices onto the root element, or clears them. */
 export function applyAppearance(editor: Editor = DEFAULT_SETTINGS.editor): void {
-  const root = document.documentElement.style
   const size = validFontSize(editor.fontSize)
-  if (size === null) root.removeProperty('--doc-font-size')
-  else root.setProperty('--doc-font-size', `${size}px`)
+  setOrClear('--doc-font-size', size === null ? null : `${size}px`)
 
   const width = validWidth(editor.contentWidth)
-  if (width === null) root.removeProperty('--doc-measure')
-  else root.setProperty('--doc-measure', width === 'full' ? 'none' : `${width}px`)
+  setOrClear('--doc-measure', width === null ? null : width === 'full' ? 'none' : `${width}px`)
+
+  // A fallback of the same kind, for a font this machine does not have.
+  const text = validFontFamily(editor.fontFamily)
+  setOrClear('--doc-font', text === null ? null : `"${text}", system-ui, sans-serif`)
+  const code = validFontFamily(editor.codeFontFamily)
+  setOrClear('--code-font', code === null ? null : `"${code}", ui-monospace, monospace`)
+
+  const lineHeight = validLineHeight(editor.lineHeight)
+  setOrClear('--doc-line-height', lineHeight === null ? null : String(lineHeight))
 }
 
 /**

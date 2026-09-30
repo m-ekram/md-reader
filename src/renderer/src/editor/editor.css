@@ -49,6 +49,14 @@
 .milkdown p {
   margin: 0.85em 0;
 }
+/*
+ * Crepe sets 1.5 on every paragraph, with a selector that outranked the
+ * theme's line height on .milkdown: no theme's ever reached the text. The
+ * same selector, loaded after Crepe's, puts it back.
+ */
+.milkdown .ProseMirror p {
+  line-height: var(--doc-line-height);
+}
 .milkdown a {
   color: var(--doc-accent);
 }

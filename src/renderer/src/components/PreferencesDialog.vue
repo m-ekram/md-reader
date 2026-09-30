@@ -25,9 +25,13 @@ import { useFocusTrap } from '../composables/useFocusTrap'
 import {
   FONT_MAX,
   FONT_MIN,
+  LINE_HEIGHT_MAX,
+  LINE_HEIGHT_MIN,
   WIDTH_MAX,
   WIDTH_MIN,
   effectiveFontSize,
+  validFontFamily,
+  validLineHeight,
   validWidth,
 } from '../stores/appearance'
 
@@ -87,6 +91,55 @@ async function setWidthKind(kind: string): Promise<void> {
   if (kind === 'theme') await setContentWidth(null)
   else if (kind === 'full') await setContentWidth('full')
   else await setContentWidth(currentColumnWidth())
+}
+
+/** Fonts most Windows machines have, offered as the field is typed in; any installed name works. */
+const FONT_FIELDS = [
+  {
+    key: 'fontFamily',
+    label: 'Text font',
+    choices: [
+      'Segoe UI',
+      'Calibri',
+      'Cambria',
+      'Candara',
+      'Constantia',
+      'Georgia',
+      'Palatino Linotype',
+      'Sitka Text',
+      'Times New Roman',
+      'Verdana',
+    ],
+  },
+  {
+    key: 'codeFontFamily',
+    label: 'Code font',
+    choices: ['Cascadia Code', 'Cascadia Mono', 'Consolas', 'Courier New', 'Lucida Console'],
+  },
+] as const
+
+/**
+ * A font is stored by name alone. A value that is not one is put back to what
+ * is stored, as the assets folder is: a field showing a font not in force
+ * would mislead.
+ */
+async function setFontFamily(
+  key: 'fontFamily' | 'codeFontFamily',
+  el: HTMLInputElement
+): Promise<void> {
+  if (!el.value.trim()) {
+    await patchEditor({ [key]: null })
+    return
+  }
+  const name = validFontFamily(el.value)
+  el.value = name ?? settings.value.editor[key] ?? ''
+  if (name) await patchEditor({ [key]: name })
+}
+
+async function setLineHeight(el: HTMLInputElement): Promise<void> {
+  const value = el.value.trim() === '' ? null : validLineHeight(Number(el.value))
+  el.value = value === null ? '' : String(value)
+  await patchEditor({ lineHeight: value })
 }
 
 function setTheme(id: string): Promise<void> {
@@ -325,6 +378,54 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
           <p class="hint">
             View ▸ Zoom and Ctrl+wheel change the text size too. Exports keep the theme’s layout.
           </p>
+
+          <div v-for="f in FONT_FIELDS" :key="f.key" class="row">
+            <span class="row__label">{{ f.label }}</span>
+            <input
+              class="row__control"
+              type="text"
+              :list="`${f.key}-choices`"
+              :value="editor[f.key] ?? ''"
+              placeholder="Theme default"
+              :aria-label="f.label"
+              spellcheck="false"
+              @change="setFontFamily(f.key, $event.target as HTMLInputElement)"
+            />
+            <datalist :id="`${f.key}-choices`">
+              <option v-for="name in f.choices" :key="name" :value="name" />
+            </datalist>
+            <button
+              class="row__reset"
+              :disabled="editor[f.key] === null"
+              :title="`Use the theme’s ${f.label.toLowerCase()}`"
+              @click="patchEditor({ [f.key]: null })"
+            >
+              Reset
+            </button>
+          </div>
+
+          <div class="row">
+            <span class="row__label">Line height</span>
+            <input
+              class="row__control row__control--num"
+              type="number"
+              :min="LINE_HEIGHT_MIN"
+              :max="LINE_HEIGHT_MAX"
+              step="0.05"
+              :value="editor.lineHeight ?? ''"
+              placeholder="Theme"
+              aria-label="Line height"
+              @change="setLineHeight($event.target as HTMLInputElement)"
+            />
+            <button
+              class="row__reset"
+              :disabled="editor.lineHeight === null"
+              title="Use the theme’s line height"
+              @click="patchEditor({ lineHeight: null })"
+            >
+              Reset
+            </button>
+          </div>
 
           <label class="row row--check">
             <input

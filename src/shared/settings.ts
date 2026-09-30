@@ -39,6 +39,12 @@ export interface Settings {
     fontSize: number | null
     /** Column width in px, or 'full' for the whole pane; null keeps the theme's. */
     contentWidth: number | 'full' | null
+    /** The text's font, by family name; null keeps the theme's. */
+    fontFamily: string | null
+    /** The font for code, by family name; null keeps the theme's. */
+    codeFontFamily: string | null
+    /** Line height as a multiple of the text size; null keeps the theme's. */
+    lineHeight: number | null
   }
   statusBar: boolean
   /** The formatting toolbar above the document. */
@@ -81,6 +87,9 @@ export const DEFAULT_SETTINGS: Settings = {
     smartEllipses: true,
     fontSize: null,
     contentWidth: null,
+    fontFamily: null,
+    codeFontFamily: null,
+    lineHeight: null,
   },
   statusBar: true,
   toolbar: false,
