@@ -11,6 +11,7 @@ import { useWorkspace } from '../stores/workspace'
 import { openPath } from '../stores/documents'
 import type { MarkdownFile } from '../../../main/workspace'
 import { fuzzyScore } from '../utils/fuzzy'
+import { useFocusTrap } from '../composables/useFocusTrap'
 
 const props = defineProps<{ open: boolean }>()
 const emit = defineEmits<{ close: [] }>()
@@ -19,6 +20,8 @@ const ws = useWorkspace()
 const query = ref('')
 const selected = ref(0)
 const input = ref<HTMLInputElement | null>(null)
+const panel = ref<HTMLElement | null>(null)
+useFocusTrap(panel, () => props.open)
 
 watch(
   () => props.open,
@@ -89,7 +92,7 @@ function onKeydown(e: KeyboardEvent): void {
 
 <template>
   <div v-if="open" class="quick" @pointerdown.self="emit('close')">
-    <div class="quick__panel" role="dialog" aria-label="Open Quickly" aria-modal="true">
+    <div ref="panel" class="quick__panel" role="dialog" aria-label="Open Quickly" aria-modal="true">
       <input
         ref="input"
         v-model="query"

@@ -347,3 +347,39 @@ describe('brief messages', () => {
     expect((await noticeTexts(ctx)).join(' ')).toContain('second-missing')
   })
 })
+
+describe('dialogs give the focus back', () => {
+  it('to the document, so typing goes on where it was', async () => {
+    // Escape from the palette or Preferences left the focus on the page
+    // itself: the next keystrokes went nowhere. (Open Quickly, which needs a
+    // folder, shares the code; the workspace suite has one.)
+    await newDocument(ctx)
+    await ctx.page.keyboard.type('Before.')
+    await waitForText(ctx, 'Before.')
+
+    for (const open of ['Control+Shift+P', 'Control+,']) {
+      await ctx.page.keyboard.press(open)
+      await ctx.page.waitForSelector('.palette__panel, .quick__panel, .prefs__panel', {
+        state: 'visible',
+      })
+      await ctx.page.keyboard.press('Escape')
+      await ctx.page.waitForSelector('.palette__panel, .quick__panel, .prefs__panel', {
+        state: 'detached',
+      })
+      await ctx.page.keyboard.type(' x')
+    }
+    // At the end, where the caret was: focusing the editor alone put it first.
+    await waitForText(ctx, 'Before. x x')
+  })
+
+  it('and keep Tab inside while they are open', async () => {
+    await ctx.page.keyboard.press('Control+,')
+    await ctx.page.waitForSelector('.prefs__panel', { state: 'visible' })
+    // Past every control in the dialog, and then some.
+    for (let i = 0; i < 80; i++) await ctx.page.keyboard.press('Tab')
+    expect(await ctx.page.evaluate(() => !!document.activeElement?.closest('.prefs__panel'))).toBe(
+      true
+    )
+    await ctx.page.keyboard.press('Escape')
+  })
+})

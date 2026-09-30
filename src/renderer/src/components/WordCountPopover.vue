@@ -7,9 +7,14 @@
  * stay off the typing path.
  */
 import IconClose from './IconClose.vue'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { activeDoc } from '../stores/documents'
 import { uiState } from '../stores/ui'
+import { useFocusTrap } from '../composables/useFocusTrap'
+
+// Not modal, so Tab is free to leave; the focus still comes back on close.
+const panel = ref<HTMLElement | null>(null)
+useFocusTrap(panel, () => uiState.wordCountOpen, { trap: false })
 
 const stats = computed(() => {
   const text = activeDoc.value?.content ?? ''
@@ -38,6 +43,7 @@ const stats = computed(() => {
 <template>
   <div
     v-if="uiState.wordCountOpen"
+    ref="panel"
     class="wordcount"
     role="dialog"
     aria-label="Word count"

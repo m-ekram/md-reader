@@ -21,6 +21,7 @@ import { setShowWhitespace } from '../editor/whitespace'
 import { setEditorModes } from '../editor/typewriter'
 import { invalidateCommands } from '../commands/registry'
 import { refreshDecorations } from '../editor/view'
+import { useFocusTrap } from '../composables/useFocusTrap'
 import {
   FONT_MAX,
   FONT_MIN,
@@ -36,6 +37,7 @@ const emit = defineEmits<{ close: [] }>()
 const settings = useSettingsStore()
 const themes = useThemeStore()
 const panel = ref<HTMLElement | null>(null)
+useFocusTrap(panel, () => props.open)
 
 watch(
   () => props.open,

@@ -13,6 +13,7 @@ import { EXTRA_COMMANDS, flattenMenu, type FlatMenuItem } from '../commands/menu
 import { resolvedMenus } from '../commands/dynamic-menu'
 import { commandEpoch, getCommand, isEnabled, isRegistered, run } from '../commands/registry'
 import { fuzzyScore } from '../utils/fuzzy'
+import { useFocusTrap } from '../composables/useFocusTrap'
 
 const props = defineProps<{ open: boolean }>()
 const emit = defineEmits<{ close: [] }>()
@@ -21,6 +22,8 @@ const query = ref('')
 const selected = ref(0)
 const input = ref<HTMLInputElement | null>(null)
 const list = ref<HTMLElement | null>(null)
+const panel = ref<HTMLElement | null>(null)
+useFocusTrap(panel, () => props.open)
 
 watch(
   () => props.open,
@@ -126,7 +129,13 @@ function onKeydown(e: KeyboardEvent): void {
 
 <template>
   <div v-if="open" class="palette" @pointerdown.self="emit('close')">
-    <div class="palette__panel" role="dialog" aria-label="Command palette" aria-modal="true">
+    <div
+      ref="panel"
+      class="palette__panel"
+      role="dialog"
+      aria-label="Command palette"
+      aria-modal="true"
+    >
       <input
         ref="input"
         v-model="query"
