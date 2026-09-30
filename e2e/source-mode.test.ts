@@ -144,3 +144,43 @@ describe('commands in a document shown as source', () => {
     ).toBe(0)
   })
 })
+
+describe('the outline in source view', () => {
+  it('scrolls to the heading clicked', async () => {
+    // It looked for the heading in the formatted view, which is not on screen
+    // in source view, so a click did nothing.
+    const body = Array.from({ length: 300 }, (_, i) => `Filler line ${i + 1}.`).join('\n\n')
+    const file = join(ctx.workdir, 'outline-source.md')
+    await writeFile(file, `# Top\n\n${body}\n\n## Far Down\n\nThe end.\n`, 'utf8')
+    // Opened in source view by the threshold, whatever an earlier test left it at.
+    await ctx.page.evaluate(() =>
+      window.api.settings.patch({
+        editor: { sourceModeForceLines: 3 },
+        sidebar: { visible: true, panel: 'outline' },
+      })
+    )
+    await openFile(ctx, file)
+    await ctx.page
+      .locator('.cm-content', { hasText: '# Top' })
+      .waitFor({ state: 'visible', timeout: 15_000 })
+
+    await ctx.page.locator('.outline__item', { hasText: 'Far Down' }).click()
+
+    await expect
+      .poll(() =>
+        ctx.page.evaluate(() => {
+          const line = [...document.querySelectorAll('.cm-line')].find((l) =>
+            l.textContent?.includes('## Far Down')
+          )
+          // The pane scrolls, not CodeMirror's own scroller, which is as tall
+          // as the document.
+          const scroller = document.querySelector('.editor-scroll')
+          if (!line || !scroller) return false
+          const a = line.getBoundingClientRect()
+          const b = scroller.getBoundingClientRect()
+          return a.top >= b.top && a.bottom <= b.bottom
+        })
+      )
+      .toBe(true)
+  })
+})

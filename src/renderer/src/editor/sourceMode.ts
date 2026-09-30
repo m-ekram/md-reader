@@ -37,6 +37,8 @@ export interface SourceHandle {
   find: FindBackend
   /** Readonly, as the formatted view is for the same document. */
   setReadonly(readonly: boolean): void
+  /** Puts the caret at the start of a 1-based line and scrolls it to the top. */
+  revealLine(line: number): void
   destroy(): void
 }
 
@@ -182,6 +184,15 @@ export function createSourceEditor(opts: {
     find: sourceFind(view),
     setReadonly: (readonly) =>
       view.dispatch({ effects: readonlyCompartment.reconfigure(readonlyExtensions(readonly)) }),
+    revealLine: (line) => {
+      const { doc } = view.state
+      const at = doc.line(Math.min(Math.max(1, line), doc.lines)).from
+      view.dispatch({
+        selection: { anchor: at },
+        effects: EditorView.scrollIntoView(at, { y: 'start', yMargin: 16 }),
+      })
+      view.focus()
+    },
     destroy: () => view.destroy(),
   }
 }

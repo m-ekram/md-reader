@@ -3,15 +3,29 @@
 import { computed } from 'vue'
 import { extractHeadings, plainHeadingText } from '../../editor/outline'
 import { activeDoc } from '../../stores/documents'
+import { shownSourceFor } from '../../editor/source-registry'
 
 const headings = computed(() => (activeDoc.value ? extractHeadings(activeDoc.value.content) : []))
 
 /**
- * Scrolling is by heading text rather than line number: the rendered document
- * has no line numbers, and matching the heading element's text is both simple
- * and robust to the editor reflowing.
+ * In source view, by line: the heading's line is known, and the formatted
+ * view it used to search is not on screen, so a click did nothing.
  */
-function goTo(text: string, occurrence: number): void {
+function goTo(index: number): void {
+  const doc = activeDoc.value
+  const h = headings.value[index]
+  if (!doc || !h) return
+  const source = doc.sourceMode ? shownSourceFor(doc.id) : null
+  if (source) source.revealLine(h.line)
+  else goToRendered(h.text, occurrenceOf(index))
+}
+
+/**
+ * In the formatted view, by heading text rather than line number: the rendered
+ * document has no line numbers, and matching the heading element's text is
+ * both simple and robust to the editor reflowing.
+ */
+function goToRendered(text: string, occurrence: number): void {
   const wanted = plainHeadingText(text).toLowerCase()
   const nodes = document.querySelectorAll(
     '.ProseMirror h1, .ProseMirror h2, .ProseMirror h3, .ProseMirror h4, .ProseMirror h5, .ProseMirror h6'
@@ -46,7 +60,7 @@ function occurrenceOf(index: number): number {
           class="outline__item"
           :style="{ paddingLeft: `${6 + (h.level - 1) * 12}px` }"
           :class="`outline__item--h${h.level}`"
-          @click="goTo(h.text, occurrenceOf(i))"
+          @click="goTo(i)"
         >
           {{ plainHeadingText(h.text) }}
         </button>
