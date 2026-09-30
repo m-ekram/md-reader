@@ -30,6 +30,13 @@ export interface FileProperties {
   modifiedMs: number
 }
 
+/** How the folder search matches. */
+export interface SearchFlags {
+  caseSensitive?: boolean
+  regexp?: boolean
+  wholeWord?: boolean
+}
+
 /** The folder the sidebar shows; an error when there is none. */
 function openFolder(): string {
   const root = getSettings().workspace
@@ -82,10 +89,16 @@ export function registerWorkspaceIpc(): void {
 
   // --- search -------------------------------------------------------------
 
-  ipcMain.handle('search:start', async (e, query: string, caseSensitive?: boolean) => {
+  ipcMain.handle('search:start', async (e, query: string, opts: SearchFlags = {}) => {
     const root = getSettings().workspace
     if (!root) return -1
-    return startSearch(windowOf(e), { root, query, caseSensitive })
+    return startSearch(windowOf(e), {
+      root,
+      query,
+      caseSensitive: opts.caseSensitive === true,
+      regexp: opts.regexp === true,
+      wholeWord: opts.wholeWord === true,
+    })
   })
 
   ipcMain.handle('search:cancel', (e) => cancelSearch(windowOf(e)))

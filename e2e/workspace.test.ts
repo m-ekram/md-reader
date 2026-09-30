@@ -318,6 +318,43 @@ describe('workspace, sidebar and watching', () => {
     await expect.poll(() => ctx.page.locator('.results__hit').count(), { timeout: 15_000 }).toBe(2)
   })
 
+  it('searches by pattern and by whole word, and reads UTF-16 files', async () => {
+    // The folder search took text only, and read every file as UTF-8: a
+    // UTF-16 file looked like binary and was never searched.
+    const utf16 = Buffer.concat([
+      Buffer.from([0xff, 0xfe]),
+      Buffer.from('# Wide\n\nA lighthouse in UTF-16.\n', 'utf16le'),
+    ])
+    await writeFile(join(notes(), 'wide.md'), utf16)
+    const previews = () => ctx.page.locator('.results__preview').allInnerTexts()
+    const button = (name: string) => ctx.page.getByRole('button', { name })
+
+    await ctx.page.locator('.search__input').fill('lighthouse')
+    await expect
+      .poll(previews, { timeout: 15_000 })
+      .toContainEqual(expect.stringContaining('in UTF-16'))
+
+    await button('Regular expression').click()
+    await ctx.page.locator('.search__input').fill('light(house|s)?\\b')
+    await expect.poll(async () => (await previews()).length, { timeout: 15_000 }).toBe(3)
+
+    // A pattern that will not compile says so, instead of finding nothing.
+    await ctx.page.locator('.search__input').fill('light(')
+    await expect
+      .poll(() => ctx.page.locator('.sidebar').innerText(), { timeout: 15_000 })
+      .toContain('Invalid pattern')
+    await button('Regular expression').click()
+
+    // "light" alone is part of every lighthouse, but no whole word.
+    await ctx.page.locator('.search__input').fill('light')
+    await expect.poll(async () => (await previews()).length, { timeout: 15_000 }).toBe(3)
+    await button('Whole word').click()
+    await expect
+      .poll(() => ctx.page.locator('.sidebar').innerText(), { timeout: 15_000 })
+      .toContain('No matches')
+    await button('Whole word').click()
+  })
+
   it('reloads a clean document when the file changes on disk', async () => {
     await showPanel('articles')
     await ctx.page.locator('.articles__item', { hasText: 'first.md' }).first().click()

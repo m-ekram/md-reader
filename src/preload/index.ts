@@ -3,7 +3,7 @@ import type { DocumentFile, SaveRequest, SaveResult, WindowState } from '../shar
 import type { SettingsPatch, SettingsState } from '../shared/settings'
 import type { BackupInfo, JournalEntry } from '../main/recovery'
 import type { DirEntry, MarkdownFile } from '../main/workspace'
-import type { FileProperties } from '../main/ipc/workspace'
+import type { FileProperties, SearchFlags } from '../main/ipc/workspace'
 import type { SearchHit } from '../main/search-worker'
 import type { WatchEvent } from '../main/watcher'
 import type { SaveImageRequest, SaveImageResult } from '../main/ipc/images'
@@ -63,8 +63,8 @@ const api = {
   },
 
   search: {
-    start: (query: string, caseSensitive?: boolean): Promise<number> =>
-      ipcRenderer.invoke('search:start', query, caseSensitive),
+    start: (query: string, opts: SearchFlags = {}): Promise<number> =>
+      ipcRenderer.invoke('search:start', query, opts),
     cancel: (): Promise<void> => ipcRenderer.invoke('search:cancel'),
     onHit: (fn: (payload: { id: number; hit: SearchHit }) => void) => subscribe('search:hit', fn),
     onDone: (fn: (payload: { id: number; found: number }) => void) => subscribe('search:done', fn),

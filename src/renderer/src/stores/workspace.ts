@@ -12,6 +12,7 @@ import { showNotice } from './ui'
 import { openPath } from './documents'
 import { followMove } from './external-changes'
 import { describeError } from '../utils/report'
+import { compileSearch } from '../../../shared/text-search'
 
 export interface TreeNode {
   entry: DirEntry
@@ -40,6 +41,11 @@ const state = reactive({
     query: '',
     /** Match case; off by default, as the find bar's is. */
     caseSensitive: false,
+    wholeWord: false,
+    /** The query is a regular expression. */
+    regexp: false,
+    /** Why the query is not a pattern, when it is meant to be one; else ''. */
+    invalid: '',
     hits: [] as SearchHit[],
     running: false,
     truncated: false,
@@ -291,8 +297,14 @@ export async function runSearch(query: string): Promise<void> {
   state.search.query = query
   state.search.hits = []
   state.search.truncated = false
+  const { caseSensitive, regexp, wholeWord } = state.search
+  // Said here, before any walk: in the worker a bad pattern finds nothing,
+  // which looked like a search that found nothing.
+  const compiled =
+    regexp && query ? compileSearch({ query, regexp, caseSensitive, wholeWord }) : null
+  state.search.invalid = compiled && !compiled.ok ? compiled.error : ''
 
-  if (query.trim().length < 2) {
+  if (query.trim().length < 2 || state.search.invalid) {
     // One character matches nearly everything; the walk would be wasted work.
     state.search.running = false
     await window.api.search.cancel()
@@ -301,12 +313,15 @@ export async function runSearch(query: string): Promise<void> {
   }
 
   state.search.running = true
-  currentSearchId = await window.api.search.start(query, state.search.caseSensitive)
+  currentSearchId = await window.api.search.start(query, { caseSensitive, regexp, wholeWord })
 }
 
-/** Turns match case on or off, and searches again. */
-export async function setSearchCase(on: boolean): Promise<void> {
-  state.search.caseSensitive = on
+/** Turns an option (match case, whole word, pattern) on or off, and searches again. */
+export async function setSearchOption(
+  option: 'caseSensitive' | 'regexp' | 'wholeWord',
+  on: boolean
+): Promise<void> {
+  state.search[option] = on
   await runSearch(state.search.query)
 }
 

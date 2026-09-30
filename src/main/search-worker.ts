@@ -12,11 +12,15 @@
 import { parentPort, workerData } from 'node:worker_threads'
 import { readdir, readFile, stat } from 'node:fs/promises'
 import { join, relative, sep } from 'node:path'
+import { compileSearch, findAll } from '../shared/text-search'
+import { decodeTextBuffer, detectEncoding } from './fs/textfile'
 
 export interface SearchRequest {
   root: string
   query: string
   caseSensitive: boolean
+  regexp?: boolean
+  wholeWord?: boolean
   ignores: string[]
   maxFileBytes: number
   maxResults: number
@@ -69,34 +73,41 @@ export function looksBinary(buf: Buffer): boolean {
 export function findMatches(
   text: string,
   query: string,
-  opts: { caseSensitive?: boolean; limit?: number } = {}
+  opts: { caseSensitive?: boolean; regexp?: boolean; wholeWord?: boolean; limit?: number } = {}
 ): Array<{ line: number; column: number; preview: string; ordinal: number }> {
-  const needle = opts.caseSensitive ? query : query.toLowerCase()
-  if (needle.length === 0) return []
-
+  // The same patterns as the find bar and replace across the folder. A
+  // pattern that will not compile finds nothing: the page says why.
+  const compiled = compileSearch({ query, ...opts })
+  if (!compiled.ok) return []
   const limit = opts.limit ?? Infinity
-  const hay = opts.caseSensitive ? text : text.toLowerCase()
-  // Whole-file check first: most files in a notes folder do not match at all.
-  if (!hay.includes(needle)) return []
 
-  const lines = text.split(/\r?\n/)
   const out: Array<{ line: number; column: number; preview: string; ordinal: number }> = []
-  /** Matches on the lines before this one. */
-  let before = 0
-
-  for (let i = 0; i < lines.length && out.length < limit; i++) {
-    const line = lines[i]
-    const searched = opts.caseSensitive ? line : line.toLowerCase()
-    const column = searched.indexOf(needle)
-    if (column < 0) continue
+  let lineNo = 1
+  let lineStart = 0
+  let lastLine = 0
+  const matches = findAll(text, compiled.re)
+  for (let ordinal = 0; ordinal < matches.length && out.length < limit; ordinal++) {
+    const { from } = matches[ordinal]
+    // Move down to the line the match starts on.
+    for (
+      let nl = text.indexOf('\n', lineStart);
+      nl >= 0 && nl < from;
+      nl = text.indexOf('\n', lineStart)
+    ) {
+      lineStart = nl + 1
+      lineNo++
+    }
+    // One hit per line, the first match on it, which is what the panel shows.
+    if (lineNo === lastLine) continue
+    lastLine = lineNo
+    const end = text.indexOf('\n', lineStart)
+    const line = text.slice(lineStart, end < 0 ? text.length : end).replace(/\r$/, '')
     out.push({
-      line: i + 1,
-      column,
+      line: lineNo,
+      column: from - lineStart,
       preview: line.length > PREVIEW_LIMIT ? line.slice(0, PREVIEW_LIMIT) + '…' : line,
-      ordinal: before,
+      ordinal,
     })
-    // Every match on the line, not overlapping, as find counts them.
-    for (let at = column; at >= 0; at = searched.indexOf(needle, at + needle.length)) before++
   }
   return out
 }
@@ -124,10 +135,16 @@ if (parentPort && workerData) {
     } catch {
       return
     }
-    if (looksBinary(buf)) return
+    // Decoded as opening decodes it. Read as UTF-8, a UTF-16 file was full of
+    // NUL bytes, taken for binary and never searched.
+    const { encoding } = detectEncoding(buf)
+    if (encoding === 'utf8' && looksBinary(buf)) return
+    const text = decodeTextBuffer(buf).content
 
-    const matches = findMatches(buf.toString('utf8'), req.query, {
+    const matches = findMatches(text, req.query, {
       caseSensitive: req.caseSensitive,
+      regexp: req.regexp,
+      wholeWord: req.wholeWord,
       limit: req.maxResults - found,
     })
 

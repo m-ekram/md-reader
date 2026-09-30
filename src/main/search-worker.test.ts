@@ -117,4 +117,21 @@ describe('findMatches', () => {
     expect(hit.line).toBe(1)
     expect(hit.preview).toContain('日本語')
   })
+
+  it('takes a regular expression, and counts its matches for the ordinal', () => {
+    // The folder search took text only.
+    const hits = findMatches('v1.2 and v3.4\nnone\nv5.6', 'v\\d\\.\\d', { regexp: true })
+    expect(hits.map((h) => [h.line, h.column, h.ordinal])).toEqual([
+      [1, 0, 0],
+      [3, 0, 2],
+    ])
+  })
+
+  it('matches whole words only when asked', () => {
+    expect(findMatches('denote a note\nnotes', 'note', { wholeWord: true })).toHaveLength(1)
+  })
+
+  it('finds nothing for a pattern that will not compile', () => {
+    expect(findMatches('a(b', 'a(', { regexp: true })).toEqual([])
+  })
 })

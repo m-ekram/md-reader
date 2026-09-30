@@ -244,14 +244,18 @@ function act(action: FindAction): void {
  * Opens the find bar on a term and selects one of its matches: where a folder
  * search result leads. False when the active document is not on screen yet.
  */
-export function showMatch(query: string, index: number, caseSensitive = false): boolean {
+export function showMatch(
+  query: string,
+  index: number,
+  opts: { caseSensitive?: boolean; regexp?: boolean; wholeWord?: boolean } = {}
+): boolean {
   const b = backend()
   if (!b) return false
+  // Matched as the folder search matched it.
   findState.query = query
-  findState.caseSensitive = caseSensitive
-  findState.wholeWord = false
-  // The folder search matched the text as written.
-  findState.regexp = false
+  findState.caseSensitive = opts.caseSensitive === true
+  findState.wholeWord = opts.wholeWord === true
+  findState.regexp = opts.regexp === true
   findState.open = true
   show(b.selectMatch(index, spec()))
   return true

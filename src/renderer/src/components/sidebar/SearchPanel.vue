@@ -5,7 +5,7 @@
  */
 import NoFolder from './NoFolder.vue'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { cancelSearch, runSearch, setSearchCase, useWorkspace } from '../../stores/workspace'
+import { cancelSearch, runSearch, setSearchOption, useWorkspace } from '../../stores/workspace'
 import { activeDoc, openPath } from '../../stores/documents'
 import { showMatch } from '../../editor/find'
 import type { SearchHit } from '../../../../main/search-worker'
@@ -32,17 +32,24 @@ onBeforeUnmount(() => {
  * found again.
  */
 async function openHit(hit: SearchHit): Promise<void> {
-  const { query, caseSensitive } = ws.search
+  const { query, caseSensitive, regexp, wholeWord } = ws.search
   // The find bar takes the focus, not the document.
   const doc = await openPath(hit.path, { focus: false })
   if (!doc) return
   // The view is built after the document comes to the front.
   const deadline = performance.now() + 10_000
-  while (!showMatch(query, hit.ordinal, caseSensitive)) {
+  while (!showMatch(query, hit.ordinal, { caseSensitive, regexp, wholeWord })) {
     if (performance.now() > deadline || activeDoc.value?.id !== doc.id) return
     await new Promise((r) => requestAnimationFrame(r))
   }
 }
+
+/** The ways a search can match, as the find bar has them. */
+const options = [
+  { key: 'caseSensitive', text: 'Aa', label: 'Match case' },
+  { key: 'wholeWord', text: 'ab', label: 'Whole word' },
+  { key: 'regexp', text: '.*', label: 'Regular expression' },
+] as const
 
 /** Group hits by file so a file with many matches reads as one block. */
 const grouped = computed(() => {
@@ -68,19 +75,28 @@ const grouped = computed(() => {
         :disabled="!ws.root"
       />
       <button
+        v-for="o in options"
+        :key="o.key"
         class="search__case"
-        :class="{ 'is-on': ws.search.caseSensitive }"
-        title="Match case"
-        aria-label="Match case"
-        :aria-pressed="ws.search.caseSensitive"
+        :class="{ 'is-on': ws.search[o.key] }"
+        :title="o.label"
+        :aria-label="o.label"
+        :aria-pressed="ws.search[o.key]"
         :disabled="!ws.root"
-        @click="setSearchCase(!ws.search.caseSensitive)"
+        @click="setSearchOption(o.key, !ws.search[o.key])"
       >
-        Aa
+        {{ o.text }}
       </button>
     </div>
 
     <NoFolder v-if="!ws.root" />
+    <p
+      v-else-if="ws.search.invalid"
+      class="panel__empty search__invalid"
+      :title="ws.search.invalid"
+    >
+      Invalid pattern
+    </p>
     <p v-else-if="query.trim().length < 2" class="panel__empty">Type at least two characters</p>
     <p v-else-if="ws.search.running && grouped.length === 0" class="panel__empty">Searching…</p>
     <p v-else-if="grouped.length === 0" class="panel__empty">No matches</p>
@@ -132,6 +148,9 @@ const grouped = computed(() => {
 }
 .search__case:disabled {
   opacity: 0.6;
+}
+.search__invalid {
+  color: var(--warning);
 }
 .search__input {
   flex: 1;

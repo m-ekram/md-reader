@@ -17,6 +17,8 @@ export interface SearchOptions {
   root: string
   query: string
   caseSensitive?: boolean
+  regexp?: boolean
+  wholeWord?: boolean
 }
 
 interface Running {
@@ -43,6 +45,8 @@ export async function startSearch(win: BrowserWindow, opts: SearchOptions): Prom
         root: opts.root,
         query: opts.query,
         caseSensitive: opts.caseSensitive ?? false,
+        regexp: opts.regexp === true,
+        wholeWord: opts.wholeWord === true,
         ignores: [...ignores],
         maxFileBytes: MAX_FILE_BYTES,
         maxResults: MAX_RESULTS,
