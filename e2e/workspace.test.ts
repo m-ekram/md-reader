@@ -243,6 +243,14 @@ describe('Open Quickly', () => {
 
     await ctx.page.locator('.quick__input').fill('second')
     await expect.poll(async () => (await allText('.quick__name')())[0]).toBe('second.md')
+    // A combobox naming its highlighted file, for a screen reader.
+    expect(
+      await ctx.page.evaluate(() => {
+        const input = document.querySelector('.quick__input')!
+        const id = input.getAttribute('aria-activedescendant')
+        return `${input.getAttribute('role')} ${id ? document.getElementById(id)?.textContent : ''}`
+      })
+    ).toMatch(/^combobox second\.md/)
 
     await ctx.page.keyboard.press('Enter')
     await waitForText(ctx, 'Second note')

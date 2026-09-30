@@ -122,3 +122,22 @@ describe('CommandPalette reach', () => {
     expect(rows()[0]?.textContent).toContain('Open Recent')
   })
 })
+
+describe('CommandPalette for a screen reader', () => {
+  it('is a combobox that names the highlighted result', async () => {
+    // The highlight moved with the arrow keys, but nothing told a screen
+    // reader: the focus stays in the box, and the box said nothing of the list.
+    await search('quote')
+    const input = host.querySelector('input') as HTMLInputElement
+    expect(input.getAttribute('role')).toBe('combobox')
+    expect(input.getAttribute('aria-expanded')).toBe('true')
+    const list = host.querySelector('[role="listbox"]') as HTMLElement
+    expect(input.getAttribute('aria-controls')).toBe(list.id)
+
+    const current = () => document.getElementById(input.getAttribute('aria-activedescendant')!)
+    expect(current()).toBe(rows()[0])
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }))
+    await nextTick()
+    expect(current()).toBe(rows()[1])
+  })
+})

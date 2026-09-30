@@ -100,15 +100,21 @@ function onKeydown(e: KeyboardEvent): void {
         type="text"
         placeholder="Open quickly…"
         aria-label="File name"
+        role="combobox"
+        aria-autocomplete="list"
+        :aria-expanded="results.length > 0"
+        aria-controls="quick-results"
+        :aria-activedescendant="results.length > 0 ? `quick-option-${selected}` : undefined"
         @keydown="onKeydown"
       />
 
       <p v-if="!ws.root" class="quick__empty">No folder open</p>
       <p v-else-if="results.length === 0" class="quick__empty">No matching files</p>
 
-      <ul v-else class="quick__list" role="listbox">
+      <ul v-else id="quick-results" class="quick__list" role="listbox" aria-label="Files">
         <li
           v-for="(r, i) in results"
+          :id="`quick-option-${i}`"
           :key="r.file.path"
           class="quick__item"
           role="option"

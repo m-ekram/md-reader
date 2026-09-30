@@ -136,6 +136,10 @@ function onKeydown(e: KeyboardEvent): void {
       aria-label="Command palette"
       aria-modal="true"
     >
+      <!--
+        A combobox: the focus stays in the box, and it names the highlighted
+        result, so a screen reader follows the arrow keys.
+      -->
       <input
         ref="input"
         v-model="query"
@@ -143,14 +147,27 @@ function onKeydown(e: KeyboardEvent): void {
         type="text"
         placeholder="Run a command…"
         aria-label="Command"
+        role="combobox"
+        aria-autocomplete="list"
+        :aria-expanded="results.length > 0"
+        aria-controls="palette-results"
+        :aria-activedescendant="results.length > 0 ? `palette-option-${selected}` : undefined"
         @keydown="onKeydown"
       />
 
       <p v-if="results.length === 0" class="palette__empty">No matching command</p>
 
-      <ul v-else ref="list" class="palette__list" role="listbox">
+      <ul
+        v-else
+        id="palette-results"
+        ref="list"
+        class="palette__list"
+        role="listbox"
+        aria-label="Commands"
+      >
         <li
           v-for="(r, i) in results"
+          :id="`palette-option-${i}`"
           :key="r.entry.id"
           class="palette__item"
           role="option"
