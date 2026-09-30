@@ -8,12 +8,16 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import IconClose from './IconClose.vue'
 import { tabLabels } from '../utils/tab-labels'
-import { isDirty, setActive, useDocuments } from '../stores/documents'
+import { isDirty, setActive, useDocuments, type Doc } from '../stores/documents'
+import { useWorkspace } from '../stores/workspace'
+import { openContextMenu } from '../stores/context-menu'
+import { run } from '../commands/registry'
 // Not the store's closeDoc, which removes a document without asking: this is
 // the prompting path, the same one Ctrl+W takes.
 import { requestClose } from '../commands/app-commands'
 
 const docs = useDocuments()
+const ws = useWorkspace()
 const strip = ref<HTMLElement | null>(null)
 /** File names, with folders added where two open files share one. */
 const labels = computed(() => tabLabels(docs.docs))
@@ -47,6 +51,52 @@ async function onKeydown(e: KeyboardEvent, i: number): Promise<void> {
   }
   await nextTick()
   strip.value?.querySelector<HTMLElement>('.tab.is-active .tab__select')?.focus()
+}
+
+/**
+ * Closes documents one after another, as Ctrl+W would, asking about unsaved
+ * work; Cancel on any stops the rest. By identity: indexes shift as tabs close.
+ */
+async function closeEach(targets: Doc[]): Promise<void> {
+  for (const d of targets) {
+    const at = docs.docs.indexOf(d)
+    if (at >= 0 && !(await requestClose(at))) return
+  }
+}
+
+/** What can be done to a tab from its right-click menu. */
+function onContextMenu(e: MouseEvent, i: number): void {
+  const doc = docs.docs[i]
+  const path = doc.path
+  const inFolder = !!path && !!ws.root && path.toLowerCase().startsWith(ws.root.toLowerCase())
+  openContextMenu(e, [
+    { label: 'Close', run: () => closeEach([doc]) },
+    { label: 'Close Others', run: () => closeEach(docs.docs.filter((d) => d !== doc)) },
+    {
+      label: 'Close to the Right',
+      run: () => closeEach(docs.docs.slice(docs.docs.indexOf(doc) + 1)),
+    },
+    { label: 'Close Saved', run: () => closeEach(docs.docs.filter((d) => !isDirty(d))) },
+    { separator: true },
+    {
+      label: 'Copy Path',
+      disabled: !path,
+      run: () => path && window.api.clipboard.write({ text: path }),
+    },
+    {
+      label: 'Reveal in Sidebar',
+      disabled: !inFolder,
+      run: () => {
+        setActive(docs.docs.indexOf(doc))
+        return run('file.revealInSidebar')
+      },
+    },
+    {
+      label: 'Show in Folder',
+      disabled: !path,
+      run: () => path && window.api.file.showInFolder(path),
+    },
+  ])
 }
 
 watch(
@@ -83,6 +133,7 @@ watch(
         @click="setActive(i)"
         @auxclick.middle="requestClose(i)"
         @keydown="onKeydown($event, i)"
+        @contextmenu="onContextMenu($event, i)"
       >
         <span class="tab__name">{{ labels[i] }}</span>
         <span v-if="isDirty(d)" class="tab__dot" aria-label="Unsaved changes">•</span>
