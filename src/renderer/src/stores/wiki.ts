@@ -73,6 +73,11 @@ async function createNote(name: string, besideDocPath: string | null): Promise<v
 export async function followWikiLink(link: string, fromDocId: string): Promise<void> {
   const ws = useWorkspace()
   const { name, heading } = parseWikiTarget(link)
+  // `[[#Heading]]`: a heading in this note, folder or not.
+  if (!name) {
+    if (heading) await revealHeading(fromDocId, heading)
+    return
+  }
   if (!ws.root) {
     notify(`Open the folder your notes are in to follow [[${name}]].`)
     return

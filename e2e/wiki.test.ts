@@ -17,6 +17,7 @@ const notes = () => join(ctx.workdir, 'notes')
 /** Day 2 is far enough down that reaching it means scrolling. */
 const PORTO = [
   '# Porto',
+  'Jump to [[#Day 2]].',
   '## Day 1',
   ...Array.from({ length: 60 }, (_, i) => `Walked along street ${i + 1}.`),
   '## Day 2',
@@ -69,23 +70,34 @@ describe('wiki links', () => {
     await waitForText(ctx, 'Tiles.')
   })
 
+  /** Day 2 is on screen, and not only in the document. */
+  const day2InView = () =>
+    ctx.page.evaluate(() => {
+      const scroller = document.querySelector('.editor-scroll')!.getBoundingClientRect()
+      const heading = [...document.querySelectorAll('.ProseMirror h2')].find(
+        (h) => h.textContent === 'Day 2'
+      )
+      if (!heading) return false
+      const r = heading.getBoundingClientRect()
+      return r.top >= scroller.top && r.bottom <= scroller.bottom
+    })
+
   it('open at the heading after #', async () => {
     await openNote('index.md', 'See [[Lisbon]]')
     await link('the second day').click({ modifiers: ['Control'] })
     await waitForText(ctx, 'The river.')
+    await expect.poll(day2InView).toBe(true)
+  })
 
-    // Day 2 is on screen, and not only in the document.
-    const inView = () =>
-      ctx.page.evaluate(() => {
-        const scroller = document.querySelector('.editor-scroll')!.getBoundingClientRect()
-        const heading = [...document.querySelectorAll('.ProseMirror h2')].find(
-          (h) => h.textContent === 'Day 2'
-        )
-        if (!heading) return false
-        const r = heading.getBoundingClientRect()
-        return r.top >= scroller.top && r.bottom <= scroller.bottom
-      })
-    await expect.poll(inView).toBe(true)
+  it('go to a heading in the same note', async () => {
+    await openNote('trips/Porto.md', 'Jump to [[#Day 2]]')
+    await ctx.page.locator('.editor-scroll').evaluate((el) => (el.scrollTop = 0))
+    expect(await day2InView()).toBe(false)
+
+    await link('[[#Day 2]]').click({ modifiers: ['Control'] })
+    await expect.poll(day2InView).toBe(true)
+    // And nothing offered to be made.
+    expect(await noticeTexts(ctx)).not.toContainEqual(expect.stringContaining('No note'))
   })
 
   it('offer to make a note that is not there', async () => {
