@@ -12,6 +12,7 @@ import { bindAccelerators, invalidateCommands, registerAll, type Command } from 
 import {
   activeDoc,
   adoptFile,
+  requestEditorFocus,
   anyDirty,
   closeDoc,
   isDirty,
@@ -141,7 +142,7 @@ export async function saveInPlace(d: Doc & { path: string }): Promise<SaveResult
 async function openFiles(): Promise<void> {
   const files = await window.api.file.openDialog()
   if (!files) return
-  for (const f of files) adoptFile(f)
+  for (const f of files) requestEditorFocus(adoptFile(f).id)
 }
 
 /**
@@ -496,7 +497,7 @@ export function registerRecentCommands(): void {
         const path = settings.value.recentFiles[i]
         if (!path) return
         try {
-          adoptFile(await window.api.file.read(path))
+          requestEditorFocus(adoptFile(await window.api.file.read(path)).id)
         } catch (err) {
           if (!/ENOENT/.test(String(err))) throw err
           // Moved or deleted since: say so, and stop offering it.

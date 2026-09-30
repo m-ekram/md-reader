@@ -8,10 +8,18 @@
  * round-trip guard the first time a document is opened.
  */
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { acquire, release, releaseAll } from '../editor/pool'
+import { acquire, editorFor, release, releaseAll } from '../editor/pool'
 import type { SourceHandle } from '../editor/sourceMode'
 import { checkRoundTrip } from '../editor/roundtrip'
-import { activeDoc, journalKey, useDocuments, type Doc } from '../stores/documents'
+import {
+  activeDoc,
+  focusWanted,
+  journalKey,
+  takeEditorFocus,
+  useDocuments,
+  type Doc,
+} from '../stores/documents'
+import { editorViewCtx } from '@milkdown/kit/core'
 import { isDarkTheme } from '../utils/dark'
 import { clearShownSource, setShownSource } from '../editor/source-registry'
 import { invalidateCommands } from '../commands/registry'
@@ -74,6 +82,9 @@ async function showSource(doc: Doc, token: number): Promise<void> {
   // Find and the other commands reach it through the registry, by document.
   setShownSource(doc.id, source)
   invalidateCommands()
+  shownId = doc.id
+  // It always takes the focus, so a request for it is met.
+  takeEditorFocus(doc.id)
   source.view.focus()
 }
 
@@ -93,6 +104,7 @@ async function show(): Promise<void> {
   const doc = activeDoc.value
   if (!host.value) return
 
+  shownId = ''
   teardownSource()
 
   if (!doc) {
@@ -142,7 +154,23 @@ async function show(): Promise<void> {
   // document marked readonly would come back editable after a tab switch.
   pooled.handle.setReadonly(doc.readonly)
   runGuard(doc, pooled.handle.reserialize)
+  shownId = doc.id
+  // Opened to be worked on: ready to type in. See requestEditorFocus.
+  if (takeEditorFocus(doc.id)) focusShown()
 }
+
+/** The document on screen, once its view is up; '' while one is being built. */
+let shownId = ''
+
+function focusShown(): void {
+  if (source) source.view.focus()
+  else editorFor(shownId)?.crepe.editor.action((ctx) => ctx.get(editorViewCtx).focus())
+}
+
+// A file opened again while it is already in front shows nothing new.
+watch(focusWanted, (id) => {
+  if (id && id === shownId && takeEditorFocus(id)) focusShown()
+})
 
 onMounted(show)
 onBeforeUnmount(() => {

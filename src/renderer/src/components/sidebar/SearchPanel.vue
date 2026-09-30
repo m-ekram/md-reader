@@ -33,7 +33,8 @@ onBeforeUnmount(() => {
  */
 async function openHit(hit: SearchHit): Promise<void> {
   const { query, caseSensitive } = ws.search
-  const doc = await openPath(hit.path)
+  // The find bar takes the focus, not the document.
+  const doc = await openPath(hit.path, { focus: false })
   if (!doc) return
   // The view is built after the document comes to the front.
   const deadline = performance.now() + 10_000

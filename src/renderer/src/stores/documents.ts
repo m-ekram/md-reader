@@ -5,7 +5,7 @@
  * A document carries the file's original format (encoding, BOM, line endings) so
  * a save reproduces those rather than imposing our own.
  */
-import { reactive, computed } from 'vue'
+import { reactive, computed, ref } from 'vue'
 import type { DocumentFile } from '../../../shared/ipc'
 import { invalidateCommands, run } from '../commands/registry'
 import { notify } from './notifications'
@@ -213,15 +213,37 @@ function explainForcedSource(d: Doc): void {
 }
 
 /**
+ * A document whose editor should take the focus once it is on screen.
+ *
+ * Opening a file from the tree or Open Quickly left the focus in the list, or
+ * on the page itself, so typing straight after went nowhere. The editor host
+ * takes this up when it shows the document (`takeEditorFocus`).
+ */
+export const focusWanted = ref<string | null>(null)
+
+export function requestEditorFocus(docId: string): void {
+  focusWanted.value = docId
+}
+
+/** Whether the document shown should take the focus; asked once. */
+export function takeEditorFocus(docId: string): boolean {
+  if (focusWanted.value !== docId) return false
+  focusWanted.value = null
+  return true
+}
+
+/**
  * Opens a path, focusing it if it is already open: the sidebar, Open Quickly,
  * Explorer and the launch all come through here.
  *
  * A failure is said, naming the file, and null returned. From the sidebar or
  * Explorer it used to reach the log and nowhere else: the click did nothing.
  */
-export async function openPath(path: string): Promise<Doc | null> {
+export async function openPath(path: string, opts: { focus?: boolean } = {}): Promise<Doc | null> {
   try {
-    return adoptFile(await window.api.file.read(path))
+    const doc = adoptFile(await window.api.file.read(path))
+    if (opts.focus !== false) requestEditorFocus(doc.id)
+    return doc
   } catch (err) {
     showNotice(explainOpenError(path, err), 'error')
     logError(`open ${path}`, err)

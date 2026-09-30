@@ -227,6 +227,30 @@ describe('Open Quickly', () => {
     await ctx.page.keyboard.press('Escape')
     await expect.poll(() => ctx.page.locator('.quick__panel').count()).toBe(0)
   })
+
+  it('leaves the file ready to type in, and so does the file tree', async () => {
+    // The focus stayed in the list, or on the page itself, so typing straight
+    // after opening a file went nowhere.
+    const notes = join(ctx.workdir, 'notes')
+    await writeFile(join(notes, 'type-here.md'), '# Type here\n', 'utf8')
+    await writeFile(join(notes, 'and-here.md'), '# And here\n', 'utf8')
+    await expect
+      .poll(allText('.tree__name'), { timeout: 15_000 })
+      .toEqual(expect.arrayContaining(['type-here.md', 'and-here.md']))
+
+    await ctx.page.keyboard.press('Control+p')
+    await ctx.page.locator('.quick__input').fill('type-here')
+    await expect.poll(async () => (await allText('.quick__name')())[0]).toBe('type-here.md')
+    await ctx.page.keyboard.press('Enter')
+    await waitForText(ctx, 'Type here')
+    await ctx.page.keyboard.type('Typed at once.')
+    await waitForText(ctx, 'Typed at once.')
+
+    await ctx.page.locator('.tree__item', { hasText: 'and-here.md' }).click()
+    await waitForText(ctx, 'And here')
+    await ctx.page.keyboard.type('Typed here too.')
+    await waitForText(ctx, 'Typed here too.')
+  })
 })
 
 describe('a renamed file keeps its tab', () => {
