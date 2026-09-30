@@ -24,7 +24,7 @@ import {
 import { $prose } from '@milkdown/kit/utils'
 import { editorViewCtx } from '@milkdown/kit/core'
 import type { MilkdownPlugin } from '@milkdown/kit/ctx'
-import type { EditorState } from '@milkdown/kit/prose/state'
+import { TextSelection, type EditorState } from '@milkdown/kit/prose/state'
 import type { EditorView } from '@milkdown/kit/prose/view'
 import { activeDoc } from '../stores/documents'
 import { activeEditor } from './view'
@@ -162,6 +162,23 @@ function formattedFind(v: EditorView): FindBackend {
       // The selection moved, so "3 of 12" needs recomputing.
       return countMatches(v.state, toQuery(q))
     },
+    selectMatch(index, q) {
+      const query = toQuery(q)
+      v.dispatch(setSearchState(v.state.tr, query))
+      let found: { from: number; to: number } | null = null
+      let pos = 0
+      for (let i = 0; i <= index; i++) {
+        const next = query.findNext(v.state, pos)
+        if (!next) break
+        found = next
+        pos = Math.max(next.to, next.from + 1)
+      }
+      if (found) {
+        v.dispatch(v.state.tr.setSelection(TextSelection.create(v.state.doc, found.from, found.to)))
+        revealSelection(v)
+      }
+      return countMatches(v.state, query)
+    },
     selectedText() {
       if (v.state.selection.empty) return ''
       const text = v.state.doc.textBetween(v.state.selection.from, v.state.selection.to, ' ')
@@ -210,6 +227,21 @@ export function applyQuery(): void {
 function act(action: FindAction): void {
   const b = backend()
   if (b) show(b.run(action, spec()))
+}
+
+/**
+ * Opens the find bar on a term and selects one of its matches: where a folder
+ * search result leads. False when the active document is not on screen yet.
+ */
+export function showMatch(query: string, index: number, caseSensitive = false): boolean {
+  const b = backend()
+  if (!b) return false
+  findState.query = query
+  findState.caseSensitive = caseSensitive
+  findState.wholeWord = false
+  findState.open = true
+  show(b.selectMatch(index, spec()))
+  return true
 }
 
 export const find = {

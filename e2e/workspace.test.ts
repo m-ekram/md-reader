@@ -83,6 +83,45 @@ describe('workspace, sidebar and watching', () => {
     expect(await ctx.page.locator('.results__name').first().innerText()).toContain('first.md')
   })
 
+  it('opens a result at its match, selected and in view', async () => {
+    // A result opened its file at the top, and the match had to be found again.
+    const filler = Array.from({ length: 200 }, (_, i) => `Filler paragraph ${i + 1}.`)
+    await writeFile(
+      join(notes(), 'far.md'),
+      [
+        '# Far',
+        '',
+        'A lighthouse near the top.',
+        '',
+        ...filler,
+        '',
+        'The lighthouse at the end.',
+      ].join('\n\n'),
+      'utf8'
+    )
+    await ctx.page.locator('.search__input').fill('lighthouse')
+    await expect.poll(() => ctx.page.locator('.results__hit').count(), { timeout: 15_000 }).toBe(2)
+
+    await ctx.page.locator('.results__hit', { hasText: 'at the end' }).click()
+
+    await expect
+      .poll(() => ctx.page.locator('.find__count').innerText(), { timeout: 15_000 })
+      .toBe('2 of 2')
+    await expect
+      .poll(() =>
+        ctx.page.evaluate(() => {
+          const match = document.querySelector('.ProseMirror-active-search-match')
+          const pane = document.querySelector('.editor-scroll')
+          if (!match || !pane) return false
+          const a = match.getBoundingClientRect()
+          const b = pane.getBoundingClientRect()
+          return a.top >= b.top && a.bottom <= b.bottom
+        })
+      )
+      .toBe(true)
+    await ctx.page.keyboard.press('Escape')
+  })
+
   it('reloads a clean document when the file changes on disk', async () => {
     await showPanel('articles')
     await ctx.page.locator('.articles__item', { hasText: 'first.md' }).first().click()

@@ -103,6 +103,24 @@ function sourceFind(view: EditorView): FindBackend {
       }
       return counts()
     },
+    selectMatch(index, q) {
+      push(q)
+      const query = getSearchQuery(view.state)
+      if (query.valid) {
+        let found: { from: number; to: number } | null = null
+        const cursor = query.getCursor(view.state)
+        for (let i = 0, r = cursor.next(); !r.done && i <= index; i++, r = cursor.next()) {
+          found = r.value
+        }
+        if (found) {
+          view.dispatch({
+            selection: { anchor: found.from, head: found.to },
+            effects: EditorView.scrollIntoView(found.from, { y: 'center' }),
+          })
+        }
+      }
+      return counts()
+    },
     selectedText() {
       const { from, to } = view.state.selection.main
       const text = view.state.sliceDoc(from, to)

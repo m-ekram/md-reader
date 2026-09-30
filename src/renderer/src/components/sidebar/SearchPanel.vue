@@ -6,7 +6,9 @@
 import NoFolder from './NoFolder.vue'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { cancelSearch, runSearch, useWorkspace } from '../../stores/workspace'
-import { openPath } from '../../stores/documents'
+import { activeDoc, openPath } from '../../stores/documents'
+import { showMatch } from '../../editor/find'
+import type { SearchHit } from '../../../../main/search-worker'
 
 const ws = useWorkspace()
 const query = ref(ws.search.query)
@@ -23,6 +25,23 @@ onBeforeUnmount(() => {
   window.clearTimeout(debounce)
   void cancelSearch()
 })
+
+/**
+ * Opens the file at the match clicked, selected and in view, with the term in
+ * the find bar. It used to open the file at the top, leaving the match to be
+ * found again.
+ */
+async function openHit(hit: SearchHit): Promise<void> {
+  const query = ws.search.query
+  const doc = await openPath(hit.path)
+  if (!doc) return
+  // The view is built after the document comes to the front.
+  const deadline = performance.now() + 10_000
+  while (!showMatch(query, hit.ordinal)) {
+    if (performance.now() > deadline || activeDoc.value?.id !== doc.id) return
+    await new Promise((r) => requestAnimationFrame(r))
+  }
+}
 
 /** Group hits by file so a file with many matches reads as one block. */
 const grouped = computed(() => {
@@ -61,7 +80,7 @@ const grouped = computed(() => {
           v-for="hit in hits"
           :key="`${hit.line}-${hit.column}`"
           class="results__hit"
-          @click="openPath(path)"
+          @click="openHit(hit)"
         >
           <span class="results__line">{{ hit.line }}</span>
           <span class="results__preview">{{ hit.preview.trim() }}</span>

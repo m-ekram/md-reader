@@ -57,6 +57,12 @@ describe('isMarkdown', () => {
 describe('findMatches', () => {
   const text = ['# Title', '', 'the needle is here', 'nothing', 'another needle line'].join('\n')
 
+  it('says how many matches in the file come before each hit', () => {
+    // So a click on a result can go to that match, not just open the file.
+    const hits = findMatches('needle needle\nnone\na needle\nNEEDLE', 'needle')
+    expect(hits.map((h) => h.ordinal)).toEqual([0, 2, 3])
+  })
+
   it('reports one hit per matching line, with 1-indexed line numbers', () => {
     const hits = findMatches(text, 'needle')
     expect(hits).toHaveLength(2)

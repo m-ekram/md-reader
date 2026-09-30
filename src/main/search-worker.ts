@@ -29,6 +29,8 @@ export interface SearchHit {
   /** The matching line, trimmed for display. */
   preview: string
   column: number
+  /** How many matches in the file come before this one, so a click can go to it. */
+  ordinal: number
 }
 
 const MARKDOWN = ['.md', '.markdown', '.mdown', '.mkd', '.mdx']
@@ -68,7 +70,7 @@ export function findMatches(
   text: string,
   query: string,
   opts: { caseSensitive?: boolean; limit?: number } = {}
-): Array<{ line: number; column: number; preview: string }> {
+): Array<{ line: number; column: number; preview: string; ordinal: number }> {
   const needle = opts.caseSensitive ? query : query.toLowerCase()
   if (needle.length === 0) return []
 
@@ -78,17 +80,23 @@ export function findMatches(
   if (!hay.includes(needle)) return []
 
   const lines = text.split(/\r?\n/)
-  const out: Array<{ line: number; column: number; preview: string }> = []
+  const out: Array<{ line: number; column: number; preview: string; ordinal: number }> = []
+  /** Matches on the lines before this one. */
+  let before = 0
 
   for (let i = 0; i < lines.length && out.length < limit; i++) {
     const line = lines[i]
-    const column = (opts.caseSensitive ? line : line.toLowerCase()).indexOf(needle)
+    const searched = opts.caseSensitive ? line : line.toLowerCase()
+    const column = searched.indexOf(needle)
     if (column < 0) continue
     out.push({
       line: i + 1,
       column,
       preview: line.length > PREVIEW_LIMIT ? line.slice(0, PREVIEW_LIMIT) + '…' : line,
+      ordinal: before,
     })
+    // Every match on the line, not overlapping, as find counts them.
+    for (let at = column; at >= 0; at = searched.indexOf(needle, at + needle.length)) before++
   }
   return out
 }

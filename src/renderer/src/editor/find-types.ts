@@ -24,6 +24,12 @@ export interface FindBackend {
   apply(query: FindQuerySpec): FindCounts
   /** Runs an action, brings its match into view, and counts again. */
   run(action: FindAction, query: FindQuerySpec): FindCounts
+  /**
+   * Selects the match at a 0-based index and brings it into view: the last
+   * one when there are fewer. For a folder search result, which knows which
+   * match in its file it is.
+   */
+  selectMatch(index: number, query: FindQuerySpec): FindCounts
   /** The selected text when it is on one line, else ''. Seeds the find box. */
   selectedText(): string
   /** Removes the highlights and gives the document its focus back. */
