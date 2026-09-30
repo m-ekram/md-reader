@@ -46,6 +46,22 @@ describe('workspace, sidebar and watching', () => {
     expect(await allText('.tree__name')()).not.toContain('ignored.txt')
   })
 
+  it('reads nothing outside the open folder', async () => {
+    // The page named any folder and main listed it.
+    const read = (dir: string) =>
+      ctx.page.evaluate(
+        (d) =>
+          window.api.workspace.readDir(d).then(
+            () => 'read',
+            () => 'refused'
+          ),
+        dir
+      )
+    expect(await read(join(notes(), 'sub'))).toBe('read')
+    expect(await read(ctx.workdir)).toBe('refused')
+    expect(await read(join(notes(), '..', 'userdata'))).toBe('refused')
+  })
+
   it('expands a folder lazily and opens a nested file', async () => {
     await ctx.page.locator('.tree__item', { hasText: 'sub' }).first().click()
     await expect.poll(allText('.tree__name')).toContain('third.md')

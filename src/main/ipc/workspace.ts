@@ -19,6 +19,7 @@ import { cancelSearch, startSearch } from '../search'
 import { clearJournal } from '../recovery'
 import { getSettings, patchSettings } from '../settings'
 import { log } from '../log'
+import { resolveInside } from '../paths'
 
 export interface FileProperties {
   path: string
@@ -26,6 +27,13 @@ export interface FileProperties {
   size: number
   createdMs: number
   modifiedMs: number
+}
+
+/** The folder the sidebar shows; an error when there is none. */
+function openFolder(): string {
+  const root = getSettings().workspace
+  if (!root) throw new Error('No folder is open.')
+  return root
 }
 
 function windowOf(e: Electron.IpcMainInvokeEvent): BrowserWindow {
@@ -56,16 +64,19 @@ export function registerWorkspaceIpc(): void {
     return root
   })
 
+  // Only inside the open folder: see paths.ts.
   ipcMain.handle('workspace:read-dir', async (_e, dir: string): Promise<DirEntry[]> => {
-    const root = getSettings().workspace
-    const ignores = root ? await loadIgnores(root) : undefined
-    return readDirectory(dir, ignores)
+    const root = openFolder()
+    return readDirectory(
+      await resolveInside(root, dir, { allowRoot: true }),
+      await loadIgnores(root)
+    )
   })
 
   ipcMain.handle('workspace:all-markdown', async (_e, root?: string): Promise<MarkdownFile[]> => {
-    const target = root ?? getSettings().workspace
-    if (!target) return []
-    return allMarkdown(target)
+    const open = getSettings().workspace
+    if (!open) return []
+    return allMarkdown(await resolveInside(open, root ?? open, { allowRoot: true }))
   })
 
   // --- search -------------------------------------------------------------
