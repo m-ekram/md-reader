@@ -122,6 +122,22 @@ describe('workspace, sidebar and watching', () => {
     await ctx.page.keyboard.press('Escape')
   })
 
+  it('matches case when asked to', async () => {
+    // Main could search by case; the panel had no way to ask.
+    await ctx.page.locator('.search__input').fill('LIGHTHOUSE')
+    await expect.poll(() => ctx.page.locator('.results__hit').count(), { timeout: 15_000 }).toBe(2)
+
+    const toggle = ctx.page.getByRole('button', { name: 'Match case' })
+    await toggle.click()
+    await expect.poll(() => toggle.getAttribute('aria-pressed')).toBe('true')
+    await expect
+      .poll(() => ctx.page.locator('.sidebar').innerText(), { timeout: 15_000 })
+      .toContain('No matches')
+
+    await toggle.click()
+    await expect.poll(() => ctx.page.locator('.results__hit').count(), { timeout: 15_000 }).toBe(2)
+  })
+
   it('reloads a clean document when the file changes on disk', async () => {
     await showPanel('articles')
     await ctx.page.locator('.articles__item', { hasText: 'first.md' }).first().click()

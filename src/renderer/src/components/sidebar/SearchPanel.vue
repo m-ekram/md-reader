@@ -5,7 +5,7 @@
  */
 import NoFolder from './NoFolder.vue'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { cancelSearch, runSearch, useWorkspace } from '../../stores/workspace'
+import { cancelSearch, runSearch, setSearchCase, useWorkspace } from '../../stores/workspace'
 import { activeDoc, openPath } from '../../stores/documents'
 import { showMatch } from '../../editor/find'
 import type { SearchHit } from '../../../../main/search-worker'
@@ -32,12 +32,12 @@ onBeforeUnmount(() => {
  * found again.
  */
 async function openHit(hit: SearchHit): Promise<void> {
-  const query = ws.search.query
+  const { query, caseSensitive } = ws.search
   const doc = await openPath(hit.path)
   if (!doc) return
   // The view is built after the document comes to the front.
   const deadline = performance.now() + 10_000
-  while (!showMatch(query, hit.ordinal)) {
+  while (!showMatch(query, hit.ordinal, caseSensitive)) {
     if (performance.now() > deadline || activeDoc.value?.id !== doc.id) return
     await new Promise((r) => requestAnimationFrame(r))
   }
@@ -66,6 +66,17 @@ const grouped = computed(() => {
         aria-label="Search folder"
         :disabled="!ws.root"
       />
+      <button
+        class="search__case"
+        :class="{ 'is-on': ws.search.caseSensitive }"
+        title="Match case"
+        aria-label="Match case"
+        :aria-pressed="ws.search.caseSensitive"
+        :disabled="!ws.root"
+        @click="setSearchCase(!ws.search.caseSensitive)"
+      >
+        Aa
+      </button>
     </div>
 
     <NoFolder v-if="!ws.root" />
@@ -94,10 +105,36 @@ const grouped = computed(() => {
 
 <style scoped>
 .search__box {
+  display: flex;
+  gap: 4px;
   padding: 6px;
   border-bottom: 1px solid var(--sidebar-border);
 }
+.search__case {
+  flex: none;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--sidebar-fg);
+  font: inherit;
+  font-size: 12px;
+  cursor: default;
+}
+.search__case:hover:not(:disabled) {
+  background: var(--sidebar-hover);
+}
+/* As the find bar shows an option that is on: a tint and an outline. */
+.search__case.is-on {
+  background: color-mix(in srgb, var(--doc-accent) 16%, transparent);
+  box-shadow: inset 0 0 0 1px var(--doc-accent);
+}
+.search__case:disabled {
+  opacity: 0.6;
+}
 .search__input {
+  flex: 1;
+  min-width: 0;
   width: 100%;
   padding: 4px 6px;
   border: 1px solid var(--doc-rule);

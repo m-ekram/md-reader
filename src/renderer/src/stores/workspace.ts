@@ -25,6 +25,8 @@ const state = reactive({
   loadingArticles: false,
   search: {
     query: '',
+    /** Match case; off by default, as the find bar's is. */
+    caseSensitive: false,
     hits: [] as SearchHit[],
     running: false,
     truncated: false,
@@ -167,7 +169,13 @@ export async function runSearch(query: string): Promise<void> {
   }
 
   state.search.running = true
-  currentSearchId = await window.api.search.start(query)
+  currentSearchId = await window.api.search.start(query, state.search.caseSensitive)
+}
+
+/** Turns match case on or off, and searches again. */
+export async function setSearchCase(on: boolean): Promise<void> {
+  state.search.caseSensitive = on
+  await runSearch(state.search.query)
 }
 
 export async function cancelSearch(): Promise<void> {
