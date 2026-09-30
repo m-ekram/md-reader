@@ -233,6 +233,74 @@ describe('find in the source view', () => {
   })
 })
 
+describe('regular expressions', () => {
+  const count = () => ctx.page.locator('.find__count').first().innerText()
+  const regexToggle = () => ctx.page.getByRole('button', { name: 'Regular expression' })
+
+  async function openReplace(): Promise<void> {
+    await ctx.page.keyboard.press('Control+h')
+    await ctx.page.waitForSelector('.find__input', { state: 'visible', timeout: 10_000 })
+  }
+
+  it('find and replace with groups in the formatted view', async () => {
+    // Find took text only: there was no way to match a pattern.
+    if (await ctx.page.locator('.find').isVisible()) {
+      await ctx.page.locator('.find__input').first().press('Escape')
+    }
+    const file = await documentWith('Version v1.2 and v3.4, not v5.\n', 'regex-rich.md')
+    await waitForText(ctx, 'Version v1.2')
+    await ctx.page.locator('.ProseMirror').click()
+    await openReplace()
+    await regexToggle().click()
+    await expect.poll(() => regexToggle().getAttribute('aria-pressed')).toBe('true')
+
+    const inputs = ctx.page.locator('.find__input')
+    await inputs.nth(0).fill('v(\\d)\\.(\\d)')
+    await expect.poll(count, { timeout: 10_000 }).toContain('of 2')
+    await inputs.nth(1).fill('$2.$1')
+    await ctx.page.locator('.find__wide', { hasText: 'All' }).click()
+    await waitForText(ctx, 'Version 2.1 and 4.3, not v5.')
+
+    await ctx.page.keyboard.press('Escape')
+    await ctx.page.locator('.ProseMirror').click()
+    await ctx.page.keyboard.press('Control+s')
+    await expect.poll(() => readFile(file, 'utf8')).toBe('Version 2.1 and 4.3, not v5.\n')
+  })
+
+  it('says when a pattern is not one', async () => {
+    await openReplace()
+    await ctx.page.locator('.find__input').first().fill('(unclosed')
+    await expect.poll(count).toMatch(/Invalid pattern/)
+    await ctx.page.locator('.find__input').first().fill('v5')
+    await expect.poll(count).toContain('of 1')
+    // Off again, for whatever runs next.
+    await regexToggle().click()
+    await ctx.page.keyboard.press('Escape')
+  })
+
+  it('find and replace with groups in the source view', async () => {
+    const file = join(ctx.workdir, 'regex-source.md')
+    await writeFile(file, 'a-b and c-d\n', 'utf8')
+    await openFile(ctx, file)
+    await waitForText(ctx, 'a-b and c-d')
+    await ctx.page.locator('.ProseMirror').click()
+    await ctx.page.keyboard.press('Control+/')
+    await ctx.page.waitForSelector('.cm-content', { state: 'visible', timeout: 15_000 })
+    await ctx.page.locator('.cm-content').click()
+
+    await openReplace()
+    await regexToggle().click()
+    const inputs = ctx.page.locator('.find__input')
+    await inputs.nth(0).fill('(\\w)-(\\w)')
+    await expect.poll(count, { timeout: 10_000 }).toContain('of 2')
+    await inputs.nth(1).fill('$2-$1')
+    await ctx.page.locator('.find__wide', { hasText: 'All' }).click()
+    await expect.poll(() => ctx.page.locator('.cm-content').innerText()).toContain('b-a and d-c')
+    await regexToggle().click()
+    await ctx.page.keyboard.press('Escape')
+  })
+})
+
 describe('the find bar', () => {
   it('sits below the tab bar, not over it', async () => {
     // Positioned against the whole document area, it covered the tabs on the

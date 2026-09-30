@@ -9,6 +9,8 @@ export interface FindQuerySpec {
   replace: string
   caseSensitive: boolean
   wholeWord: boolean
+  /** A regular expression; a replacement may use $1, $& and $$. */
+  regexp: boolean
 }
 
 /** How many matches, and which (1-based) the selection is on, else 0. */

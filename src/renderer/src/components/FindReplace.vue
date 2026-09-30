@@ -26,7 +26,7 @@ watch(
 // Debounced: every keystroke otherwise re-scans the whole document to count
 // matches, which is the one operation here that grows with document size.
 watch(
-  () => [findState.query, findState.caseSensitive, findState.wholeWord],
+  () => [findState.query, findState.caseSensitive, findState.wholeWord, findState.regexp],
   () => {
     window.clearTimeout(debounce)
     debounce = window.setTimeout(applyQuery, 150)
@@ -87,6 +87,9 @@ async function toggleReplace(): Promise<void> {
 
       <span class="find__count" aria-live="polite">
         <template v-if="findState.query.length === 0">&nbsp;</template>
+        <span v-else-if="findState.invalid" class="find__invalid" :title="findState.invalid"
+          >Invalid pattern</span
+        >
         <template v-else-if="findState.matches === 0">No results</template>
         <template v-else>{{ findState.current || '?' }} of {{ findState.matches }}</template>
       </span>
@@ -96,6 +99,7 @@ async function toggleReplace(): Promise<void> {
         :class="{ 'is-on': findState.caseSensitive }"
         title="Match case"
         aria-label="Match case"
+        :aria-pressed="findState.caseSensitive"
         @click="findState.caseSensitive = !findState.caseSensitive"
       >
         Aa
@@ -105,9 +109,20 @@ async function toggleReplace(): Promise<void> {
         :class="{ 'is-on': findState.wholeWord }"
         title="Whole word"
         aria-label="Whole word"
+        :aria-pressed="findState.wholeWord"
         @click="findState.wholeWord = !findState.wholeWord"
       >
         ab
+      </button>
+      <button
+        class="find__opt"
+        :class="{ 'is-on': findState.regexp }"
+        title="Regular expression ($1 in a replacement is its first group)"
+        aria-label="Regular expression"
+        :aria-pressed="findState.regexp"
+        @click="findState.regexp = !findState.regexp"
+      >
+        .*
       </button>
 
       <button class="find__btn" title="Previous (Shift+Enter)" @click="find.previous()">↑</button>
@@ -175,6 +190,9 @@ async function toggleReplace(): Promise<void> {
   font-size: 11px;
   opacity: 0.7;
   text-align: center;
+}
+.find__invalid {
+  color: var(--warning);
 }
 .find__toggle,
 .find__opt,

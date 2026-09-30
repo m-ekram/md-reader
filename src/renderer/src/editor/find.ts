@@ -30,6 +30,7 @@ import { activeDoc } from '../stores/documents'
 import { activeEditor } from './view'
 import { shownSourceFor } from './source-registry'
 import type { FindAction, FindBackend, FindCounts, FindQuerySpec } from './find-types'
+import { compileSearch } from '../../../shared/text-search'
 
 export const findState = reactive({
   open: false,
@@ -39,6 +40,9 @@ export const findState = reactive({
   replacement: '',
   caseSensitive: false,
   wholeWord: false,
+  regexp: false,
+  /** Why the query is not a pattern, when it is meant to be one; else ''. */
+  invalid: '',
   matches: 0,
   /** 1-indexed position of the match containing the selection, else 0. */
   current: 0,
@@ -210,6 +214,7 @@ function spec(): FindQuerySpec {
     replace: findState.replacement,
     caseSensitive: findState.caseSensitive,
     wholeWord: findState.wholeWord,
+    regexp: findState.regexp,
   }
 }
 
@@ -220,6 +225,12 @@ function show(counts: FindCounts): void {
 
 /** Pushes the current query into the editor and refreshes the counts. */
 export function applyQuery(): void {
+  // A pattern that will not compile matched nothing, and looked like a
+  // search that found nothing. The editors' searches use the same
+  // JavaScript patterns, so the shared check speaks for them.
+  const q = spec()
+  const compiled = q.regexp && q.search ? compileSearch({ ...q, query: q.search }) : null
+  findState.invalid = compiled && !compiled.ok ? compiled.error : ''
   const b = backend()
   show(b ? b.apply(spec()) : { total: 0, current: 0 })
 }
@@ -239,6 +250,8 @@ export function showMatch(query: string, index: number, caseSensitive = false): 
   findState.query = query
   findState.caseSensitive = caseSensitive
   findState.wholeWord = false
+  // The folder search matched the text as written.
+  findState.regexp = false
   findState.open = true
   show(b.selectMatch(index, spec()))
   return true
