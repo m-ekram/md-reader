@@ -10,7 +10,7 @@
 import type { WatchEvent } from '../../../main/watcher'
 import type { DocumentFile } from '../../../shared/ipc'
 import { isDirty, journalKey, markSaved, useDocuments, type Doc } from './documents'
-import { refreshArticles, useWorkspace } from './workspace'
+import { refreshArticles, refreshTree, useWorkspace } from './workspace'
 import { invalidateCommands } from '../commands/registry'
 import { flushAll } from '../editor/pool'
 
@@ -191,8 +191,11 @@ export function initExternalChanges(): void {
   })
 }
 
-async function processEvents(events: WatchEvent[]): Promise<void> {
+async function processEvents(all: WatchEvent[]): Promise<void> {
   const ws = useWorkspace()
+  // Folders only change the tree; documents are files.
+  const folders = all.filter((e) => e.dir)
+  const events = all.filter((e) => !e.dir)
   const removed = events.filter((e) => e.kind === 'removed').map((e) => e.path)
   const added = events.filter((e) => e.kind === 'added').map((e) => e.path)
 
@@ -216,7 +219,10 @@ async function processEvents(events: WatchEvent[]): Promise<void> {
     }
   }
 
-  // The flat list is what Articles and Open Quickly read from, so it has to
-  // follow files appearing and disappearing.
-  if ((removed.length > 0 || added.length > 0) && ws.root) void refreshArticles()
+  // The flat list is what Articles and Open Quickly read from, and the tree
+  // what Files shows: both follow files and folders appearing and going.
+  if ((removed.length > 0 || added.length > 0 || folders.length > 0) && ws.root) {
+    void refreshArticles()
+    void refreshTree()
+  }
 }

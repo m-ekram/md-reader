@@ -77,6 +77,42 @@ export async function refreshArticles(): Promise<void> {
   }
 }
 
+/**
+ * Reads the tree again, keeping open folders open.
+ *
+ * It was read once, when the folder opened, so files and folders made or
+ * removed afterwards never showed, or never went away. The watcher now calls
+ * this after any change.
+ */
+export async function refreshTree(): Promise<void> {
+  const root = state.root
+  if (!root) return
+  const open = new Set<string>()
+  const collect = (nodes: TreeNode[]): void => {
+    for (const n of nodes) {
+      if (n.expanded) open.add(n.entry.path.toLowerCase())
+      if (n.children) collect(n.children)
+    }
+  }
+  collect(state.tree)
+
+  const load = async (dir: string): Promise<TreeNode[]> => {
+    const nodes = toNodes(await window.api.workspace.readDir(dir))
+    for (const n of nodes) {
+      if (!n.entry.isDirectory || !open.has(n.entry.path.toLowerCase())) continue
+      n.expanded = true
+      n.children = await load(n.entry.path).catch(() => [])
+    }
+    return nodes
+  }
+  try {
+    const tree = await load(root)
+    if (state.root === root) state.tree = tree
+  } catch {
+    // The folder itself has gone; opening it again says so.
+  }
+}
+
 export async function toggleNode(node: TreeNode): Promise<void> {
   if (!node.entry.isDirectory) return
   node.expanded = !node.expanded

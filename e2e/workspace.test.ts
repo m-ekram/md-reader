@@ -177,6 +177,30 @@ describe('workspace, sidebar and watching', () => {
     // The tab must survive: a sync client removing a file must not discard work.
     expect(await ctx.page.locator('.ProseMirror').innerText()).toBe(before)
   })
+
+  it('follows the disk in the file tree, keeping open folders open', async () => {
+    // The tree was read once, when the folder opened: files and folders made
+    // or deleted afterwards never showed, or never went away.
+    await watcherReady(ctx, notes())
+    await showPanel('files')
+    const sub = ctx.page.locator('.tree__item', { hasText: 'sub' }).first()
+    if ((await ctx.page.locator('.tree__name', { hasText: 'third.md' }).count()) === 0) {
+      await sub.click()
+    }
+    await expect.poll(allText('.tree__name')).toContain('third.md')
+
+    await mkdir(join(notes(), 'fresh'))
+    await writeFile(join(notes(), 'fresh', 'inside.md'), '# Inside\n', 'utf8')
+    await writeFile(join(notes(), 'sub', 'also.md'), '# Also\n', 'utf8')
+    await expect
+      .poll(allText('.tree__name'), { timeout: 15_000 })
+      .toEqual(expect.arrayContaining(['fresh', 'also.md', 'third.md']))
+
+    await rm(join(notes(), 'fresh'), { recursive: true, force: true })
+    await expect.poll(allText('.tree__name'), { timeout: 15_000 }).not.toContain('fresh')
+    // Still open, as it was left.
+    expect(await allText('.tree__name')()).toContain('also.md')
+  })
 })
 
 describe('Open Quickly', () => {
