@@ -88,11 +88,12 @@ describe('workspace, sidebar and watching', () => {
       )
     ).toBe(false)
 
-    // Down to Copy Path, and Enter.
+    // Copy Path is last: End, then Enter.
     const focused = () => ctx.page.evaluate(() => document.activeElement?.textContent?.trim())
-    for (let i = 0; i < 5 && (await focused()) !== 'Copy Path'; i++) {
-      await ctx.page.keyboard.press('ArrowDown')
-    }
+    await ctx.page.keyboard.press('ArrowDown')
+    expect(await focused()).not.toBe('Open')
+    await ctx.page.keyboard.press('End')
+    expect(await focused()).toBe('Copy Path')
     await ctx.page.keyboard.press('Enter')
     await menu.waitFor({ state: 'detached' })
     await expect
@@ -179,6 +180,50 @@ describe('workspace, sidebar and watching', () => {
     await rename('kept-note.md', '../second')
     await expect.poll(async () => (await noticeTexts(ctx)).join(' ')).toContain('cannot contain')
     expect(existsSync(join(notes(), 'renamed-here', 'kept-note.md'))).toBe(true)
+  })
+
+  it('deletes to the Recycle Bin, after asking, keeping unsaved work open', async () => {
+    // The Recycle Bin is replaced by a plain delete, which WSL has no other
+    // way to do, and the question is answered yes and recorded.
+    await ctx.app.evaluate(({ dialog, shell }) => {
+      const g = globalThis as unknown as { asked: string[] }
+      g.asked = []
+      dialog.showMessageBox = (async (_w: unknown, o: { message: string }) => {
+        g.asked.push(o.message)
+        return { response: 0, checkboxChecked: false }
+      }) as unknown as typeof dialog.showMessageBox
+      shell.trashItem = async (p: string) => {
+        const fs = process.mainModule!.require('node:fs') as typeof import('node:fs')
+        fs.rmSync(p, { recursive: true, force: true })
+      }
+    })
+    const del = async (row: string) => {
+      await ctx.page.locator('.tree__item', { hasText: row }).first().click({ button: 'right' })
+      await ctx.page.locator('.context-menu [role="menuitem"]', { hasText: 'Delete' }).click()
+    }
+    const tabs = () => ctx.page.locator('.tab__name').allInnerTexts()
+
+    // A saved open document in a deleted folder: its tab closes.
+    await del('renamed-here')
+    await expect.poll(() => existsSync(join(notes(), 'renamed-here'))).toBe(false)
+    await expect.poll(tabs).not.toContain('kept-note.md')
+    expect(
+      await ctx.app.evaluate(() => (globalThis as unknown as { asked: string[] }).asked)
+    ).toEqual(['Move “renamed-here” to the Recycle Bin?'])
+
+    // One with unsaved work: kept open, and said to be gone from disk.
+    const doomed = join(notes(), 'doomed.md')
+    await writeFile(doomed, '# Doomed\n', 'utf8')
+    await openFile(ctx, doomed)
+    await waitForText(ctx, 'Doomed')
+    await ctx.page.keyboard.press('Control+End')
+    await ctx.page.keyboard.type(' Not saved.')
+    await waitForText(ctx, 'Not saved.')
+    await expect.poll(allText('.tree__name')).toContain('doomed.md')
+    await del('doomed.md')
+    await expect.poll(() => existsSync(doomed)).toBe(false)
+    await ctx.page.waitForSelector('.status .detached')
+    await waitForText(ctx, 'Not saved.')
   })
 
   it('expands a folder lazily and opens a nested file', async () => {

@@ -111,6 +111,8 @@ const api = {
     /** A file or folder in the open folder; resolves to its new path. */
     rename: (path: string, name: string): Promise<string> =>
       ipcRenderer.invoke('fileops:rename', path, name),
+    /** To the Recycle Bin, after asking; false when the answer was no. */
+    trash: (path: string): Promise<boolean> => ipcRenderer.invoke('fileops:trash', path),
   },
 
   settings: {

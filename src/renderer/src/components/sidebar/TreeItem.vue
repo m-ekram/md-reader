@@ -13,6 +13,7 @@ import {
   type TreeNode,
 } from '../../stores/workspace'
 import TreeNameInput from './TreeNameInput.vue'
+import { trashFromTree } from '../../commands/tree-ops'
 import { activeDoc, openPath } from '../../stores/documents'
 import { openContextMenu, type ContextItem } from '../../stores/context-menu'
 
@@ -36,6 +37,7 @@ function onContextMenu(e: MouseEvent, node: TreeNode): void {
     { label: 'New Folder', run: () => startCreate('folder', dir) },
     { separator: true },
     { label: 'Rename', run: () => startRename(path) },
+    { label: 'Delete', run: () => trashFromTree(path) },
     { separator: true },
     { label: 'Show in Folder', run: () => window.api.file.showInFolder(path) },
     { label: 'Copy Path', run: () => window.api.clipboard.write({ text: path }) }

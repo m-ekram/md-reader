@@ -156,6 +156,29 @@ export function registerWorkspaceIpc(): void {
     return to
   })
 
+  /**
+   * To the Recycle Bin, never an unlink, after asking: a folder goes with
+   * everything in it. Resolves to false when the user says no.
+   */
+  ipcMain.handle('fileops:trash', async (e, path: string): Promise<boolean> => {
+    const target = await resolveInside(openFolder(), path)
+    const isDir = (await stat(target)).isDirectory()
+    const r = await dialog.showMessageBox(windowOf(e), {
+      type: 'warning',
+      buttons: ['Move to Recycle Bin', 'Cancel'],
+      defaultId: 0,
+      cancelId: 1,
+      message: `Move “${basename(target)}” to the Recycle Bin?`,
+      detail: isDir
+        ? 'The folder and everything in it will be moved to the Recycle Bin.'
+        : 'It can be put back from the Recycle Bin.',
+    })
+    if (r.response !== 0) return false
+    await shell.trashItem(target)
+    log.info('trashed', { path: target })
+    return true
+  })
+
   ipcMain.handle('fileops:parent-dir', (_e, path: string) => dirname(path))
   ipcMain.handle('fileops:join', (_e, ...parts: string[]) => join(...parts))
 }
