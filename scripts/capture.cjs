@@ -231,15 +231,17 @@ function docFontSize() {
       await openPrefs()
       await widthKind().selectOption('custom')
       await page.getByRole('slider', { name: 'Content width in pixels' }).fill('1000')
+      // The setting, not the column's box: that is the text's width plus its
+      // gutters either side.
       await page.waitForFunction(
-        () => getComputedStyle(document.querySelector('.editor-host')).maxWidth === '1000px',
+        () => document.documentElement.style.getPropertyValue('--doc-measure') === '1000px',
         null,
         { timeout: 5000 }
       )
       const custom = await column()
       await widthKind().selectOption('full')
       await page.waitForFunction(
-        () => getComputedStyle(document.querySelector('.editor-host')).maxWidth === 'none',
+        () => document.documentElement.style.getPropertyValue('--doc-measure') === 'none',
         null,
         { timeout: 5000 }
       )
