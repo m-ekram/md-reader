@@ -89,6 +89,11 @@ in the find bar; **Aa** beside the search box matches case. The file tree
 follows files and folders as they are made or deleted. The **×** beside the
 folder's name, or **Close Folder** in the command palette, closes it.
 
+The folder search can match case, whole words or a regular expression, like the
+find bar. **Replace…** below it replaces across the folder, after showing each
+file it would change; untick any to leave it alone. Every file is kept in Data
+Recovery before it changes, and a file changed since the preview is left alone.
+
 Right-click in the file tree to make a file or folder, rename one, or move it to
 the Recycle Bin; right-click the space below the files to make one at the top.
 Only files inside the open folder can be changed from here. Right-click a tab

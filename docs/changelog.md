@@ -95,6 +95,21 @@
 - Close Folder, beside the folder's name and in the palette; commands with no
   place in the menu carry labels and are listed in the palette.
 
+### Find and replace
+
+- One module (`shared/text-search.ts`) builds patterns (plain, case, whole word
+  by letters of any script, regular expression), finds matches without looping
+  on empty ones and expands `$1`, `$<name>`, `$&` and `$$`, for the folder
+  search, replace across the folder and its preview.
+- Regular expressions in the find bar, in both views, with groups in
+  replacements and **Invalid pattern** for one that will not compile.
+- Folder search: whole word and regular expressions; results open with the
+  find bar set the same way; files are decoded as opening decodes them, so
+  UTF-16 files are searched (they were taken for binary).
+- Replace across the folder with a preview, per-file choice, a backup of each
+  file, its encoding, BOM and line endings kept, files changed since the
+  preview skipped and named, and open documents changed in their tabs.
+
 ### Sidebar file operations
 
 - Every path the sidebar sends is resolved through links and refused outside

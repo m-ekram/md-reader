@@ -124,6 +124,18 @@ when you hover over it.
   open, and keeps open folders open.
 - **Close Folder**, beside the folder's name and in the command palette.
 
+### Find and replace, further
+
+- **.\*** in the find bar searches by regular expression, in either view; a
+  replacement can use `$1` for the first group. A pattern that is not one says
+  **Invalid pattern**.
+- The folder search has **Whole word** and **.\*** beside **Aa**, and finds
+  text in files saved as UTF-16.
+- **Replace…** in the Search panel replaces across the whole folder: it first
+  shows every file it would change, with a few lines before and after, and you
+  can leave any file out. Each file is kept in Data Recovery before it changes,
+  and open documents change in their tabs, unsaved.
+
 ### Files from the sidebar
 
 - Right-click in the file tree for **New File**, **New Folder**, **Rename** and
