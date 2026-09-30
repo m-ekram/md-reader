@@ -72,6 +72,17 @@ async function waitUntilPainting(ctx: AppContext): Promise<void> {
  * `ctx.page` rather than capturing a binding that is still undefined at module
  * load.
  */
+/**
+ * What to launch: the built sources in `out/`, or a packaged build when
+ * `E2E_EXE` names its executable (`npm run test:e2e:win`). Smart App Control
+ * blocks the development Electron on the Windows machine this is written on,
+ * but not the packaged app, so that is how the suite runs on Windows locally.
+ */
+export function launchTarget(args: string[]): { args: string[]; executablePath?: string } {
+  const exe = process.env.E2E_EXE
+  return exe ? { executablePath: exe, args } : { args: ['.', ...args] }
+}
+
 export function useApp(): AppContext {
   const ctx = { consoleErrors: [] as string[] } as AppContext
 
@@ -88,7 +99,7 @@ export function useApp(): AppContext {
     ctx.app = await electron.launch({
       // Its own user-data directory, or journals and settings leak between
       // suites and change what the app does on startup.
-      args: ['.', `--user-data-dir=${join(ctx.workdir, 'userdata')}`],
+      ...launchTarget([`--user-data-dir=${join(ctx.workdir, 'userdata')}`]),
       cwd: process.cwd(),
       env,
     })

@@ -9,6 +9,8 @@ import { execFileSync } from 'node:child_process'
  * already correct.
  */
 export default function setup(): void {
+  // A packaged build under test was built from out/ just before; see win-e2e.cjs.
+  if (process.env.E2E_EXE) return
   execFileSync('npx', ['electron-vite', 'build'], {
     stdio: 'inherit',
     shell: process.platform === 'win32',

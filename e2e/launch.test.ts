@@ -4,6 +4,7 @@ import { _electron as electron, type ElectronApplication, type Page } from 'play
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { launchTarget } from './helpers'
 
 /**
  * Launching the app with files, as double-clicking a .md file does.
@@ -45,7 +46,7 @@ async function start(paths: string[]): Promise<Page> {
     if (k !== 'ELECTRON_RUN_AS_NODE' && v !== undefined) env[k] = v
   }
   app = await electron.launch({
-    args: ['.', `--user-data-dir=${join(workdir!, 'userdata')}`, ...paths],
+    ...launchTarget([`--user-data-dir=${join(workdir!, 'userdata')}`, ...paths]),
     cwd: process.cwd(),
     env,
   })
