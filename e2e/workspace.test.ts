@@ -40,8 +40,10 @@ describe('workspace, sidebar and watching', () => {
     await openWorkspace()
     await showPanel('files')
 
+    // The folder's first listing, as the app starts: on a busy CI runner it
+    // took over the one second a poll allows by default (1 run in 3).
     await expect
-      .poll(allText('.tree__name'))
+      .poll(allText('.tree__name'), { timeout: 15_000 })
       .toEqual(expect.arrayContaining(['first.md', 'second.md', 'sub']))
     // A .txt file is not a markdown file and must not be listed.
     expect(await allText('.tree__name')()).not.toContain('ignored.txt')
