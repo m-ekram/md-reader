@@ -9,6 +9,78 @@ every theme, and your recent files.
 `Ctrl+Tab` cycles through open documents. `Ctrl+P` opens a file in the current
 folder by name.
 
+`Alt` and a menu's underlined letter opens it: **F**ile, **E**dit, **P**aragraph,
+F**o**rmat, **V**iew, **T**hemes, **H**elp. In the file tree and the tab strip the
+arrow keys move between items; `Delete` closes the tab you are on.
+
+## Keyboard shortcuts
+
+| Menu | Command | Shortcut |
+| --- | --- | --- |
+| File | New | `Ctrl+N` |
+| File | New Window | `Ctrl+Shift+N` |
+| File | Open | `Ctrl+O` |
+| File | Open Quickly | `Ctrl+P` |
+| File | Save | `Ctrl+S` |
+| File | Save As | `Ctrl+Shift+S` |
+| File | Print | `Alt+Shift+P` |
+| File | Preferences | `Ctrl+,` |
+| File | Close | `Ctrl+W` |
+| Edit | Undo | `Ctrl+Z` |
+| Edit | Redo | `Ctrl+Y` |
+| Edit | Cut | `Ctrl+X` |
+| Edit | Copy | `Ctrl+C` |
+| Edit | Paste | `Ctrl+V` |
+| Edit | Copy as Markdown | `Ctrl+Shift+C` |
+| Edit | Paste as Plain Text | `Ctrl+Shift+V` |
+| Edit | Select All | `Ctrl+A` |
+| Edit | Move Row Up | `Alt+Up` |
+| Edit | Move Row Down | `Alt+Down` |
+| Edit | Find | `Ctrl+F` |
+| Edit | Find Next | `F3` |
+| Edit | Find Previous | `Shift+F3` |
+| Edit | Replace | `Ctrl+H` |
+| Paragraph | Heading 1 | `Ctrl+1` |
+| Paragraph | Heading 2 | `Ctrl+2` |
+| Paragraph | Heading 3 | `Ctrl+3` |
+| Paragraph | Heading 4 | `Ctrl+4` |
+| Paragraph | Heading 5 | `Ctrl+5` |
+| Paragraph | Heading 6 | `Ctrl+6` |
+| Paragraph | Paragraph | `Ctrl+0` |
+| Paragraph | Increase Heading Level | `Ctrl+=` |
+| Paragraph | Decrease Heading Level | `Ctrl+-` |
+| Paragraph | Math Block | `Ctrl+Shift+M` |
+| Paragraph | Code Fences | `Ctrl+Shift+K` |
+| Paragraph | Quote | `Ctrl+Shift+Q` |
+| Paragraph | Ordered List | `Ctrl+Shift+[` |
+| Paragraph | Unordered List | `Ctrl+Shift+]` |
+| Paragraph | Task List | `Ctrl+Shift+X` |
+| Paragraph | Indent | `Tab` |
+| Paragraph | Outdent | `Shift+Tab` |
+| Format | Strong | `Ctrl+B` |
+| Format | Emphasis | `Ctrl+I` |
+| Format | Underline | `Ctrl+U` |
+| Format | Code | `` Ctrl+Shift+` `` |
+| Format | Strike | `Alt+Shift+5` |
+| Format | Hyperlink | `Ctrl+K` |
+| Format | Clear Format | `Ctrl+\` |
+| View | Toggle Sidebar | `Ctrl+Shift+L` |
+| View | Outline | `Ctrl+Shift+1` |
+| View | Articles | `Ctrl+Shift+2` |
+| View | File Tree | `Ctrl+Shift+3` |
+| View | Search | `Ctrl+Shift+F` |
+| View | Source Code Mode | `Ctrl+/` |
+| View | Focus Mode | `F8` |
+| View | Typewriter Mode | `F9` |
+| View | Toggle Fullscreen | `F11` |
+| View | Actual Size | `Ctrl+Shift+9` |
+| View | Zoom In | `Ctrl+Shift+=` |
+| View | Zoom Out | `Ctrl+Shift+-` |
+| View | Switch Between Opened Documents | `Ctrl+Tab` |
+| View | Toggle DevTools | `Shift+F12` |
+| — | Command Palette | `Ctrl+Shift+P` |
+| — | Previous Document | `Ctrl+Shift+Tab` |
+
 ## Working in a folder
 
 The Outline marks the heading you are in, and a click on a heading goes to it in
