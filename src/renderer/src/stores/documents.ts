@@ -7,7 +7,8 @@
  */
 import { reactive, computed } from 'vue'
 import type { DocumentFile } from '../../../shared/ipc'
-import { invalidateCommands } from '../commands/registry'
+import { invalidateCommands, run } from '../commands/registry'
+import { notify } from './notifications'
 import { release } from '../editor/pool'
 import { useSettingsStore } from './settings'
 import { showNotice } from './ui'
@@ -183,9 +184,32 @@ export function adoptFile(f: DocumentFile): Doc {
   state.docs.push(d)
   state.activeIndex = state.docs.length - 1
   invalidateCommands()
+  if (d.sourceMode) explainForcedSource(d)
   // The reactive proxy, not the raw object: re-opening an already-open file
   // returns the proxy from the array, and callers compare these by identity.
   return state.docs[state.activeIndex]
+}
+
+/**
+ * Says why a document opened in source view. It used to happen without a
+ * word, which read as the formatting having broken.
+ */
+function explainForcedSource(d: Doc): void {
+  const lines = (d.content.match(/\n/g)?.length ?? 0) + 1
+  notify(`${d.name} has ${lines.toLocaleString()} lines, so it opened in source view.`, {
+    key: `large-${d.id}`,
+    actions: [
+      {
+        label: 'Show Formatted',
+        run: () => {
+          const i = state.docs.findIndex((x) => x.id === d.id)
+          if (i < 0) return
+          setActive(i)
+          if (state.docs[i].sourceMode) void run('view.sourceMode')
+        },
+      },
+    ],
+  })
 }
 
 /**

@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest'
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { openFile, useApp, waitForText } from './helpers'
+import { noticeTexts, openFile, useApp, waitForText } from './helpers'
 
 /**
  * The large-document fallback.
@@ -46,16 +46,46 @@ describe('automatic source mode', () => {
     expect(await ctx.page.locator('.editor-scroll.is-source').count()).toBe(1)
   }, 90_000)
 
-  it('still says so in the status bar', async () => {
-    const status = await ctx.page.locator('.status').innerText()
-    expect(status).toContain('lines')
+  it('says why, and warns of nothing it has already avoided', async () => {
+    // It opened in source view without a word, and the status bar went on
+    // warning that typing may lag: true of the formatted view, not of this one.
+    await expect
+      .poll(async () => (await noticeTexts(ctx)).join(' '))
+      .toContain('opened in source view')
+    expect(await ctx.page.locator('.status').innerText()).not.toContain('may lag')
   })
 
-  it('lets you switch back to the formatted view', async () => {
+  it('offers the formatted view from the message', async () => {
     // Forced, not locked: the threshold picks the opening view and nothing more.
-    await ctx.page.keyboard.press('Control+/')
+    await ctx.page
+      .locator('.note', { hasText: 'opened in source view' })
+      .getByRole('button', { name: 'Show Formatted' })
+      .click()
     await expect
       .poll(() => ctx.page.locator('.ProseMirror').count(), { timeout: 40_000 })
       .toBeGreaterThan(0)
+    // And, in the formatted view, now warns that it may lag.
+    // Allowed as long as the switch: the page is busy laying out 10 000 lines.
+    await expect
+      .poll(() => ctx.page.locator('.status').innerText(), { timeout: 40_000 })
+      .toContain('may lag')
+  }, 90_000)
+})
+
+describe('a document past the warning line', () => {
+  it('opens formatted, and the warning switches it to source view', async () => {
+    // Between the two thresholds: it opens as it is, and the status bar says
+    // typing may lag. The warning only said so; now it is the way out.
+    const file = join(ctx.workdir, 'long.md')
+    await writeFile(file, lines(6_000, 'Long Document'), 'utf8')
+    await openFile(ctx, file)
+    await waitForText(ctx, 'Long Document', 40_000)
+
+    await ctx.page
+      .locator('.status')
+      .getByRole('button', { name: /may lag/ })
+      .click()
+    await expect.poll(inSourceMode, { timeout: 40_000 }).toBeGreaterThan(0)
+    expect(await ctx.page.locator('.status').innerText()).not.toContain('may lag')
   }, 90_000)
 })

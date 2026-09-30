@@ -6,6 +6,7 @@
  */
 import { computed, ref, watch, onBeforeUnmount } from 'vue'
 import { activeDoc, isDirty } from '../stores/documents'
+import { run } from '../commands/registry'
 import { setFontSize, stepFontSize, useSettingsStore } from '../stores/settings'
 import { useThemeStore } from '../stores/theme'
 import { FONT_MAX, FONT_MIN, effectiveFontSize } from '../stores/appearance'
@@ -47,7 +48,7 @@ watch(
 onBeforeUnmount(() => window.clearTimeout(timer))
 
 const large = computed(() => {
-  if (!activeDoc.value) return false
+  if (!activeDoc.value || activeDoc.value.sourceMode) return false
   return counts.value.lines > settings.value.editor.sourceModeOfferLines
 })
 
@@ -57,6 +58,19 @@ const eolLabel = computed(() => (activeDoc.value?.eol === '\r\n' ? 'CRLF' : 'LF'
 <template>
   <footer v-if="settings.statusBar" class="status">
     <div class="status__left">
+      <!--
+        Only in the formatted view, which is what lags; and it is the way out.
+        Beside the other warnings rather than instead of them, and first, as the
+        short one: a file this long often also carries the round-trip warning.
+      -->
+      <button
+        v-if="large"
+        class="warn warn--action"
+        title="Switch to source view (Ctrl+/)"
+        @click="run('view.sourceMode')"
+      >
+        ⚠ {{ counts.lines.toLocaleString() }} lines, typing may lag: source view
+      </button>
       <!--
         The file was deleted, or moved outside anything we could follow, while
         its tab was open. The tab keeps its content — closing it would destroy
@@ -68,9 +82,6 @@ const eolLabel = computed(() => (activeDoc.value?.eol === '\r\n' ? 'CRLF' : 'LF'
       </span>
       <span v-else-if="activeDoc?.lossy?.lossy" class="warn" :title="activeDoc.lossy.note">
         ⚠ {{ activeDoc.lossy.note }}
-      </span>
-      <span v-else-if="large" class="warn">
-        ⚠ {{ counts.lines.toLocaleString() }} lines — typing may lag in this document
       </span>
     </div>
 
@@ -138,10 +149,16 @@ const eolLabel = computed(() => (activeDoc.value?.eol === '\r\n' ? 'CRLF' : 'LF'
   gap: 14px;
 }
 .status__left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  white-space: nowrap;
+}
+.status__left > span {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .size {
   display: flex;
@@ -171,6 +188,18 @@ const eolLabel = computed(() => (activeDoc.value?.eol === '\r\n' ? 'CRLF' : 'LF'
 }
 .warn {
   color: var(--warning);
+}
+.warn--action {
+  flex: none;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  font: inherit;
+  cursor: default;
+}
+.warn--action:hover {
+  background: var(--doc-rule);
 }
 .dirty {
   color: var(--doc-accent);
