@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { DocumentFile, SaveRequest, SaveResult, WindowState } from '../shared/ipc'
 import type { SettingsPatch, SettingsState } from '../shared/settings'
-import type { BackupInfo, JournalEntry } from '../main/recovery'
+import type { BackupInfo, JournalEntry, VersionInfo } from '../main/recovery'
 import type { DirEntry, MarkdownFile } from '../main/workspace'
 import type { FileProperties, SearchFlags } from '../main/ipc/workspace'
 import type { SearchHit } from '../main/search-worker'
@@ -37,6 +37,11 @@ const api = {
       ipcRenderer.send('file:journal', path, content),
     pendingRecoveries: (): Promise<JournalEntry[]> => ipcRenderer.invoke('file:pending-recoveries'),
     backupInfo: (path: string): Promise<BackupInfo> => ipcRenderer.invoke('file:backup-info', path),
+    /** The versions kept of a file, newest first. */
+    versions: (path: string): Promise<VersionInfo[]> => ipcRenderer.invoke('file:versions', path),
+    /** One version's text, decoded; null when there is no such version. */
+    versionContent: (path: string, id: string): Promise<string | null> =>
+      ipcRenderer.invoke('file:version-content', path, id),
     discardRecovery: (path: string): Promise<void> =>
       ipcRenderer.invoke('file:discard-recovery', path),
     /** Asks what to do with work recovered after a crash. */

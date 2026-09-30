@@ -33,6 +33,7 @@ import { refreshArticles, revealPath, setRoot, useWorkspace } from '../stores/wo
 import { commandPalette, preferences, quickOpen, showNotice } from '../stores/ui'
 import { notify } from '../stores/notifications'
 import { suggestSavePath } from '../utils/save-name'
+import { openHistory } from '../stores/history'
 import { flushAll } from '../editor/pool'
 
 const docs = useDocuments()
@@ -399,57 +400,13 @@ const commands: Command[] = [
   },
 
   /**
-   * Restores the copy taken immediately before the last save.
+   * The versions kept before each save, to look back through and restore.
    *
-   * Backups were written from the very first save but nothing could read them
-   * back, so the mechanism looked like protection and provided none. This is
-   * the other half: the way out of a save that wrote something wrong, which for
-   * an editor that re-serializes markdown is a real possibility.
+   * The way out of a save that wrote something wrong, which for an editor
+   * that re-serializes markdown is a real possibility. Only the last version
+   * was kept, and restoring was a yes-or-no question about it, unseen.
    */
-  {
-    id: 'help.dataRecovery',
-    enabled: hasPath,
-    run: async () => {
-      const d = activeDoc.value
-      if (!d?.path) return
-
-      const info = await window.api.file.backupInfo(d.path)
-      if (!info.exists || info.content === undefined) {
-        await window.api.app.info(
-          'No backup available',
-          `No previous version of ${d.name} has been kept yet.
-
-A backup is written each time the file is saved, so there will be one after the next save.`
-        )
-        return
-      }
-
-      if (info.content === d.content) {
-        await window.api.app.info(
-          'Backup matches the current document',
-          'The kept version is identical to what is open, so there is nothing to restore.'
-        )
-        return
-      }
-
-      const when = info.savedAtMs ? new Date(info.savedAtMs).toLocaleString() : 'an earlier save'
-      const restore = await window.api.app.confirm(
-        `Restore the previous version of ${d.name}?`,
-        `Kept just before the save at ${when}.
-
-The version currently open will be replaced. It is not written to disk until you save, so you can undo this.`,
-        'Restore',
-        'Cancel'
-      )
-      if (!restore) return
-
-      // Content only: the file keeps its current encoding and line endings, and
-      // nothing touches the disk until the user saves.
-      d.content = info.content
-      d.reloadToken++
-      invalidateCommands()
-    },
-  },
+  { id: 'help.dataRecovery', enabled: hasPath, run: openHistory },
 
   // Help
   {

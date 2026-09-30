@@ -114,35 +114,39 @@ describe('Data Recovery restores the version kept before the last save', () => {
       { timeout: 15_000 }
     )
 
-    // Wreck it and save, which is what a bad save looks like from the user's
-    // side. The pre-save bytes become the backup.
-    await ctx.page.locator('.ProseMirror').click()
-    await ctx.page.keyboard.press('Control+a')
-    await ctx.page.keyboard.type('ruined')
-    await ctx.page.waitForTimeout(400)
-    await ctx.page.keyboard.press('Control+s')
-    await ctx.page.waitForTimeout(1200)
-    expect(await readFile(file, 'utf8')).toContain('ruined')
+    // Wreck it and save, twice, which is what bad saves look like from the
+    // user's side. Each save keeps the bytes it replaced. Only the last was
+    // kept, so the second bad save lost the good version.
+    const wreckAndSave = async (text: string) => {
+      await ctx.page.locator('.ProseMirror').click()
+      await ctx.page.keyboard.press('Control+a')
+      await ctx.page.keyboard.type(text)
+      await waitForText(ctx, text)
+      await ctx.page.keyboard.press('Control+s')
+      await expect.poll(() => readFile(file, 'utf8')).toContain(text)
+    }
+    await wreckAndSave('ruined once')
+    await wreckAndSave('ruined twice')
 
-    // Help > Data Recovery, answering the confirm dialog with Restore.
-    const restored = ctx.page.waitForFunction(
-      () =>
-        document.querySelector('.ProseMirror')?.textContent?.includes('the good version') ?? false,
-      { timeout: 20_000 }
+    // Help > Data Recovery lists both versions, newest first.
+    await chooseMenu(ctx, 'Help', 'Data Recovery and Version Control')
+    const dialog = ctx.page.getByRole('dialog', { name: /^Versions of recoverable\.md$/ })
+    await expect.poll(() => dialog.getByRole('option').count()).toBe(2)
+
+    // The older one, shown against the text now.
+    await dialog.getByRole('option').nth(1).click()
+    await expect
+      .poll(() => dialog.locator('.history__line--add').allInnerTexts())
+      .toContainEqual(expect.stringContaining('the good version'))
+    expect(await dialog.locator('.history__line--del').allInnerTexts()).toContainEqual(
+      expect.stringContaining('ruined twice')
     )
-    await ctx.app.evaluate(async ({ dialog }) => {
-      // The prompt is a native dialog; answer it as the user would.
-      dialog.showMessageBox = async () => ({ response: 0, checkboxChecked: false })
-    })
-    await ctx.page.locator('.menubar__top', { hasText: /^Help$/ }).click()
-    await ctx.page.waitForSelector('.menu[role="menu"]', { state: 'visible' })
-    await ctx.page.locator('.menu__item', { hasText: 'Data Recovery' }).first().click()
 
-    await restored
-    expect(await ctx.page.locator('.ProseMirror').innerText()).toContain('the good version')
-
+    await dialog.getByRole('button', { name: 'Restore this version' }).click()
+    await waitForText(ctx, 'the good version')
     // Restoring does not touch the disk until the user saves.
-    expect(await readFile(file, 'utf8')).toContain('ruined')
+    expect(await readFile(file, 'utf8')).toContain('ruined twice')
+    await expect.poll(() => ctx.page.title()).toMatch(/^•/)
   })
 })
 

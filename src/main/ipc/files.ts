@@ -4,8 +4,16 @@
  */
 import { ipcMain, dialog, shell, BrowserWindow, app, webContents } from 'electron'
 import { readFile, stat } from 'node:fs/promises'
-import { readTextFile, writeTextFile } from '../fs/textfile'
-import { backup, backupInfo, clearJournal, journal, pendingRecoveries } from '../recovery'
+import { decodeTextBuffer, readTextFile, writeTextFile } from '../fs/textfile'
+import {
+  backup,
+  backupInfo,
+  clearJournal,
+  journal,
+  listVersions,
+  pendingRecoveries,
+  readVersion,
+} from '../recovery'
 import { addRecentFile } from '../settings'
 import { log } from '../log'
 import { forgetOwner, forgetPage, noteOwner, recoverableFor } from '../journal-owners'
@@ -103,6 +111,12 @@ export function registerFileIpc(): void {
     wc.once('destroyed', () => forgetPage(id))
   })
   ipcMain.handle('file:backup-info', (_e, path: string) => backupInfo(path))
+  // The version history: see recovery.ts. The id is checked before it names a file.
+  ipcMain.handle('file:versions', (_e, path: string) => listVersions(String(path)))
+  ipcMain.handle('file:version-content', (_e, path: string, id: string) => {
+    const bytes = readVersion(String(path), id)
+    return bytes ? decodeTextBuffer(bytes).content : null
+  })
   ipcMain.handle('file:discard-recovery', (_e, path: string) => {
     forgetOwner(path)
     clearJournal(path)
