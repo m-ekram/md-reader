@@ -136,4 +136,18 @@ change them.
 
 ## Recovering work
 
-See **Data Recovery and Version Control** in the Help menu.
+Each time a file is saved, the version it replaces is kept: up to twenty for
+each file, and never more than 10 MB of them. **Help ▸ Data Recovery and
+Version Control** lists them, newest first, and shows the one you pick against
+the text now, with lines taken out and put in marked. **Restore this version**
+puts it in the editor without saving, so nothing on disk changes until you
+save. A file's versions follow it when it is renamed or moved.
+
+Unsaved work is kept separately, as you type, and offered back if the app stops
+unexpectedly.
+
+## PDFs and printing
+
+**Export PDF** asks for the paper, orientation, margins and whether to number
+the pages, starting from your last choice. **Print** opens the Windows print
+dialog, starting from the same setup.

@@ -95,6 +95,21 @@
 - Close Folder, beside the folder's name and in the palette; commands with no
   place in the menu carry labels and are listed in the palette.
 
+### Versions, page setup and printing
+
+- Version history: up to twenty versions and 10 MB per file (the newest always
+  kept), stored as `backups/<key>/<time>-<random>.bak` beside a `meta.json`; a
+  save that changed nothing adds none; the single backup kept before is taken
+  in; version ids are checked before they name a file. It follows renames from
+  the sidebar, Move To and the watcher, a folder's files included.
+- Help ▸ Data Recovery lists the versions and compares the one chosen with the
+  text now, line by line; Restore puts it in the editor, unsaved.
+- Page setup before each Export PDF (A4, Letter, Legal, A3, A5; orientation;
+  narrow, normal or wide margins; page numbers), kept in the settings (`pdf`)
+  and checked in main.
+- Print uses the system print dialog, from a hidden window owned by the user's,
+  starting from the page setup; it opened a PDF in another program.
+
 ### Find and replace
 
 - One module (`shared/text-search.ts`) builds patterns (plain, case, whole word

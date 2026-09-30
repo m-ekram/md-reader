@@ -124,6 +124,17 @@ when you hover over it.
   open, and keeps open folders open.
 - **Close Folder**, beside the folder's name and in the command palette.
 
+### Versions, PDFs and printing
+
+- Every file keeps its last twenty versions, one from before each save.
+  **Help ▸ Data Recovery** lists them, shows the one you pick against the text
+  now, and puts it back in the editor, unsaved. Versions follow a file when it
+  is renamed or moved.
+- **Export PDF** asks for paper, orientation, margins and page numbers first,
+  and remembers your choice.
+- **Print** opens the Windows print dialog, starting from the same page
+  setup, instead of opening a PDF in another program.
+
 ### Find and replace, further
 
 - **.\*** in the find bar searches by regular expression, in either view; a
