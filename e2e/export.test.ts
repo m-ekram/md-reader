@@ -243,6 +243,59 @@ describe('PDF export', () => {
     expect(bytes.toString('latin1')).toMatch(/\/MediaBox \[0 0 792 612\]/)
   }, 60_000)
 
+  it('prints through the print dialog, from the page setup, and tidies up after', async () => {
+    // Print opened a PDF in another program, to be printed from there. The
+    // dialog cannot be driven from here, so print() is replaced and records
+    // what it was asked.
+    await ctx.app.evaluate(({ BrowserWindow }) => {
+      const g = globalThis as unknown as { printed: unknown[] }
+      g.printed = []
+      const proto = Object.getPrototypeOf(BrowserWindow.getAllWindows()[0].webContents)
+      proto.print = function (
+        this: Electron.WebContents,
+        opts: Record<string, unknown>,
+        done: (ok: boolean, why: string) => void
+      ) {
+        g.printed.push({
+          silent: opts.silent,
+          pageSize: opts.pageSize,
+          landscape: opts.landscape,
+          page: this.getURL().slice(0, 14),
+          hidden: !BrowserWindow.fromWebContents(this)?.isVisible(),
+        })
+        done(true, '')
+      }
+    })
+    const windows = () =>
+      ctx.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)
+    const before = await windows()
+
+    await ctx.page.keyboard.press('Escape')
+    await ctx.page.locator('.menubar__top', { hasText: /^File$/ }).click()
+    await ctx.page
+      .locator('.menu__item', { hasText: /^Print/ })
+      .first()
+      .click()
+
+    await expect
+      .poll(() => ctx.app.evaluate(() => (globalThis as unknown as { printed: unknown[] }).printed))
+      .toEqual([
+        // As set up in the test before: Letter, on its side.
+        {
+          silent: false,
+          pageSize: 'Letter',
+          landscape: true,
+          page: 'data:text/html',
+          hidden: true,
+        },
+      ])
+    await expect
+      .poll(async () => (await noticeTexts(ctx)).join(' '))
+      .toContain('sent to the printer')
+    // The window it printed from is gone.
+    await expect.poll(windows).toBe(before)
+  })
+
   it('remembers the page setup, and Cancel exports nothing', async () => {
     const target = join(ctx.workdir, 'not-written.pdf')
     await stubSaveDialog(target)

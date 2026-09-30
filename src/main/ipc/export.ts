@@ -9,9 +9,10 @@
  */
 import { BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import { writeFileAtomic } from '../fs/textfile'
-import { basename, dirname, join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { buildHtml, type ExportPayload } from '../export/html'
-import { exportPdf, renderPdf } from '../export/pdf'
+import { exportPdf } from '../export/pdf'
+import { printHtml } from '../export/print'
 import { log } from '../log'
 import { mayOpenExport, rememberExport } from '../export/exported'
 import { getSettings } from '../settings'
@@ -81,22 +82,18 @@ export function registerExportIpc(): void {
   })
 
   /**
-   * Print.
+   * Print, through the system print dialog: see export/print.ts.
    *
-   * Goes through the same offscreen render as PDF export and then opens the
-   * result, rather than printing the editor's own window: printing the live
-   * window would print the sidebar, the tab bar and the caret along with the
-   * document.
+   * The export's HTML, in a window of its own, rather than the editor's own
+   * window: printing that would print the sidebar, the tab bar and the caret
+   * along with the document.
    */
-  ipcMain.handle('export:print', async (_e, payload: ExportPayload): Promise<ExportResult> => {
+  ipcMain.handle('export:print', async (e, payload: ExportPayload): Promise<ExportResult> => {
     try {
-      const bytes = await renderPdf(await buildHtml(payload), { printBackground: true })
-      const { app } = await import('electron')
-      const target = join(app.getPath('temp'), `${basename(payload.title || 'document')}.pdf`)
-      await writeFileAtomic(target, bytes)
-      await shell.openPath(target)
-      log.info('opened print preview', { target })
-      return { ok: true, path: target }
+      const html = await buildHtml(payload)
+      const r = await printHtml(BrowserWindow.fromWebContents(e.sender), html, getSettings().pdf)
+      if (r.ok) log.info('printed', { title: payload.title })
+      return r
     } catch (err) {
       log.error('print failed', { err: String(err) })
       return { ok: false, error: String(err) }

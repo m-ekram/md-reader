@@ -59,7 +59,12 @@ async function runExport(
     notify(`${verb} failed: ${result.error ?? 'unknown error'}`, { kind: 'error', key: 'export' })
     return
   }
-  const path = result.path!
+  const path = result.path
+  if (!path) {
+    // Printing: it went to the printer, and there is no file to name.
+    notify(`${verb} sent to the printer.`, { key: 'export' })
+    return
+  }
   // The next thing wanted after an export is usually to look at it.
   const actions = opts.offerOpen
     ? [
@@ -95,9 +100,7 @@ const exportCommands: Command[] = [
   {
     id: 'file.print',
     enabled: hasDocument,
-    // Printing goes through the same render as PDF and opens the result in the
-    // system viewer, which is where the print dialog lives.
-    // It is open already.
+    // The system print dialog, starting from the PDF page setup: see print.ts.
     run: () => runExport('Print', (p) => window.api.export.print(p), { offerOpen: false }),
   },
 ]
