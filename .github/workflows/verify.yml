@@ -29,8 +29,63 @@ concurrency:
   group: verify-${{ github.ref }}
   cancel-in-progress: true
 
+# The checks, each end-to-end run and the evidence are separate jobs, so they
+# run side by side: a stability check of three runs takes as long as one. Each
+# job installs for itself, which bills a little more than one long job did.
 jobs:
-  verify:
+  # The runs asked for, as a list the e2e job's matrix can take. On Linux: it
+  # only counts, and Linux minutes bill at half the Windows rate.
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      runs: ${{ steps.runs.outputs.runs }}
+    steps:
+      - id: runs
+        run: echo "runs=[$(seq -s, 1 '${{ github.event.inputs.e2e_runs || 1 }}')]" >> "$GITHUB_OUTPUT"
+
+  checks:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint -- --max-warnings 0
+      - name: Unit tests
+        run: npm test
+
+  e2e:
+    needs: plan
+    runs-on: windows-latest
+    timeout-minutes: 30
+    strategy:
+      # Every run finishes, so a flaky test shows how often it fails.
+      fail-fast: false
+      matrix:
+        run: ${{ fromJSON(needs.plan.outputs.runs) }}
+    name: e2e run ${{ matrix.run }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: End-to-end tests
+        run: |
+          npm run build
+          npx vitest run --project e2e
+
+  evidence:
+    if: inputs.evidence
     runs-on: windows-latest
     timeout-minutes: 60
     steps:
@@ -38,39 +93,16 @@ jobs:
         with:
           # The benchmark checks out its baseline beside this commit.
           fetch-depth: 0
-
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
-
       - name: Install
         run: npm ci
-
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Lint
-        run: npm run lint -- --max-warnings 0
-
-      - name: Unit tests
-        run: npm test
-
-      - name: End-to-end tests
-        shell: bash
-        run: |
-          runs="${{ github.event.inputs.e2e_runs || '1' }}"
-          npm run build
-          for i in $(seq 1 "$runs"); do
-            echo "::group::e2e run $i of $runs"
-            npx vitest run --project e2e
-            echo "::endgroup::"
-          done
 
       # Same machine, same job: the only fair comparison. Numbers from different
       # runners, or from a laptop, are not comparable with each other.
       - name: Benchmark against baseline
-        if: inputs.evidence
         # A shared runner may be slower than a desktop; the comparison between
         # the two rows is the result, not the budget check.
         continue-on-error: true
@@ -93,15 +125,15 @@ jobs:
           echo "## typing, this commit" | tee -a bench.txt
           node scripts/bench-typing.cjs --no-build --repeat 3 | tee -a bench.txt
 
-      # Taken even when a test failed, since that is when a picture helps most.
+      # Taken even when the benchmark failed.
       - name: Screenshots
-        if: always() && inputs.evidence
+        if: always()
         run: |
           npm run build
           node scripts/capture.cjs artifacts/screens
 
       - uses: actions/upload-artifact@v4
-        if: always() && inputs.evidence
+        if: always()
         with:
           name: results
           path: |
