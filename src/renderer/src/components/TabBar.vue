@@ -22,6 +22,33 @@ const labels = computed(() => tabLabels(docs.docs))
  * Keeps the active tab in view. The strip scrolls sideways once it overflows,
  * and nothing followed the active tab: a new document's opened out of sight.
  */
+/**
+ * The keyboard, as a tab strip: the tab in front is the one Tab stop, the
+ * arrows and Home and End move to another and show it, and Delete closes one,
+ * asking first when it has unsaved work. Every tab and its × were separate
+ * Tab stops, with no arrow keys.
+ */
+async function onKeydown(e: KeyboardEvent, i: number): Promise<void> {
+  const n = docs.docs.length
+  const to: Record<string, number> = {
+    ArrowLeft: (i - 1 + n) % n,
+    ArrowRight: (i + 1) % n,
+    Home: 0,
+    End: n - 1,
+  }
+  if (e.key in to) {
+    e.preventDefault()
+    setActive(to[e.key])
+  } else if (e.key === 'Delete') {
+    e.preventDefault()
+    if (!(await requestClose(i))) return
+  } else {
+    return
+  }
+  await nextTick()
+  strip.value?.querySelector<HTMLElement>('.tab.is-active .tab__select')?.focus()
+}
+
 watch(
   () => [docs.activeIndex, docs.docs.length],
   async () => {
@@ -51,14 +78,22 @@ watch(
         class="tab__select"
         role="tab"
         :aria-selected="i === docs.activeIndex"
+        :tabindex="i === docs.activeIndex ? 0 : -1"
         :title="d.path ?? d.name"
         @click="setActive(i)"
         @auxclick.middle="requestClose(i)"
+        @keydown="onKeydown($event, i)"
       >
         <span class="tab__name">{{ labels[i] }}</span>
         <span v-if="isDirty(d)" class="tab__dot" aria-label="Unsaved changes">•</span>
       </button>
-      <button class="tab__close" :aria-label="`Close ${d.name}`" @click.stop="requestClose(i)">
+      <!-- Out of the Tab order: Delete on the tab does the same. -->
+      <button
+        class="tab__close"
+        tabindex="-1"
+        :aria-label="`Close ${d.name}`"
+        @click.stop="requestClose(i)"
+      >
         <IconClose :size="8" />
       </button>
     </div>

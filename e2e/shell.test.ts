@@ -428,3 +428,36 @@ describe('Alt and a letter', () => {
     await ctx.page.keyboard.press('Escape')
   })
 })
+
+describe('the tab strip and the keyboard', () => {
+  it('moves between tabs with the arrows and closes one with Delete', async () => {
+    // Every tab and its × were separate Tab stops, with no arrow keys.
+    for (let i = 0; i < 3; i++) await newDocument(ctx)
+    const count = await ctx.page.locator('.tab').count()
+    const activeIndex = () =>
+      ctx.page.evaluate(() =>
+        [...document.querySelectorAll('.tab')].findIndex((t) => t.classList.contains('is-active'))
+      )
+    const focusedIsActiveTab = () =>
+      ctx.page.evaluate(
+        () => document.activeElement === document.querySelector('.tab.is-active .tab__select')
+      )
+
+    await ctx.page.locator('.tab.is-active .tab__select').focus()
+    expect(await ctx.page.locator('.tabs [tabindex="0"]').count()).toBe(1)
+
+    const start = await activeIndex()
+    await ctx.page.keyboard.press('ArrowLeft')
+    await expect.poll(activeIndex).toBe((start - 1 + count) % count)
+    expect(await focusedIsActiveTab()).toBe(true)
+    await ctx.page.keyboard.press('Home')
+    await expect.poll(activeIndex).toBe(0)
+    await ctx.page.keyboard.press('End')
+    await expect.poll(activeIndex).toBe(count - 1)
+
+    // The last is an empty new document, so it closes without asking.
+    await ctx.page.keyboard.press('Delete')
+    await expect.poll(() => ctx.page.locator('.tab').count()).toBe(count - 1)
+    await expect.poll(focusedIsActiveTab).toBe(true)
+  })
+})
