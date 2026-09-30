@@ -25,10 +25,10 @@ function apply(lang: string | null): void {
 
 /** Puts the stored choice in force; called once, before the first window. */
 export function applyStoredSpellingLanguage(): void {
-  const lang = validLanguage(
-    getSettings().editor.spellcheckLanguage,
-    session.defaultSession.availableSpellCheckerLanguages
-  )
+  // Nothing chosen, nothing asked of the session: this runs before the window.
+  const stored = getSettings().editor.spellcheckLanguage
+  if (stored === null) return
+  const lang = validLanguage(stored, session.defaultSession.availableSpellCheckerLanguages)
   if (lang) apply(lang)
 }
 

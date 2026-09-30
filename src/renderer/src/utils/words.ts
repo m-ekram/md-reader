@@ -11,12 +11,17 @@
  */
 const CJK = String.raw`\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}`
 
-/** One CJK character, or a run that starts at a letter or digit and stops at a space or CJK. */
-const WORD = new RegExp(String.raw`[${CJK}]|[\p{L}\p{N}][^\s${CJK}]*`, 'gu')
+/**
+ * One CJK character, or a run that starts at a letter or digit and stops at a
+ * space or CJK. Compiled on first use: the script classes are costly to build,
+ * and nothing is counted until after the first document shows.
+ */
+let word: RegExp | null = null
 
 export function countWords(text: string): number {
-  WORD.lastIndex = 0
+  word ??= new RegExp(String.raw`[${CJK}]|[\p{L}\p{N}][^\s${CJK}]*`, 'gu')
+  word.lastIndex = 0
   let n = 0
-  while (WORD.exec(text)) n++
+  while (word.exec(text)) n++
   return n
 }

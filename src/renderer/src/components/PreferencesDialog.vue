@@ -213,11 +213,12 @@ async function setFocusMode(value: boolean): Promise<void> {
 
 /** The languages spelling can be checked in, by name, read when the dialog opens. */
 const spellingLanguages = ref<Array<{ code: string; name: string }>>([])
-const languageNames = new Intl.DisplayNames(undefined, { type: 'language' })
 watch(
   () => props.open,
   async (open) => {
     if (!open || spellingLanguages.value.length) return
+    // Made here, not at setup: the dialog is mounted, closed, at startup.
+    const languageNames = new Intl.DisplayNames(undefined, { type: 'language' })
     const { available } = await window.api.spelling.languages()
     const named = (code: string): string => {
       try {
