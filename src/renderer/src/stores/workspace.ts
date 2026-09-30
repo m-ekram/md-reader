@@ -21,6 +21,8 @@ export interface TreeNode {
 const state = reactive({
   root: null as string | null,
   tree: [] as TreeNode[],
+  /** The tree row last focused: the one Tab returns to. */
+  treeFocus: '',
   articles: [] as MarkdownFile[],
   loadingArticles: false,
   search: {

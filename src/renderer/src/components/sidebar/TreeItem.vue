@@ -1,21 +1,33 @@
 <script setup lang="ts">
 /** One tree row. Self-recursive for nested folders. */
-import { toggleNode, type TreeNode } from '../../stores/workspace'
+import { toggleNode, useWorkspace, type TreeNode } from '../../stores/workspace'
 import { activeDoc, openPath } from '../../stores/documents'
 
-defineProps<{ node: TreeNode; depth: number }>()
+defineProps<{ node: TreeNode; depth: number; tabStop: string }>()
+
+const ws = useWorkspace()
 
 const isActive = (path: string): boolean =>
   (activeDoc.value?.path ?? '').toLowerCase() === path.toLowerCase()
 </script>
 
 <template>
-  <li class="tree__row">
+  <li class="tree__row" role="none">
+    <!--
+      The row is the tree item: a button, so Enter and Space act on it. One row
+      is the Tab stop (FileTreePanel moves it with the arrow keys).
+    -->
     <button
       class="tree__item"
+      role="treeitem"
       :class="{ 'is-active': !node.entry.isDirectory && isActive(node.entry.path) }"
       :style="{ paddingLeft: `${6 + depth * 12}px` }"
+      :aria-level="depth + 1"
       :aria-expanded="node.entry.isDirectory ? node.expanded : undefined"
+      :aria-selected="!node.entry.isDirectory && isActive(node.entry.path)"
+      :tabindex="node.entry.path === tabStop ? 0 : -1"
+      :data-path="node.entry.path"
+      @focus="ws.treeFocus = node.entry.path"
       @click="node.entry.isDirectory ? toggleNode(node) : openPath(node.entry.path)"
     >
       <span class="tree__twisty" aria-hidden="true">
@@ -24,12 +36,13 @@ const isActive = (path: string): boolean =>
       <span class="tree__name">{{ node.entry.name }}</span>
     </button>
 
-    <ul v-if="node.expanded && node.children" class="tree__children">
+    <ul v-if="node.expanded && node.children" class="tree__children" role="group">
       <TreeItem
         v-for="child in node.children"
         :key="child.entry.path"
         :node="child"
         :depth="depth + 1"
+        :tab-stop="tabStop"
       />
     </ul>
   </li>
@@ -61,6 +74,10 @@ const isActive = (path: string): boolean =>
 }
 .tree__item.is-active {
   background: var(--doc-selection);
+}
+.tree__item:focus-visible {
+  outline: 2px solid var(--chrome-accent);
+  outline-offset: -2px;
 }
 .tree__twisty {
   width: 10px;

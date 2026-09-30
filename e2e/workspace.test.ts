@@ -201,6 +201,37 @@ describe('workspace, sidebar and watching', () => {
     // Still open, as it was left.
     expect(await allText('.tree__name')()).toContain('also.md')
   })
+
+  it('is a tree the keyboard can walk', async () => {
+    // Every row was its own Tab stop, with no arrow keys and no tree roles for
+    // a screen reader to announce.
+    const focused = () =>
+      ctx.page.evaluate(() => document.activeElement?.querySelector('.tree__name')?.textContent)
+    const expanded = () =>
+      ctx.page.locator('.tree__item', { hasText: /^\W*sub$/ }).getAttribute('aria-expanded')
+
+    expect(await ctx.page.locator('[role="tree"] [role="treeitem"]').count()).toBeGreaterThan(3)
+    await ctx.page.locator('.tree__item', { hasText: /^\W*sub$/ }).focus()
+    expect(await ctx.page.locator('[role="tree"] [tabindex="0"]').count()).toBe(1)
+
+    expect(await expanded()).toBe('true')
+    await ctx.page.keyboard.press('ArrowLeft')
+    await expect.poll(expanded).toBe('false')
+    await ctx.page.keyboard.press('ArrowRight')
+    await expect.poll(expanded).toBe('true')
+    await ctx.page.keyboard.press('ArrowRight')
+    await expect.poll(focused).toBe('also.md')
+    await ctx.page.keyboard.press('ArrowDown')
+    await expect.poll(focused).toBe('third.md')
+    await ctx.page.keyboard.press('ArrowLeft')
+    await expect.poll(focused).toBe('sub')
+    // The Tab stop follows the focus.
+    expect(await ctx.page.locator('[role="tree"] [tabindex="0"]').innerText()).toContain('sub')
+
+    await ctx.page.keyboard.press('ArrowRight')
+    await ctx.page.keyboard.press('Enter')
+    await waitForText(ctx, 'Also')
+  })
 })
 
 describe('Open Quickly', () => {
