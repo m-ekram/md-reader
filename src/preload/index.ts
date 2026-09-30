@@ -108,6 +108,9 @@ const api = {
       ipcRenderer.invoke('fileops:create-file', dir, name),
     createFolder: (dir: string, name: string): Promise<string> =>
       ipcRenderer.invoke('fileops:create-folder', dir, name),
+    /** A file or folder in the open folder; resolves to its new path. */
+    rename: (path: string, name: string): Promise<string> =>
+      ipcRenderer.invoke('fileops:rename', path, name),
   },
 
   settings: {

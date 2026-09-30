@@ -20,7 +20,7 @@ import { clearJournal } from '../recovery'
 import { getSettings, patchSettings } from '../settings'
 import { log } from '../log'
 import { resolveInside } from '../paths'
-import { createFile, createFolder } from '../fileops'
+import { createFile, createFolder, renameEntry } from '../fileops'
 
 export interface FileProperties {
   path: string
@@ -148,6 +148,12 @@ export function registerWorkspaceIpc(): void {
     const path = await createFolder(openFolder(), dir, name)
     log.info('created folder', { path })
     return path
+  })
+
+  ipcMain.handle('fileops:rename', async (_e, path: string, name: string) => {
+    const to = await renameEntry(openFolder(), path, name)
+    log.info('renamed', { from: path, to })
+    return to
   })
 
   ipcMain.handle('fileops:parent-dir', (_e, path: string) => dirname(path))

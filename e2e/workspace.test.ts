@@ -148,6 +148,39 @@ describe('workspace, sidebar and watching', () => {
     expect(await readFile(join(notes(), 'second.md'), 'utf8')).toContain('Second note')
   })
 
+  it('renames from the right-click menu, taking open documents along', async () => {
+    // Renaming was only possible outside the app, and an open file's tab then
+    // had to find it again. Here the open, unsaved note moves with its folder.
+    const rename = async (row: string, name: string) => {
+      await ctx.page.locator('.tree__item', { hasText: row }).first().click({ button: 'right' })
+      await ctx.page.locator('.context-menu [role="menuitem"]', { hasText: 'Rename' }).click()
+      const box = ctx.page.locator('.tree__name-input')
+      await box.fill(name)
+      await box.press('Enter')
+    }
+
+    await rename('made-here', 'renamed-here')
+    await expect.poll(() => existsSync(join(notes(), 'renamed-here', 'fresh-note.md'))).toBe(true)
+    expect(existsSync(join(notes(), 'made-here'))).toBe(false)
+    // The unsaved text is saved to where the file is now.
+    await ctx.page.locator('.ProseMirror').click()
+    await ctx.page.keyboard.press('Control+s')
+    await expect
+      .poll(() => readFile(join(notes(), 'renamed-here', 'fresh-note.md'), 'utf8'))
+      .toContain('Written straight away.')
+
+    // A file keeps its extension when the new name has none.
+    await ctx.page.locator('.tree__item', { hasText: 'renamed-here' }).click()
+    await rename('fresh-note.md', 'kept-note')
+    await expect.poll(() => existsSync(join(notes(), 'renamed-here', 'kept-note.md'))).toBe(true)
+    await expect.poll(() => ctx.page.title()).toContain('kept-note.md')
+
+    // Never onto a name that is taken.
+    await rename('kept-note.md', '../second')
+    await expect.poll(async () => (await noticeTexts(ctx)).join(' ')).toContain('cannot contain')
+    expect(existsSync(join(notes(), 'renamed-here', 'kept-note.md'))).toBe(true)
+  })
+
   it('expands a folder lazily and opens a nested file', async () => {
     await ctx.page.locator('.tree__item', { hasText: 'sub' }).first().click()
     await expect.poll(allText('.tree__name')).toContain('third.md')

@@ -119,6 +119,24 @@ function followRename(doc: Doc, newPath: string, mtimeMs: number): void {
 }
 
 /**
+ * Moves the open documents a rename from the sidebar moved: the file itself,
+ * or every file under a renamed folder. Done at once rather than left to the
+ * watcher, which reports a rename as a removal and an addition.
+ */
+export function followMove(from: string, to: string): void {
+  const lower = from.toLowerCase()
+  for (const doc of docs.docs) {
+    const path = doc.path
+    if (!path) continue
+    const p = path.toLowerCase()
+    if (p === lower) followRename(doc, to, doc.mtimeMs)
+    else if (p.startsWith(`${lower}\\`) || p.startsWith(`${lower}/`)) {
+      followRename(doc, to + path.slice(from.length), doc.mtimeMs)
+    }
+  }
+}
+
+/**
  * Correlates removals with additions to recognise a rename.
  *
  * A rename reaches the watcher as a remove of the old path and an add of the

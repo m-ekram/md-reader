@@ -10,6 +10,7 @@ import { computed, nextTick, ref } from 'vue'
 import NoFolder from './NoFolder.vue'
 import {
   commitCreate,
+  creatingIn,
   startCreate,
   toggleNode,
   useWorkspace,
@@ -108,9 +109,9 @@ async function onKeydown(e: KeyboardEvent): Promise<void> {
   <div class="panel tree-panel" @contextmenu="onPanelMenu">
     <NoFolder v-if="!ws.root" />
     <TreeNameInput
-      v-else-if="ws.treeEdit?.dir === ws.root"
+      v-else-if="creatingIn(ws.root)"
       :depth="0"
-      :label="ws.treeEdit.kind === 'file' ? 'New file name' : 'New folder name'"
+      :label="creatingIn(ws.root) === 'file' ? 'New file name' : 'New folder name'"
       @commit="commitCreate"
       @cancel="ws.treeEdit = null"
     />

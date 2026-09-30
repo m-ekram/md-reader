@@ -4,13 +4,14 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readdirSync,
   rmSync,
   statSync,
   writeFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { createFile, createFolder } from './fileops'
+import { createFile, createFolder, renameEntry } from './fileops'
 
 let root: string
 
@@ -43,6 +44,40 @@ describe('createFile', () => {
     await expect(createFile(root, root, '../escaped')).rejects.toThrow()
     await expect(createFile(root, tmpdir(), 'outside')).rejects.toThrow()
     expect(existsSync(join(tmpdir(), 'outside.md'))).toBe(false)
+  })
+})
+
+describe('renameEntry', () => {
+  it('renames a file, keeping its extension when the new name has none', async () => {
+    const to = await renameEntry(root, join(root, 'sub', 'kept.md'), 'renamed')
+    expect(to).toBe(join(root, 'sub', 'renamed.md'))
+    expect(readFileSync(to, 'utf8')).toBe('Already here.\n')
+    expect(existsSync(join(root, 'sub', 'kept.md'))).toBe(false)
+  })
+
+  it('renames a folder, with what is in it', async () => {
+    const to = await renameEntry(root, join(root, 'sub'), 'moved')
+    expect(existsSync(join(to, 'kept.md'))).toBe(true)
+  })
+
+  it('never renames onto a name that is taken', async () => {
+    writeFileSync(join(root, 'sub', 'other.md'), 'Other.\n')
+    await expect(renameEntry(root, join(root, 'sub', 'kept.md'), 'other.md')).rejects.toThrow(
+      /already/
+    )
+    expect(readFileSync(join(root, 'sub', 'other.md'), 'utf8')).toBe('Other.\n')
+    expect(existsSync(join(root, 'sub', 'kept.md'))).toBe(true)
+  })
+
+  it('changes only the case of a name', async () => {
+    const to = await renameEntry(root, join(root, 'sub', 'kept.md'), 'Kept.md')
+    expect(to).toBe(join(root, 'sub', 'Kept.md'))
+    expect(readdirSync(join(root, 'sub'))).toEqual(['Kept.md'])
+  })
+
+  it('refuses the open folder itself, and anything outside it', async () => {
+    await expect(renameEntry(root, root, 'x')).rejects.toThrow()
+    await expect(renameEntry(root, tmpdir(), 'x')).rejects.toThrow()
   })
 })
 

@@ -10,6 +10,7 @@ import { invalidateCommands } from '../commands/registry'
 import { useSettingsStore } from './settings'
 import { showNotice } from './ui'
 import { openPath } from './documents'
+import { followMove } from './external-changes'
 import { describeError } from '../utils/report'
 
 export interface TreeNode {
@@ -25,8 +26,14 @@ const state = reactive({
   tree: [] as TreeNode[],
   /** The tree row last focused: the one Tab returns to. */
   treeFocus: '',
-  /** A name being typed in the tree: for a new file or folder in `dir`. */
-  treeEdit: null as null | { kind: 'file' | 'folder'; dir: string },
+  /**
+   * A name being typed in the tree: for a new file or folder in `dir`, or a
+   * new name for `path`.
+   */
+  treeEdit: null as
+    | null
+    | { kind: 'file' | 'folder'; dir: string }
+    | { kind: 'rename'; path: string },
   articles: [] as MarkdownFile[],
   loadingArticles: false,
   search: {
@@ -133,6 +140,21 @@ function findNode(path: string, nodes = state.tree): TreeNode | null {
   return null
 }
 
+/** What is being made in `dir`, if anything: the tree shows a name box there. */
+export function creatingIn(dir: string): 'file' | 'folder' | null {
+  const edit = state.treeEdit
+  return edit && edit.kind !== 'rename' && edit.dir === dir ? edit.kind : null
+}
+
+/** Whether `path`'s row is a name box for renaming it. */
+export function renaming(path: string): boolean {
+  return state.treeEdit?.kind === 'rename' && state.treeEdit.path === path
+}
+
+export function startRename(path: string): void {
+  state.treeEdit = { kind: 'rename', path }
+}
+
 /**
  * Asks for the name of a new file or folder, in the tree where it will go.
  * The folder is opened first, so the name box shows among its contents.
@@ -150,7 +172,7 @@ export async function startCreate(kind: 'file' | 'folder', dir: string): Promise
 export async function commitCreate(name: string): Promise<void> {
   const edit = state.treeEdit
   state.treeEdit = null
-  if (!edit || !name.trim()) return
+  if (!edit || edit.kind === 'rename' || !name.trim()) return
   try {
     const path =
       edit.kind === 'file'
@@ -159,6 +181,29 @@ export async function commitCreate(name: string): Promise<void> {
     await refreshTree()
     void refreshArticles()
     if (edit.kind === 'file') await openPath(path)
+  } catch (err) {
+    showNotice(describeError(err), 'error')
+  }
+}
+
+/**
+ * Renames what `path` names, from the name typed in its row. Open documents
+ * move with it, a file's or everything in a folder's, their unsaved work and
+ * journals included. A taken or disallowed name is said, and nothing moves.
+ */
+export async function commitRename(name: string): Promise<void> {
+  const edit = state.treeEdit
+  state.treeEdit = null
+  if (edit?.kind !== 'rename') return
+  const from = edit.path
+  const oldName = from.slice(folderOf(from).length + 1)
+  if (!name.trim() || name.trim() === oldName) return
+  try {
+    const to = await window.api.fileops.rename(from, name.trim())
+    followMove(from, to)
+    state.treeFocus = to
+    await refreshTree()
+    void refreshArticles()
   } catch (err) {
     showNotice(describeError(err), 'error')
   }

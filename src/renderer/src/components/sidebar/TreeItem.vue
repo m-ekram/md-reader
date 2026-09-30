@@ -2,8 +2,12 @@
 /** One tree row. Self-recursive for nested folders. */
 import {
   commitCreate,
+  commitRename,
+  creatingIn,
   folderOf,
+  renaming,
   startCreate,
+  startRename,
   toggleNode,
   useWorkspace,
   type TreeNode,
@@ -31,6 +35,8 @@ function onContextMenu(e: MouseEvent, node: TreeNode): void {
     { label: 'New File', run: () => startCreate('file', dir) },
     { label: 'New Folder', run: () => startCreate('folder', dir) },
     { separator: true },
+    { label: 'Rename', run: () => startRename(path) },
+    { separator: true },
     { label: 'Show in Folder', run: () => window.api.file.showInFolder(path) },
     { label: 'Copy Path', run: () => window.api.clipboard.write({ text: path }) }
   )
@@ -44,7 +50,16 @@ function onContextMenu(e: MouseEvent, node: TreeNode): void {
       The row is the tree item: a button, so Enter and Space act on it. One row
       is the Tab stop (FileTreePanel moves it with the arrow keys).
     -->
+    <TreeNameInput
+      v-if="renaming(node.entry.path)"
+      :depth="depth"
+      label="New name"
+      :initial="node.entry.name"
+      @commit="commitRename"
+      @cancel="ws.treeEdit = null"
+    />
     <button
+      v-else
       class="tree__item"
       role="treeitem"
       :class="{ 'is-active': !node.entry.isDirectory && isActive(node.entry.path) }"
@@ -65,10 +80,10 @@ function onContextMenu(e: MouseEvent, node: TreeNode): void {
     </button>
 
     <ul v-if="node.expanded && node.children" class="tree__children" role="group">
-      <li v-if="ws.treeEdit?.dir === node.entry.path" role="none">
+      <li v-if="creatingIn(node.entry.path)" role="none">
         <TreeNameInput
           :depth="depth + 1"
-          :label="ws.treeEdit.kind === 'file' ? 'New file name' : 'New folder name'"
+          :label="creatingIn(node.entry.path) === 'file' ? 'New file name' : 'New folder name'"
           @commit="commitCreate"
           @cancel="ws.treeEdit = null"
         />
