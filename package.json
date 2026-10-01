@@ -1,18 +1,23 @@
 {
   "name": "ekram-md",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "A fast WYSIWYG markdown editor for Windows",
   "productName": "ekram.md",
   "main": "./out/main/index.js",
-  "author": "ekram",
+  "author": "Muhammad Ekram",
   "license": "MIT",
+  "homepage": "https://github.com/m-ekram/md-reader",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/m-ekram/md-reader.git"
+  },
   "private": true,
   "scripts": {
     "bench": "node scripts/bench.cjs",
     "bench:typing": "node scripts/bench-typing.cjs",
     "build": "electron-vite build",
-    "build:dir": "electron-vite build && electron-builder --win --dir",
-    "build:win": "electron-vite build && electron-builder --win",
+    "build:dir": "electron-vite build && electron-builder --win --dir --publish never",
+    "build:win": "electron-vite build && electron-builder --win --publish never",
     "dev": "electron-vite dev",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -28,9 +33,16 @@
     "verify": "npm run typecheck && npm run lint && npm run test && npm run test:e2e"
   },
   "devDependencies": {
+    "@codemirror/language": "6.12.4",
+    "@codemirror/search": "6.7.2",
+    "@codemirror/view": "6.43.12",
     "@eslint/js": "9.39.1",
+    "@lezer/highlight": "1.2.3",
+    "@milkdown/crepe": "7.22.1",
+    "@milkdown/kit": "7.22.1",
     "@types/node": "^22.10.5",
     "@vitejs/plugin-vue": "6.0.9",
+    "dompurify": "3.4.16",
     "electron": "44.4.5",
     "electron-builder": "26.15.3",
     "electron-vite": "5.0.0",
@@ -39,29 +51,23 @@
     "eslint-plugin-vue": "10.5.0",
     "globals": "16.5.0",
     "happy-dom": "^20.14.5",
+    "mermaid": "12.0.0",
     "playwright": "1.63.0",
     "prettier": "3.6.2",
+    "prosemirror-search": "1.1.1",
+    "remark-frontmatter": "5.0.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3",
     "typescript-eslint": "8.46.2",
     "vite": "7.3.6",
     "vitest": "^5.0.1",
-    "vue-tsc": "3.3.11"
+    "vue": "3.5.43",
+    "vue-tsc": "3.3.11",
+    "yaml": "2.9.1"
   },
   "dependencies": {
-    "@codemirror/language": "6.12.4",
-    "@codemirror/search": "6.7.2",
-    "@codemirror/view": "6.43.12",
-    "@lezer/highlight": "1.2.3",
-    "@milkdown/crepe": "7.22.1",
-    "@milkdown/kit": "7.22.1",
     "chokidar": "5.0.0",
-    "dompurify": "3.4.16",
-    "mermaid": "12.0.0",
-    "prosemirror-search": "1.1.1",
-    "remark-frontmatter": "5.0.0",
-    "vue": "3.5.43",
-    "yaml": "2.9.1"
+    "electron-updater": "6.8.9"
   },
   "overrides": {
     "lodash-es": "4.18.1"
