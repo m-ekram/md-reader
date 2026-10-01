@@ -43,6 +43,8 @@ win:
       arch: [x64]
     - target: zip
       arch: [x64]
+  # The zip's name; the installer's is set under nsis.
+  artifactName: ${productName}-${version}-win-${arch}.${ext}
   # File association, so "Open with" and double-click reach the app.
   fileAssociations:
     - ext: md
@@ -51,9 +53,6 @@ win:
     - ext: markdown
       name: Markdown Document
       role: Editor
-
-zip:
-  artifactName: ${productName}-${version}-win-${arch}.${ext}
 
 nsis:
   # No spaces: the name is part of the download's URL, and the update feed
