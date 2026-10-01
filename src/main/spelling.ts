@@ -8,6 +8,7 @@
  */
 import { ipcMain, session } from 'electron'
 import { getSettings, patchSettings, settingsState } from './settings'
+import { log } from './log'
 
 /** `lang` when it is one of the languages the session can check, else null. */
 export function validLanguage(lang: unknown, available: readonly string[]): string | null {
@@ -33,6 +34,16 @@ export function applyStoredSpellingLanguage(): void {
 }
 
 export function registerSpellingIpc(): void {
+  // Chromium may fetch a dictionary for a language the system cannot check
+  // itself. Logged, so what the app sends over the network is on record (the
+  // README's privacy statement rests on it).
+  const s = session.defaultSession
+  s.on('spellcheck-dictionary-download-begin', (_e, lang) =>
+    log.info('spelling: downloading a dictionary', { lang })
+  )
+  s.on('spellcheck-dictionary-download-failure', (_e, lang) =>
+    log.warn('spelling: dictionary download failed', { lang })
+  )
   ipcMain.handle('spelling:languages', () => ({
     available: session.defaultSession.availableSpellCheckerLanguages,
     current: session.defaultSession.getSpellCheckerLanguages(),
