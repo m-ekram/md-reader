@@ -1,0 +1,83 @@
+name: release
+
+# Builds a release when a version tag is pushed (git tag v1.0.0 && git push
+# origin v1.0.0): the Windows installer and the portable zip, attached to a
+# draft GitHub Release with the update feed (latest.yml) the installed app reads.
+# Nothing reaches users until the draft is published by hand.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  # Creating the draft release and uploading to it.
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      # The tag names the version; package.json is what the app reports, and
+      # what the update feed compares. They must agree.
+      - name: Tag matches package.json
+        shell: bash
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          if [ "${GITHUB_REF_NAME}" != "v${version}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match package.json version ${version}"
+            exit 1
+          fi
+
+      - name: Install
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint -- --max-warnings 0
+      - name: Unit tests
+        run: npm test
+
+      # The end-to-end suite against the packaged app, not the development
+      # build: a module the bundle needs at run time but the package left out
+      # only shows here.
+      - name: Package for testing
+        run: npm run build:dir
+      - name: End-to-end tests, packaged app
+        env:
+          E2E_EXE: ${{ github.workspace }}\dist\win-unpacked\ekram-md.exe
+        run: npx vitest run --project e2e
+
+      # Code signing, not yet set up. Unsigned, Windows SmartScreen warns on
+      # first run ("More info", then "Run anyway"). To sign, either:
+      #   - add a code-signing certificate as the secrets WIN_CSC_LINK (base64
+      #     of the .pfx) and WIN_CSC_KEY_PASSWORD, and pass them to the build
+      #     step below as CSC_LINK and CSC_KEY_PASSWORD; electron-builder signs
+      #     the app, the installer and the uninstaller with them; or
+      #   - use Azure Trusted Signing: add `azureSignOptions` under `win:` in
+      #     electron-builder.yml and the AZURE_* credentials as secrets.
+      - name: Code signing (placeholder)
+        shell: bash
+        run: |
+          echo "Not signed: no certificate is configured. See the comment above this step."
+
+      - name: Build and attach to a draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          # CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+        run: npx electron-builder --win --publish always
+
+      - name: Sizes
+        shell: bash
+        run: ls -l dist/*.exe dist/*.zip dist/latest.yml
