@@ -1,6 +1,6 @@
 # What's New
 
-## Since 0.1.0
+## 1.0.0
 
 ### Make the page yours
 
