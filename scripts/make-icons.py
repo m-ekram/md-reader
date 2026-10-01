@@ -3,8 +3,8 @@ Builds the app's icons from the logo.
 
     wsl -d Ubuntu-24.04 -- python3 scripts/make-icons.py [--sheet out.png]
 
-Reads resources/logo.png (the full logo: a book mark above the "ekram.md"
-wordmark, on an off-white ground) and writes:
+Reads resources/logo.png (the full logo: a document mark, a page with a folded
+corner, above the "ekram.md" wordmark, on an off-white ground) and writes:
 
     resources/icon.ico                     16-256 px, embedded in the exe, used
                                            for the installer, shortcuts and
@@ -13,10 +13,11 @@ wordmark, on an off-white ground) and writes:
     src/renderer/src/assets/logo-mark.png  64 px, the title bar mark
 
 Only the mark is used: the wordmark cannot be read at icon sizes. Only the
-ground *outside* the mark is made transparent. The page inside the book is the
-same off-white as the ground, and removing it too left a hole that, on a dark
-taskbar (Windows' default), showed little but the orange strokes. The page's
-outline is not closed, so small gaps are sealed before the outside is filled.
+ground *outside* the mark is made transparent. The page inside the outline is
+the same off-white as the ground, and removing it too left a hole that, on a
+dark taskbar (Windows' default), showed little but the orange strokes. The
+page's outline is not closed, so its gaps are sealed before the outside is
+filled.
 Colours are kept exactly as drawn; the resize to each size smooths the edges.
 
 Needs Pillow (in WSL: apt install python3-pil). --sheet also writes a contact
@@ -39,11 +40,11 @@ NOISE = 8
 MARGIN = 0.06
 # How far a pixel must be from the ground to count as part of a stroke.
 EDGE = 40
-# The page's outline has an opening where it meets the fold. Strokes are
-# thickened by this much (px, at the source's scale) while finding what is
-# outside, so the fill cannot leak onto the page: measured, 13 px leaks and
-# 17 px seals it.
-CLOSE = 17
+# The page's outline is open beside the fold, above it and below it. Strokes
+# are thickened by this much (px, at the source's scale) while finding what is
+# outside, so the fill cannot leak onto the page. Measured on the current logo:
+# 21 leaks, 25 seals it; past 49 the thickening outgrows PAD.
+CLOSE = 29
 # The ground kept around the mark while working, so the fill starts in it.
 PAD = 24
 
