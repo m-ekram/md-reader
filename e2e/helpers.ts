@@ -95,6 +95,8 @@ export function useApp(): AppContext {
     for (const [k, v] of Object.entries(process.env)) {
       if (k !== 'ELECTRON_RUN_AS_NODE' && v !== undefined) env[k] = v
     }
+    // A packaged build would otherwise ask GitHub for updates during the run.
+    env.EKRAM_NO_UPDATES = '1'
 
     ctx.app = await electron.launch({
       // Its own user-data directory, or journals and settings leak between

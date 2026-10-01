@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { DocumentFile, SaveRequest, SaveResult, WindowState } from '../shared/ipc'
 import type { SettingsPatch, SettingsState } from '../shared/settings'
+import type { UpdateEvent } from '../shared/updates'
 import type { BackupInfo, JournalEntry, VersionInfo } from '../main/recovery'
 import type { DirEntry, MarkdownFile } from '../main/workspace'
 import type { FileProperties, SearchFlags } from '../main/ipc/workspace'
@@ -136,6 +137,17 @@ const api = {
     patch: (patch: SettingsPatch): Promise<SettingsState> =>
       ipcRenderer.invoke('settings:patch', patch),
     onChanged: (fn: (s: SettingsState) => void) => subscribe('settings:changed', fn),
+  },
+
+  updates: {
+    /** Once the page has painted: the start-up check, if one is due, runs a while later. */
+    startup: (): void => ipcRenderer.send('updates:startup'),
+    /** Help ▸ Check Updates; the answer comes as an event. */
+    check: (): Promise<void> => ipcRenderer.invoke('updates:check'),
+    download: (): Promise<void> => ipcRenderer.invoke('updates:download'),
+    restart: (): void => ipcRenderer.send('updates:restart'),
+    openRelease: (): void => ipcRenderer.send('updates:open-release'),
+    onEvent: (fn: (e: UpdateEvent) => void) => subscribe('updates:event', fn),
   },
 
   spelling: {

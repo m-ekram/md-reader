@@ -25,7 +25,9 @@ import { cancelAllSearches } from './search'
 import { listThemes, readUserTheme, watchUserThemes } from './themes'
 import { flushJournals } from './recovery'
 import { applyStoredSpellingLanguage, registerSpellingIpc } from './spelling'
+import { installIfRestarting, registerUpdateIpc, restartDeclined } from './updates'
 import type { SettingsPatch } from '../shared/settings'
+import { REPOSITORY_URL } from '../shared/project'
 import icon from '../../resources/icon.png?asset'
 
 installCrashHandlers()
@@ -67,6 +69,7 @@ if (!app.requestSingleInstanceLock()) {
     registerWindowIpc()
     registerAppIpc()
     registerSpellingIpc()
+    registerUpdateIpc()
     applyStoredSpellingLanguage()
 
     createWindow(markdownArgs(process.argv))
@@ -96,7 +99,12 @@ if (!app.requestSingleInstanceLock()) {
  */
 let quitting = false
 
-app.on('window-all-closed', () => app.quit())
+// Unless the last window closed for Restart now, which installs and restarts.
+app.on('window-all-closed', () => {
+  void installIfRestarting().then((installing) => {
+    if (!installing) app.quit()
+  })
+})
 app.on('before-quit', () => {
   quitting = true
   flushJournals()
@@ -225,6 +233,8 @@ function registerWindowIpc(): void {
     const w = senderWindow(e)
     if (!w) return
     standDown(w)
+    // Kept open, for unsaved work: a restart to update waits for another time.
+    if (!allow) restartDeclined()
     if (allow) {
       closing.add(w)
       w.destroy()
@@ -295,13 +305,22 @@ function registerAppIpc(): void {
   // only About shows the logo.
   ipcMain.handle('app:about', async (e) => {
     const win = BrowserWindow.fromWebContents(e.sender)
-    await dialog.showMessageBox(win ?? undefined!, {
+    const { response } = await dialog.showMessageBox(win ?? undefined!, {
       type: 'none',
       icon: nativeImage.createFromPath(icon).resize({ width: 64, height: 64 }),
-      buttons: ['OK'],
+      buttons: ['OK', 'Website'],
+      defaultId: 0,
+      cancelId: 0,
+      noLink: true,
       message: 'ekram.md',
-      detail: `Version ${app.getVersion()}`,
+      detail: [
+        `Version ${app.getVersion()}`,
+        'A WYSIWYG markdown editor for Windows.',
+        '',
+        '© 2026 Muhammad Ekram. Released under the MIT licence.',
+      ].join('\n'),
     })
+    if (response === 1) await shell.openExternal(REPOSITORY_URL)
   })
 
   // Native dialogs rather than window.confirm/alert: those block the renderer

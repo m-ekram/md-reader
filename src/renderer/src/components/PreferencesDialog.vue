@@ -580,6 +580,21 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
           </label>
           <p class="hint">Files you open keep their own.</p>
 
+          <label class="row row--check">
+            <input
+              type="checkbox"
+              :checked="settings.checkForUpdates"
+              @change="
+                patchSettings({ checkForUpdates: ($event.target as HTMLInputElement).checked })
+              "
+            />
+            <span>Check for updates when ekram.md starts</span>
+          </label>
+          <p class="hint">
+            Asks GitHub whether there is a newer version, and tells you; nothing is downloaded
+            unless you choose to. Help ▸ Check Updates asks at any time.
+          </p>
+
           <div class="row">
             <span class="row__label">
               Recent files: {{ settings.recentFiles.length || 'none' }}

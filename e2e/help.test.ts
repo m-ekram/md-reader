@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest'
-import { nextFrames, useApp } from './helpers'
+import { nextFrames, noticeTexts, useApp } from './helpers'
 
 /**
  * The Help menu.
@@ -121,24 +121,7 @@ describe('help topics', () => {
   })
 })
 
-describe('items that are greyed on purpose', () => {
-  it('says why Check Updates cannot be used', async () => {
-    await ctx.page.keyboard.press('Escape')
-    await ctx.page.locator('.menubar__top', { hasText: /^Help$/ }).click()
-    await ctx.page.waitForSelector('.menu[role="menu"]', { state: 'visible' })
-
-    const item = ctx.page
-      .locator('.menu[role="menu"] .menu__item')
-      .filter({ has: ctx.page.locator('.menu__label', { hasText: /^Check Updates/ }) })
-      .first()
-
-    expect(await item.getAttribute('aria-disabled')).toBe('true')
-    // "Not available yet" would be a different statement: this one will not
-    // change in a later version.
-    expect(await item.getAttribute('title')).toContain('update server')
-    await ctx.page.keyboard.press('Escape')
-  })
-
+describe('the menus', () => {
   it('leaves no item saying "Not available yet"', async () => {
     // Every menu item is now either implemented or greyed with a stated
     // reason. The placeholder tooltip means one was missed.
@@ -154,5 +137,43 @@ describe('items that are greyed on purpose', () => {
       expect(stale, `${menu} still has an unimplemented item`).toBe(0)
     }
     await ctx.page.keyboard.press('Escape')
+  })
+})
+
+describe('About', () => {
+  it('names the version, the author and the licence', async () => {
+    await ctx.app.evaluate(({ dialog }) => {
+      const g = globalThis as unknown as { __about: { message: string; detail?: string }[] }
+      g.__about = []
+      dialog.showMessageBox = (async (...args: unknown[]) => {
+        const opts = (args.length > 1 ? args[1] : args[0]) as { message: string; detail?: string }
+        g.__about.push({ message: String(opts.message), detail: opts.detail })
+        return { response: 0, checkboxChecked: false }
+      }) as typeof dialog.showMessageBox
+    })
+    await chooseHelp('About')
+    await expect
+      .poll(() =>
+        ctx.app.evaluate(
+          () =>
+            (globalThis as unknown as { __about: { message: string; detail?: string }[] }).__about
+        )
+      )
+      .toEqual([
+        {
+          message: 'ekram.md',
+          detail: expect.stringMatching(/Version 1\.0\.0[\s\S]*Muhammad Ekram[\s\S]*MIT/),
+        },
+      ])
+  })
+})
+
+describe('Check Updates', () => {
+  it('answers, here that this build does not update itself', async () => {
+    // Not a packaged, installed app: what a development build or a test run says.
+    await chooseHelp('Check Updates')
+    await expect
+      .poll(async () => (await noticeTexts(ctx)).join(' '))
+      .toContain('Updates are checked in the installed app')
   })
 })

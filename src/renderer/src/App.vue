@@ -25,6 +25,7 @@ import { stepFontSize } from './stores/settings'
 import { installFileDrop } from './drop'
 import { flushSession } from './stores/session'
 import { autoSaveNow, installAutoSave } from './commands/autosave'
+import { installUpdates } from './stores/updates'
 
 const docs = useDocuments()
 const unsubscribers: Array<() => void> = []
@@ -78,6 +79,7 @@ onMounted(() => {
   window.addEventListener('wheel', onWheel, { passive: false })
   unsubscribers.push(installFileDrop())
   unsubscribers.push(installAutoSave())
+  unsubscribers.push(installUpdates())
 
   unsubscribers.push(window.api.file.onOpenPath((path) => void openPath(path)))
 

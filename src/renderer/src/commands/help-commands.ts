@@ -12,6 +12,7 @@
 import { markSaved, useDocuments, newDoc, setActive } from '../stores/documents'
 import { showNotice } from '../stores/ui'
 import { invalidateCommands, registerAll, type Command } from './registry'
+import { ISSUES_URL } from '../../../shared/project'
 
 const docs = useDocuments()
 
@@ -61,22 +62,12 @@ const helpCommands: Command[] = [
 
   {
     id: 'help.feedback',
-    run: () => void window.api.app.openExternal('https://github.com/m-ekram/md-reader/issues'),
+    run: () => void window.api.app.openExternal(ISSUES_URL),
   },
 
-  /**
-   * Check Updates.
-   *
-   * Registered but never enabled. There is no update server, and the menu
-   * shows unavailable items rather than hiding them — so this is greyed for a
-   * stated reason instead of greyed because nobody got to it.
-   */
-  {
-    id: 'help.checkUpdates',
-    enabled: () => false,
-    disabledReason: 'No update server is configured for this build.',
-    run: () => {},
-  },
+  // Against the project's GitHub Releases; the answer comes back as a notice
+  // (stores/updates.ts), whatever it is.
+  { id: 'help.checkUpdates', run: () => window.api.updates.check() },
 ]
 
 export function registerHelpCommands(): void {

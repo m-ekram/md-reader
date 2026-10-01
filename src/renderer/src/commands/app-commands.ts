@@ -35,6 +35,7 @@ import { notify } from '../stores/notifications'
 import { suggestSavePath } from '../utils/save-name'
 import { openHistory } from '../stores/history'
 import { flushAll } from '../editor/pool'
+import { REPOSITORY_URL } from '../../../shared/project'
 
 const docs = useDocuments()
 const settings = useSettingsStore()
@@ -411,7 +412,7 @@ const commands: Command[] = [
   // Help
   {
     id: 'help.website',
-    run: () => void window.api.app.openExternal('https://github.com/m-ekram/md-reader'),
+    run: () => void window.api.app.openExternal(REPOSITORY_URL),
   },
   {
     id: 'help.about',

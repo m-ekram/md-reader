@@ -62,6 +62,8 @@ export interface Settings {
   autoSave: boolean
   /** How long typing must pause before an auto-save, 300 ms to 10 s. */
   autoSaveDelayMs: number
+  /** Looks for a newer version on GitHub a little after the app starts. */
+  checkForUpdates: boolean
   /** Line endings a new document is written with. Opened files keep their own. */
   newFileEol: 'crlf' | 'lf'
   /**
@@ -104,6 +106,7 @@ export const DEFAULT_SETTINGS: Settings = {
   session: { restore: true, files: [], active: null },
   autoSave: false,
   autoSaveDelayMs: 1000,
+  checkForUpdates: true,
   newFileEol: 'crlf',
   followSystem: { enabled: false, light: 'github', dark: 'night' },
   pdf: { ...DEFAULT_PAGE_SETUP },
