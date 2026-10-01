@@ -36,8 +36,12 @@ win:
   # than left to discovery: a missing icon would otherwise fall back, silently,
   # to Electron's own.
   icon: resources/icon.ico
+  # The installer, and a portable zip for those who would rather not install:
+  # unzip anywhere and run ekram-md.exe. The zip cannot update itself.
   target:
     - target: nsis
+      arch: [x64]
+    - target: zip
       arch: [x64]
   # File association, so "Open with" and double-click reach the app.
   fileAssociations:
@@ -48,10 +52,28 @@ win:
       name: Markdown Document
       role: Editor
 
+zip:
+  artifactName: ${productName}-${version}-win-${arch}.${ext}
+
 nsis:
+  # No spaces: the name is part of the download's URL, and the update feed
+  # (latest.yml) points at it.
+  artifactName: ${productName}-Setup-${version}.${ext}
+  # Settings, recovery journals and saved versions stay, so a reinstall picks
+  # up where the user left off.
+  deleteAppDataOnUninstall: false
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: ekram.md
+
+# Where releases are published, and where the installed app looks for updates:
+# electron-builder writes this into the app as app-update.yml. The release
+# workflow publishes to a draft, which users never see until it is published.
+publish:
+  provider: github
+  owner: m-ekram
+  repo: md-reader
+  releaseType: draft
